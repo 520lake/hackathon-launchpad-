@@ -1,0 +1,27 @@
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.env
+frontend/.env.local
+frontend/coverage/
+
+# Backend
+backend/__pycache__/
+backend/*.py[cod]
+backend/.venv
+backend/venv/
+backend/.env
+backend/.pytest_cache/
+backend/alembic.ini
+backend/*.db
+backend/*.sqlite3
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db

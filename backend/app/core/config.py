@@ -7,28 +7,49 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "VibeBuild API"
     API_V1_STR: str = "/api/v1"
+    SECRET_KEY: str = secrets.token_urlsafe(32)
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Database
     POSTGRES_SERVER: str = "db"
     POSTGRES_USER: str = "postgres"
     POSTGRES_PASSWORD: str = "changethis"
     POSTGRES_DB: str = "vibebuild"
-    DATABASE_URL: Union[str, None] = None
+    DATABASE_URL: Union[str, None] = "sqlite:///./vibebuild.db"
 
     @validator("DATABASE_URL", pre=True)
     def assemble_db_connection(cls, v: Union[str, None], values: dict[str, any]) -> any:
         if isinstance(v, str):
             return v
-        return PostgresDsn.build(
-            scheme="postgresql",
-            username=values.get("POSTGRES_USER"),
-            password=values.get("POSTGRES_PASSWORD"),
-            host=values.get("POSTGRES_SERVER"),
-            path=f"{values.get('POSTGRES_DB') or ''}",
-        ).unicode_string()
+        # Fallback to SQLite if Postgres credentials aren't sufficient or if explicitly desired
+        # For now, we default to the SQLite URL defined above
+        return v 
+        
+        # Original Postgres logic preserved but commented out for local dev without Docker
+        # return PostgresDsn.build(
+        #     scheme="postgresql",
+        #     username=values.get("POSTGRES_USER"),
+        #     password=values.get("POSTGRES_PASSWORD"),
+        #     host=values.get("POSTGRES_SERVER"),
+        #     path=f"{values.get('POSTGRES_DB') or ''}",
+        # ).unicode_string()
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["http://localhost:5173", "http://localhost:3000"]
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+        "http://localhost:5173", 
+        "http://localhost:3000",
+        "http://127.0.0.1:5173"
+    ]
+
+    # WeChat
+    WECHAT_APP_ID: str = "wx2a602f36c8819aba"
+    WECHAT_APP_SECRET: str = "4b391b6f8904d6f9784a90eed13c507d"
+    WECHAT_TOKEN: str = "vibebuild_token"
+
+    # ModelScope AI
+    MODELSCOPE_API_KEY: str = ""
+    MODELSCOPE_BASE_URL: str = "https://api-inference.modelscope.cn/v1"
+    MODELSCOPE_MODEL_NAME: str = "Qwen/Qwen2.5-72B-Instruct"
 
     class Config:
         case_sensitive = True

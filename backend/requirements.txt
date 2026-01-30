@@ -1,6 +1,6 @@
 fastapi
 uvicorn[standard]
-pydantic
+pydantic[email]
 pydantic-settings
 sqlmodel
 alembic
@@ -10,3 +10,5 @@ python-jose[cryptography]
 passlib[bcrypt]
 python-multipart
 httpx
+email-validator
+openai

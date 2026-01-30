@@ -1,3 +1,12 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
+pydantic-settings
+sqlmodel
+alembic
+psycopg2-binary
+asyncpg
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+httpx

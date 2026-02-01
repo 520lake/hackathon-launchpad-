@@ -5,7 +5,7 @@ colorFrom: gray
 colorTo: black
 sdk: docker
 app_port: 7860
-license: apache-2.0
+license: Apache-2.0
 ---
 
 # VibeBuild - AI-Empowered Hackathon Platform (AI 赋能黑客松平台)

@@ -64,11 +64,11 @@ function App() {
     }
   };
 
-  const handleLoginSuccess = () => {
-      setIsLoggedIn(true);
-      fetchCurrentUser();
-      setIsLoginOpen(false);
-  };
+  // const handleLoginSuccess = () => {
+  //     setIsLoggedIn(true);
+  //     fetchCurrentUser();
+  //     setIsLoginOpen(false);
+  // };
 
   const handleLogout = () => {
     localStorage.removeItem('token');

@@ -6,7 +6,7 @@ env/
 
 # Frontend
 frontend/node_modules/
-frontend/dist/
+# frontend/dist/  <-- Commented out to allow pushing build artifacts for ModelScope
 frontend/.env
 frontend/.env.local
 frontend/coverage/

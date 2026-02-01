@@ -24,7 +24,7 @@ interface Winner {
 export default function ResultPublishModal({ isOpen, onClose, hackathonId }: ResultPublishModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
   // Selection state
@@ -39,7 +39,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
   }, [isOpen, hackathonId]);
 
   const fetchData = async () => {
-    setLoading(true);
+    // setLoading(true);
     try {
       const token = localStorage.getItem('token');
       // Fetch projects
@@ -67,7 +67,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
     } catch (err) {
       console.error(err);
     } finally {
-      setLoading(false);
+      // setLoading(false);
     }
   };
 

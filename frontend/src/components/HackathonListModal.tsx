@@ -24,7 +24,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect 
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [filteredHackathons, setFilteredHackathons] = useState<Hackathon[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  // const [error, setError] = useState('');
   
   // Filters
   const [statusFilter, setStatusFilter] = useState('all');
@@ -74,13 +74,13 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect 
 
   const fetchHackathons = async () => {
     setLoading(true);
-    setError('');
+    // setError('');
     try {
       const response = await axios.get('/api/v1/hackathons/');
       setHackathons(response.data);
     } catch (err) {
       console.error(err);
-      setError('获取活动列表失败，请稍后重试。');
+      // setError('获取活动列表失败，请稍后重试。');
     } finally {
       setLoading(false);
     }

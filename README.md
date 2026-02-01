@@ -1,3 +1,14 @@
+---
+license: apache-2.0
+sdk: python
+app_file: app.py
+title: VibeBuild Hackathon Platform
+tags:
+- hackathon
+- collaboration
+- ai
+---
+
 # VibeBuild
 
 VibeBuild 是一个由 AI 驱动的创新协作与黑客松生态平台。

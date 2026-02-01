@@ -1,5 +1,5 @@
 ---
-title: VibeBuild AI Hackathon Platform
+title: Aura AI Hackathon Platform
 emoji: 🚀
 colorFrom: gray
 colorTo: black
@@ -8,13 +8,13 @@ app_port: 7860
 license: Apache-2.0
 ---
 
-# VibeBuild - AI-Empowered Hackathon Platform (AI 赋能黑客松平台)
+# Aura - AI-Empowered Hackathon Platform (AI 赋能黑客松平台)
 
 > **China's Devpost** —— A brutalist-styled, AI-empowered platform for hackathon organizers, participants, and judges.
 >
 > 打造中国的 Devpost：一个极具“粗野主义”风格、由 AI 深度赋能的黑客松创新协作平台。
 
-📄 **[阅读项目白皮书 (Project White Paper)](docs/VibeBuild_WhitePaper.md)** - 包含详细的功能介绍与技术架构说明。
+📄 **[阅读项目白皮书 (Project White Paper)](docs/Aura_WhitePaper.md)** - 包含详细的功能介绍与技术架构说明。
 
 ---
 
@@ -100,7 +100,7 @@ npm run dev
 │   └── start_modelscope.sh  # 魔搭启动脚本
 ├── frontend/                # React + Tailwind v4 前端
 ├── docs/                    # 项目文档
-│   ├── VibeBuild_WhitePaper.md # 项目白皮书
+│   ├── Aura_WhitePaper.md   # 项目白皮书
 │   └── PRD.md               # 产品需求文档
 └── Dockerfile               # ModelScope 部署文件
 ```

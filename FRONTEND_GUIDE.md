@@ -1,4 +1,4 @@
-# 🖥️ Frontend Architecture // 神经接口指南
+# Aura Frontend Guide
 
 > **System Status**: Online
 > **Version**: 1.0.0

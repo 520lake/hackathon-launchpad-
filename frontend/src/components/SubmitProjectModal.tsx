@@ -147,7 +147,7 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
                 className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                placeholder={lang === 'zh' ? "例如: VibeBuild AI" : "e.g., VibeBuild AI"}
+                placeholder={lang === 'zh' ? "例如: Aura AI" : "e.g., Aura AI"}
                 />
             </div>
             

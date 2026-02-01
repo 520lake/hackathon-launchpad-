@@ -124,7 +124,7 @@ Each object should have:
         if req.type == 'hackathon':
             return {
                 "content": {
-                    "title": f"VibeBuild {req.prompt} Hackathon (Offline Mode)",
+                    "title": f"Aura {req.prompt} Hackathon (Offline Mode)",
                     "description": f"AI Service unavailable. Generating offline template for {req.prompt}.",
                     "theme_tags": f"{req.prompt}, Fallback",
                     "professionalism_tags": "General",

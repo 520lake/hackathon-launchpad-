@@ -1,4 +1,4 @@
-# 📄 Product Requirement Document // 产品蓝图
+# Aura - AI-Empowered Hackathon Platform PRD
 
 > **Status**: Living Document
 > **Vision**: AI-Driven Innovation Matrix
@@ -169,7 +169,7 @@
 ## 8. Market Analysis // 市场与竞争分析
 
 *   **Competitors**: General contest platforms (Tianchi), Dev Communities (CSDN), Collab Tools.
-*   **VibeBuild Edge**:
+*   **Aura Edge**:
     1.  **AI Native**: Deep integration, not an add-on.
     2.  **Vertical Focus**: Specialized for hackathons.
     3.  **Community First**: Network effects.

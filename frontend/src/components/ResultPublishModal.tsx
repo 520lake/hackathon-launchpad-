@@ -5,13 +5,14 @@ interface ResultPublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   hackathonId: number;
+  lang: 'zh' | 'en';
 }
 
 interface Project {
   id: number;
   name: string;
   description: string;
-  total_score?: number; // Need to fetch scores
+  total_score?: number; 
 }
 
 interface Winner {
@@ -21,10 +22,9 @@ interface Winner {
   comment?: string;
 }
 
-export default function ResultPublishModal({ isOpen, onClose, hackathonId }: ResultPublishModalProps) {
+export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang }: ResultPublishModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
-  // const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   
   // Selection state
@@ -39,7 +39,6 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
   }, [isOpen, hackathonId]);
 
   const fetchData = async () => {
-    // setLoading(true);
     try {
       const token = localStorage.getItem('token');
       // Fetch projects
@@ -60,15 +59,11 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
           }
       }
 
-      // TODO: Fetch scores for ranking (Simulated for now or need endpoint)
-      // For now just list projects. 
       setProjects(resProjects.data);
       
     } catch (err) {
       console.error(err);
-    } finally {
-      // setLoading(false);
-    }
+    } 
   };
 
   const addWinner = () => {
@@ -95,7 +90,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
   };
 
   const handlePublish = async () => {
-      if (winners.length === 0 && !window.confirm("确定不设置任何奖项直接发布结果吗？")) {
+      if (winners.length === 0 && !window.confirm(lang === 'zh' ? "确定不设置任何奖项直接发布结果吗？" : "Publish results without any awards?")) {
           return;
       }
       
@@ -109,11 +104,11 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
               headers: { Authorization: `Bearer ${token}` }
           });
           
-          alert('结果发布成功！活动已结束。');
+          alert(lang === 'zh' ? '结果发布成功！活动已结束。' : 'Results published! Hackathon ended.');
           onClose();
       } catch (err) {
           console.error(err);
-          alert('发布失败');
+          alert(lang === 'zh' ? '发布失败' : 'Publish failed');
       } finally {
           setSubmitting(false);
       }
@@ -122,89 +117,111 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-0 relative transform transition-all max-h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-void/90 backdrop-blur-sm p-4">
+      <div className="bg-surface w-full max-w-4xl border-2 border-brand shadow-[8px_8px_0px_0px_#000] relative flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="flex justify-between items-center mb-6 border-b border-gray-200 dark:border-gray-700 pb-4">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">发布活动结果</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+        <div className="flex justify-between items-center p-6 border-b-2 border-brand bg-black">
+          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
+            {lang === 'zh' ? '发布活动结果' : 'PUBLISH RESULTS'}
+          </h2>
+          <button onClick={onClose} className="text-brand hover:text-white font-mono font-bold text-xl">[X]</button>
         </div>
 
-        <div className="flex-1 overflow-y-auto space-y-6 pr-2">
-            {/* Add Winner Form */}
-            <div className="bg-gray-50 dark:bg-gray-700/50 p-4 rounded-xl space-y-4">
-                <h3 className="font-semibold text-gray-900 dark:text-white">添加获奖名单</h3>
-                <div>
-                    <label className="block text-sm font-medium mb-1">选择作品</label>
-                    <select 
-                        className="input-field w-full px-4 py-2 rounded-lg border dark:bg-gray-700"
-                        value={selectedProjectId || ''}
-                        onChange={e => setSelectedProjectId(Number(e.target.value))}
-                    >
-                        <option value="">请选择获奖作品...</option>
-                        {projects.map(p => (
-                            <option key={p.id} value={p.id}>{p.name}</option>
-                        ))}
-                    </select>
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">奖项名称</label>
-                    <input 
-                        type="text" 
-                        className="input-field w-full px-4 py-2 rounded-lg border dark:bg-gray-700"
-                        placeholder="例如：一等奖、最具创意奖"
-                        value={awardName}
-                        onChange={e => setAwardName(e.target.value)}
-                    />
-                </div>
-                <div>
-                    <label className="block text-sm font-medium mb-1">评语 (可选)</label>
-                    <textarea 
-                        className="input-field w-full px-4 py-2 rounded-lg border dark:bg-gray-700 h-20"
-                        placeholder="获奖理由..."
-                        value={comment}
-                        onChange={e => setComment(e.target.value)}
-                    />
-                </div>
-                <button 
-                    onClick={addWinner}
-                    disabled={!selectedProjectId || !awardName}
-                    className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                    添加至名单
-                </button>
-            </div>
-
-            {/* Winners List */}
-            {winners.length > 0 && (
-                <div>
-                    <h3 className="font-semibold mb-3 text-gray-900 dark:text-white">已添加名单 ({winners.length})</h3>
-                    <div className="space-y-3">
-                        {winners.map((w, idx) => (
-                            <div key={idx} className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 rounded-xl flex justify-between items-center shadow-sm">
-                                <div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="bg-yellow-100 text-yellow-800 text-xs px-2 py-1 rounded-full font-bold">{w.award_name}</span>
-                                        <span className="font-bold">{w.project_name}</span>
-                                    </div>
-                                    {w.comment && <p className="text-sm text-gray-500 mt-1">{w.comment}</p>}
-                                </div>
-                                <button onClick={() => removeWinner(idx)} className="text-red-500 hover:text-red-700 text-sm">删除</button>
-                            </div>
-                        ))}
+        <div className="flex-1 overflow-y-auto p-8 custom-scrollbar relative">
+            <div className="absolute inset-0 bg-[url('/noise.png')] opacity-5 pointer-events-none"></div>
+            
+            <div className="relative z-10 space-y-8">
+                {/* Add Winner Form */}
+                <div className="bg-black/20 border border-gray-800 p-6">
+                    <h3 className="font-mono font-bold text-brand uppercase mb-4 tracking-widest border-b border-gray-800 pb-2">
+                        {lang === 'zh' ? '添加获奖名单' : 'ADD WINNERS'}
+                    </h3>
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '选择作品' : 'SELECT PROJECT'}</label>
+                            <select 
+                                className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono"
+                                value={selectedProjectId || ''}
+                                onChange={e => setSelectedProjectId(Number(e.target.value))}
+                            >
+                                <option value="">{lang === 'zh' ? '请选择...' : 'Select...'}</option>
+                                {projects.map(p => (
+                                    <option key={p.id} value={p.id}>{p.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '奖项名称' : 'AWARD NAME'}</label>
+                            <input 
+                                type="text" 
+                                className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono"
+                                placeholder={lang === 'zh' ? "例如：一等奖" : "e.g., First Place"}
+                                value={awardName}
+                                onChange={e => setAwardName(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '评语 (可选)' : 'COMMENTS (OPTIONAL)'}</label>
+                            <textarea 
+                                className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono h-20"
+                                placeholder={lang === 'zh' ? "获奖理由..." : "Reason..."}
+                                value={comment}
+                                onChange={e => setComment(e.target.value)}
+                            />
+                        </div>
+                        <button 
+                            onClick={addWinner}
+                            disabled={!selectedProjectId || !awardName}
+                            className="w-full py-3 bg-white/5 border border-white/20 text-white font-mono uppercase hover:bg-brand hover:text-black hover:border-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {lang === 'zh' ? '添加至名单' : 'ADD TO LIST'}
+                        </button>
                     </div>
                 </div>
-            )}
+
+                {/* Winners List */}
+                {winners.length > 0 && (
+                    <div>
+                        <h3 className="font-mono font-bold text-white uppercase mb-4 tracking-widest">
+                            {lang === 'zh' ? '已添加名单' : 'WINNERS LIST'} ({winners.length})
+                        </h3>
+                        <div className="space-y-3">
+                            {winners.map((w, idx) => (
+                                <div key={idx} className="bg-brand/10 border border-brand/30 p-4 flex justify-between items-center group hover:bg-brand/20 transition-colors">
+                                    <div>
+                                        <div className="flex items-center gap-3">
+                                            <span className="bg-brand text-black text-xs font-mono font-bold px-2 py-1 uppercase">{w.award_name}</span>
+                                            <span className="font-bold text-white uppercase tracking-tight">{w.project_name}</span>
+                                        </div>
+                                        {w.comment && <p className="text-sm text-gray-400 mt-2 font-mono border-l-2 border-brand/20 pl-2">{w.comment}</p>}
+                                    </div>
+                                    <button 
+                                        onClick={() => removeWinner(idx)} 
+                                        className="text-red-500 hover:text-red-400 font-mono text-sm uppercase opacity-50 group-hover:opacity-100 transition-opacity"
+                                    >
+                                        [DELETE]
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+            </div>
         </div>
 
-        <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700 flex justify-end gap-3">
-            <button onClick={onClose} className="px-4 py-2 border rounded-lg hover:bg-gray-50">取消</button>
+        <div className="p-6 border-t-2 border-brand bg-black flex justify-end gap-4">
+            <button 
+                onClick={onClose} 
+                className="px-6 py-3 bg-white/10 text-white font-mono uppercase hover:bg-white hover:text-black transition-all"
+            >
+                {lang === 'zh' ? '取消' : 'CANCEL'}
+            </button>
             <button 
                 onClick={handlePublish} 
                 disabled={submitting}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 shadow-md flex items-center gap-2"
+                className="px-8 py-3 bg-brand text-black font-black uppercase tracking-wider hover:bg-white border-2 border-brand shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all disabled:opacity-50"
             >
-                {submitting ? '发布中...' : '确认发布结果'}
+                {submitting ? (lang === 'zh' ? '发布中...' : 'PUBLISHING...') : (lang === 'zh' ? '确认发布结果' : 'CONFIRM & PUBLISH')}
             </button>
         </div>
       </div>

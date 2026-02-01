@@ -5,9 +5,10 @@ interface VerificationModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess: () => void;
+  lang: 'zh' | 'en';
 }
 
-export default function VerificationModal({ isOpen, onClose, onSuccess }: VerificationModalProps) {
+export default function VerificationModal({ isOpen, onClose, onSuccess, lang }: VerificationModalProps) {
   const [name, setName] = useState('');
   const [idNumber, setIdNumber] = useState('');
   const [loading, setLoading] = useState(false);
@@ -25,59 +26,59 @@ export default function VerificationModal({ isOpen, onClose, onSuccess }: Verifi
         headers: { Authorization: `Bearer ${token}` }
       });
       
-      alert('实名认证成功！');
+      alert(lang === 'zh' ? '实名认证成功！' : 'Verification successful!');
       onSuccess();
       onClose();
     } catch (err) {
       console.error(err);
-      alert('认证失败，请重试');
+      alert(lang === 'zh' ? '认证失败，请重试' : 'Verification failed, please try again');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 relative transform transition-all">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+      <div className="bg-void border border-brand shadow-[0_0_50px_rgba(212,163,115,0.2)] w-full max-w-md p-8 relative transform transition-all clip-path-polygon">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors text-xl"
         >
           ✕
         </button>
         
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-          实名认证
+        <h2 className="text-3xl font-black mb-8 text-center text-white uppercase tracking-tighter flex items-center justify-center gap-2">
+          <span className="text-brand">◈</span> {lang === 'zh' ? '实名认证' : 'VERIFICATION'}
         </h2>
         
-        <div className="mb-6 p-4 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-lg text-sm">
-          <p className="font-bold mb-1">模拟实名认证环境</p>
-          <p>这是一个测试环境，请输入任意信息完成认证。</p>
+        <div className="mb-8 p-4 bg-brand/10 border-l-4 border-brand text-brand font-mono text-xs">
+          <p className="font-bold mb-1 uppercase">{lang === 'zh' ? '模拟认证环境' : 'SIMULATION MODE'}</p>
+          <p>{lang === 'zh' ? '这是一个测试环境，请输入任意信息完成认证。' : 'Test environment. Enter any info to proceed.'}</p>
         </div>
 
-        <form onSubmit={handleVerify} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              真实姓名
+        <form onSubmit={handleVerify} className="space-y-6">
+          <div className="group">
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase font-mono group-hover:text-brand transition-colors">
+              {lang === 'zh' ? '真实姓名' : 'REAL NAME'}
             </label>
             <input
               type="text"
               required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="张三"
+              placeholder={lang === 'zh' ? "张三" : "John Doe"}
             />
           </div>
           
-          <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              身份证号
+          <div className="group">
+            <label className="block text-xs font-bold text-gray-500 mb-1 uppercase font-mono group-hover:text-brand transition-colors">
+              {lang === 'zh' ? '身份证号' : 'ID NUMBER'}
             </label>
             <input
               type="text"
               required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
               value={idNumber}
               onChange={(e) => setIdNumber(e.target.value)}
               placeholder="110101199001011234"
@@ -87,9 +88,9 @@ export default function VerificationModal({ isOpen, onClose, onSuccess }: Verifi
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition shadow-lg disabled:opacity-50 mt-4"
+            className="w-full py-4 bg-brand hover:bg-white text-black font-black uppercase tracking-widest text-sm transition-all disabled:opacity-50 mt-4 clip-path-polygon"
           >
-            {loading ? '认证中...' : '立即认证'}
+            {loading ? (lang === 'zh' ? '认证中...' : 'VERIFYING...') : (lang === 'zh' ? '立即认证' : 'VERIFY IDENTITY')}
           </button>
         </form>
       </div>

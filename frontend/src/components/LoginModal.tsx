@@ -4,11 +4,12 @@ import axios from 'axios';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  lang?: 'zh' | 'en';
 }
 
 type AuthMethod = 'wechat' | 'email_code' | 'password';
 
-export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<AuthMethod>('wechat');
   
   // Form states
@@ -133,40 +134,66 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-6 relative">
-        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-700">✕</button>
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="card-brutal w-full max-w-md p-8 relative bg-surface border border-brand/20">
+        <button 
+            onClick={onClose} 
+            className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
+        >✕</button>
         
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-          登录 VibeBuild
-        </h2>
-
-        <div className="flex justify-center mb-6 border-b border-gray-200 dark:border-gray-700">
-            <button 
-                className={`pb-2 px-4 ${activeTab === 'wechat' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('wechat')}
-            >微信扫码</button>
-            <button 
-                className={`pb-2 px-4 ${activeTab === 'email_code' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('email_code')}
-            >邮箱验证码</button>
-            <button 
-                className={`pb-2 px-4 ${activeTab === 'password' ? 'border-b-2 border-blue-500 text-blue-600' : 'text-gray-500'}`}
-                onClick={() => setActiveTab('password')}
-            >密码登录</button>
+        <div className="mb-8 text-center">
+            <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
+            LOGIN <span className="text-brand">AURA</span>
+            </h2>
+            <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                {lang === 'zh' ? '身份验证' : 'AUTHENTICATION'}
+            </p>
         </div>
 
-        {error && <div className="mb-4 p-2 bg-red-100 text-red-700 rounded text-sm">{error}</div>}
+        <div className="flex justify-center mb-6 border-b border-brand/10">
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'wechat' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('wechat')}
+            >
+                {lang === 'zh' ? '微信扫码' : 'WECHAT'}
+            </button>
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'email_code' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('email_code')}
+            >
+                {lang === 'zh' ? '邮箱验证' : 'EMAIL_CODE'}
+            </button>
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'password' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('password')}
+            >
+                {lang === 'zh' ? '密码登录' : 'PASSWORD'}
+            </button>
+        </div>
+
+        {error && (
+            <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
+                {error}
+            </div>
+        )}
 
         {activeTab === 'wechat' && (
             <div className="text-center py-4">
-                {loading ? <p>加载二维码...</p> : (
+                {loading ? <p className="font-mono text-brand animate-pulse">LOADING_QR...</p> : (
                     <>
                         <div className="flex justify-center mb-4">
-                            {qrUrl ? <img src={qrUrl} alt="WeChat QR" className="w-48 h-48 border" /> : <p>二维码加载失败</p>}
+                            {qrUrl ? (
+                                <div className="p-2 bg-white border border-brand/20">
+                                    <img src={qrUrl} alt="WeChat QR" className="w-48 h-48" />
+                                </div>
+                            ) : <p className="text-red-400 font-mono">QR_LOAD_FAILED</p>}
                         </div>
-                        <p className="text-sm text-gray-500">请使用微信扫一扫登录</p>
-                        <p className="text-xs text-gray-400 mt-2">测试号Mock: <a href={`/api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-blue-500">点击模拟扫码</a></p>
+                        <p className="text-sm text-gray-500 font-mono">
+                            {lang === 'zh' ? '请使用微信扫一扫登录' : 'Scan via WeChat to Login'}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-4 font-mono">
+                            [DEV_MODE]: <a href={`/api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
+                        </p>
                     </>
                 )}
             </div>
@@ -175,36 +202,48 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
         {activeTab === 'email_code' && (
             <form onSubmit={handleEmailLogin} className="space-y-4">
                 <input 
-                    type="email" required placeholder="邮箱地址" value={email} onChange={e => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    type="email" required 
+                    placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
                 <div className="flex gap-2">
                     <input 
-                        type="text" required placeholder="验证码" value={code} onChange={e => setCode(e.target.value)}
-                        className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                        type="text" required 
+                        placeholder={lang === 'zh' ? "验证码" : "Code"} 
+                        value={code} onChange={e => setCode(e.target.value)}
+                        className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                     />
                     <button 
                         type="button" onClick={handleSendCode} disabled={countDown > 0}
-                        className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 disabled:opacity-50 whitespace-nowrap"
+                        className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors"
                     >
-                        {countDown > 0 ? `${countDown}s` : '获取验证码'}
+                        {countDown > 0 ? `${countDown}s` : (lang === 'zh' ? '获取验证码' : 'GET_CODE')}
                     </button>
                 </div>
-                <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">登录 / 注册</button>
+                <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
+                    {lang === 'zh' ? '登录 / 注册' : 'LOGIN / REGISTER'}
+                </button>
             </form>
         )}
 
         {activeTab === 'password' && (
             <form onSubmit={handlePasswordLogin} className="space-y-4">
                  <input 
-                    type="email" required placeholder="邮箱地址" value={email} onChange={e => setEmail(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                    type="email" required 
+                    placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
-                 <input 
-                    type="password" required placeholder="密码" value={password} onChange={e => setPassword(e.target.value)}
-                    className="w-full px-4 py-2 border rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                <input 
+                    type="password" required 
+                    placeholder={lang === 'zh' ? "密码" : "Password"} 
+                    value={password} onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
-                <button type="submit" className="w-full py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">登录</button>
+                <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
+                    {lang === 'zh' ? '登录' : 'LOGIN'}
+                </button>
             </form>
         )}
       </div>

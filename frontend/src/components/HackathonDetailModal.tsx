@@ -46,9 +46,10 @@ interface HackathonDetailModalProps {
   onClose: () => void;
   hackathonId: number | null;
   onEdit?: (hackathon: Hackathon) => void;
+  lang: 'zh' | 'en';
 }
 
-export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit }: HackathonDetailModalProps) {
+export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit, lang }: HackathonDetailModalProps) {
   const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [myProject, setMyProject] = useState<Project | null>(null);
@@ -113,19 +114,19 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   };
 
   const handleDelete = async () => {
-    if (!confirm('确定要删除这个活动吗？此操作不可撤销。')) return;
+    if (!confirm(lang === 'zh' ? '确定要删除这个活动吗？此操作不可撤销。' : 'Are you sure you want to delete this hackathon? This action cannot be undone.')) return;
     
     try {
       const token = localStorage.getItem('token');
       await axios.delete(`/api/v1/hackathons/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      alert('活动删除成功');
+      alert(lang === 'zh' ? '活动删除成功' : 'Hackathon deleted successfully');
       onClose();
       window.location.reload(); // Simple refresh to update list
     } catch (e) {
       console.error(e);
-      alert('删除失败');
+      alert(lang === 'zh' ? '删除失败' : 'Delete failed');
     }
   };
 
@@ -209,118 +210,142 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     }
   };
 
-  const formatDate = (d?: string) => d ? new Date(d).toLocaleString() : 'TBD';
+  const formatDate = (d?: string) => d ? new Date(d).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US') : 'TBD';
 
   if (!isOpen || !hackathonId) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-void/90 backdrop-blur-sm p-4 md:p-8">
       <SubmitProjectModal 
         isOpen={isSubmitOpen} 
         onClose={() => { setIsSubmitOpen(false); fetchDetails(); }} 
         hackathonId={hackathonId}
         existingProject={myProject}
+        lang={lang}
       />
       <JudgingModal
         isOpen={isJudgingOpen}
         onClose={() => setIsJudgingOpen(false)}
         hackathonId={hackathonId}
         hackathonTitle={hackathon?.title || ''}
+        lang={lang}
       />
       <ResultPublishModal
         isOpen={isResultPublishOpen}
         onClose={() => { setIsResultPublishOpen(false); fetchDetails(); }}
         hackathonId={hackathonId}
+        lang={lang}
       />
       
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-5xl h-[90vh] flex flex-col relative overflow-hidden">
+      <div className="bg-surface w-full max-w-6xl h-[90vh] flex flex-col relative border-2 border-brand shadow-[8px_8px_0px_0px_#000]">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-white z-20 bg-black/20 hover:bg-black/40 rounded-full p-2 transition"
+          className="absolute top-0 right-0 z-50 p-4 bg-brand text-black hover:bg-white hover:text-black transition-colors font-mono font-bold border-l-2 border-b-2 border-black"
         >
           ✕
         </button>
 
         {loading ? (
-           <div className="flex-1 flex items-center justify-center">
-             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+           <div className="flex-1 flex items-center justify-center bg-surface">
+             <div className="flex flex-col items-center gap-4">
+               <div className="animate-spin h-12 w-12 border-4 border-brand border-t-transparent rounded-full"></div>
+               <div className="font-mono text-brand blink">{lang === 'zh' ? '加载中...' : 'LOADING...'}</div>
+             </div>
            </div>
         ) : !hackathon ? (
-            <div className="flex-1 flex items-center justify-center flex-col gap-4">
-                <div className="text-xl text-gray-500">未找到活动信息</div>
-                <button onClick={onClose} className="px-4 py-2 bg-gray-200 rounded text-gray-700 hover:bg-gray-300">关闭</button>
+            <div className="flex-1 flex items-center justify-center flex-col gap-6 bg-surface">
+                <div className="text-2xl font-black text-gray-500 uppercase tracking-widest">{lang === 'zh' ? '数据丢失' : 'DATA LOST'}</div>
+                <button onClick={onClose} className="px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-mono hover:text-brand hover:border-brand transition-all">
+                  {lang === 'zh' ? '关闭终端' : 'CLOSE TERMINAL'}
+                </button>
             </div>
         ) : (
           <>
             {/* Hero Section */}
-            <div className="relative h-48 md:h-64 bg-gray-900">
+            <div className="relative h-64 md:h-80 bg-black border-b-2 border-brand shrink-0">
                 {hackathon.cover_image ? (
-                    <img src={hackathon.cover_image} alt={hackathon.title} className="w-full h-full object-cover opacity-60" />
+                    <div className="relative w-full h-full">
+                        <img src={hackathon.cover_image} alt={hackathon.title} className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-700" />
+                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay pointer-events-none"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent"></div>
+                    </div>
                 ) : (
-                    <div className="w-full h-full bg-gradient-to-r from-blue-600 to-purple-700 opacity-80" />
+                    <div className="w-full h-full bg-void relative overflow-hidden">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,163,115,0.1),transparent_70%)]"></div>
+                        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(0,0,0,0)_40%,rgba(212,163,115,0.1)_50%,rgba(0,0,0,0)_60%)]"></div>
+                    </div>
                 )}
-                <div className="absolute bottom-0 left-0 p-8 text-white w-full bg-gradient-to-t from-black/80 to-transparent">
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <div className="flex gap-2 mb-2">
+                
+                <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
+                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                        <div className="max-w-3xl">
+                            <div className="flex flex-wrap gap-2 mb-4">
+                                <span className={`px-2 py-1 text-xs font-mono font-bold uppercase border border-current ${hackathon.status === 'published' ? 'text-green-500 border-green-500 bg-green-500/10' : 'text-yellow-500 border-yellow-500 bg-yellow-500/10'}`}>
+                                    [{hackathon.status === 'published' ? (lang === 'zh' ? '已发布' : 'PUBLISHED') : (lang === 'zh' ? '草稿' : 'DRAFT')}]
+                                </span>
                                 {hackathon.theme_tags?.split(',').map(tag => (
-                                    <span key={tag} className="px-2 py-0.5 bg-blue-500/30 border border-blue-400/50 rounded text-xs backdrop-blur-sm">{tag.trim()}</span>
-                                ))}
-                                {hackathon.professionalism_tags?.split(',').map(tag => (
-                                    <span key={tag} className="px-2 py-0.5 bg-purple-500/30 border border-purple-400/50 rounded text-xs backdrop-blur-sm">{tag.trim()}</span>
+                                    <span key={tag} className="px-2 py-1 bg-brand/10 border border-brand/30 text-brand text-xs font-mono uppercase tracking-tight">
+                                        #{tag.trim()}
+                                    </span>
                                 ))}
                             </div>
-                            <h2 className="text-4xl font-bold mb-2">{hackathon.title}</h2>
-                            <div className="flex gap-6 text-sm opacity-90">
-                                <span>📅 {formatDate(hackathon.start_date)} - {formatDate(hackathon.end_date)}</span>
-                                <span className={`capitalize px-2 py-0.5 rounded ${hackathon.status === 'published' ? 'bg-green-500/80' : 'bg-yellow-500/80'}`}>{hackathon.status}</span>
+                            <h2 className="text-4xl md:text-6xl font-black text-white mb-2 uppercase tracking-tighter leading-none" style={{ textShadow: '4px 4px 0px #000' }}>
+                                {hackathon.title}
+                            </h2>
+                            <div className="flex items-center gap-6 text-sm font-mono text-gray-400">
+                                <span className="flex items-center gap-2">
+                                    <span className="text-brand">START:</span> {formatDate(hackathon.start_date)}
+                                </span>
+                                <span className="flex items-center gap-2">
+                                    <span className="text-brand">END:</span> {formatDate(hackathon.end_date)}
+                                </span>
                             </div>
                         </div>
                         
                         {/* Action Button */}
-                        <div>
+                        <div className="flex flex-col gap-3 shrink-0">
                             {currentUserId === hackathon.organizer_id ? (
-                                <div className="flex gap-2">
+                                <div className="flex gap-3">
                                     <button 
                                         onClick={() => onEdit && onEdit(hackathon)}
-                                        className="px-4 py-2 bg-white text-gray-700 border rounded hover:bg-gray-50 shadow-lg font-bold"
+                                        className="px-6 py-3 bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black font-mono font-bold uppercase transition-all"
                                     >
-                                        编辑活动
+                                        {lang === 'zh' ? '编辑' : 'EDIT'}
                                     </button>
                                     <button 
                                         onClick={handleDelete}
-                                        className="px-4 py-2 bg-white text-red-500 border rounded hover:bg-gray-50 shadow-lg font-bold"
+                                        className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-black font-mono font-bold uppercase transition-all"
                                     >
-                                        删除
+                                        {lang === 'zh' ? '删除' : 'DELETE'}
                                     </button>
                                     {hackathon.status !== 'draft' && (
                                         <button 
                                             onClick={() => setIsResultPublishOpen(true)}
-                                            className="px-4 py-2 bg-yellow-500 text-white rounded hover:bg-yellow-600 shadow-lg font-bold"
+                                            className="px-6 py-3 bg-brand text-black border-2 border-brand hover:bg-brand-light shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all font-bold uppercase"
                                         >
-                                            发布/管理结果
+                                            {lang === 'zh' ? '管理结果' : 'MANAGE RESULTS'}
                                         </button>
                                     )}
                                 </div>
                             ) : isJudge ? (
                                 <button 
                                     onClick={() => setIsJudgingOpen(true)}
-                                    className="bg-purple-600 hover:bg-purple-700 text-white px-8 py-3 rounded-lg font-bold shadow-lg transition"
+                                    className="px-8 py-4 bg-purple-600 text-white border-2 border-purple-400 font-mono font-bold uppercase hover:bg-purple-500 shadow-[6px_6px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#000] transition-all"
                                 >
-                                    开始评审
+                                    {lang === 'zh' ? '进入评审系统' : 'ENTER JUDGING SYSTEM'}
                                 </button>
                             ) : enrollment ? (
-                                <div className="flex gap-3">
-                                    <div className="bg-green-500 text-white px-6 py-2 rounded-lg font-bold shadow-lg">
-                                        已报名 ({enrollment.status === 'pending' ? '审核中' : '已通过'})
+                                <div className="flex gap-3 items-center">
+                                    <div className={`px-4 py-2 font-mono text-sm border ${enrollment.status === 'approved' ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'}`}>
+                                        STATUS: {enrollment.status === 'pending' ? (lang === 'zh' ? '审核中' : 'PENDING') : (lang === 'zh' ? '已入围' : 'APPROVED')}
                                     </div>
                                     {/* Show Submit button if approved and within time */}
                                     {enrollment.status === 'approved' && (
                                         <button 
                                             onClick={() => setIsSubmitOpen(true)}
-                                            className="bg-blue-500 hover:bg-blue-600 text-white px-6 py-2 rounded-lg font-bold shadow-lg transition"
+                                            className="px-6 py-3 bg-brand text-black border-2 border-brand hover:bg-brand-light font-bold uppercase shadow-[4px_4px_0px_0px_#000] transition-all"
                                         >
-                                            {myProject ? '编辑作品' : '提交作品'}
+                                            {myProject ? (lang === 'zh' ? '编辑项目' : 'EDIT PROJECT') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
                                         </button>
                                     )}
                                 </div>
@@ -328,9 +353,9 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                 <button 
                                     onClick={handleEnroll}
                                     disabled={hackathon.status !== 'published'}
-                                    className="bg-white text-blue-700 hover:bg-gray-100 px-8 py-3 rounded-lg font-bold shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="px-10 py-4 bg-brand text-black border-2 border-brand font-black text-lg uppercase tracking-wider hover:bg-brand-light shadow-[6px_6px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
                                 >
-                                    立即报名
+                                    {lang === 'zh' ? '立即报名' : 'REGISTER NOW'}
                                 </button>
                             )}
                         </div>
@@ -339,77 +364,96 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             </div>
 
             {/* Tabs */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700 px-8 bg-gray-50 dark:bg-gray-900 sticky top-0 z-10">
-               {['overview', 'participants', 'projects', 'results', 'matching'].map(tab => (
+            <div className="flex border-b-2 border-brand bg-black/40 sticky top-0 z-10 overflow-x-auto">
+               {[
+                 { id: 'overview', label: lang === 'zh' ? '情报概览' : 'OVERVIEW' },
+                 { id: 'participants', label: lang === 'zh' ? '行动小队' : 'SQUADS' },
+                 { id: 'projects', label: lang === 'zh' ? '原型展示' : 'PROTOTYPES' },
+                 { id: 'results', label: lang === 'zh' ? '战果评级' : 'RESULTS' },
+                 { id: 'matching', label: lang === 'zh' ? '智能匹配' : 'AI MATCH' }
+               ].map(tab => (
                  <button
-                   key={tab}
-                   onClick={() => setActiveTab(tab)}
-                   className={`mr-8 py-4 font-medium border-b-2 transition ${
-                     activeTab === tab 
-                       ? 'border-blue-600 text-blue-600' 
-                       : 'border-transparent text-gray-500 hover:text-gray-700'
-                   } capitalize`}
+                   key={tab.id}
+                   onClick={() => setActiveTab(tab.id)}
+                   className={`px-8 py-4 font-mono font-bold text-sm uppercase transition-all relative whitespace-nowrap ${
+                     activeTab === tab.id 
+                       ? 'bg-brand text-black' 
+                       : 'text-gray-500 hover:text-brand hover:bg-white/5'
+                   }`}
                  >
-                   {tab === 'overview' ? '活动详情' :
-                    tab === 'participants' ? '参赛团队' :
-                    tab === 'projects' ? '项目展示' :
-                    tab === 'results' ? '比赛结果' :
-                    <span className="flex items-center gap-1">🤖 智能组队</span>}
+                   {tab.id === 'matching' && <span className="mr-2">⚡</span>}
+                   {tab.label}
                  </button>
                ))}
             </div>
 
             {/* Content */}
-            <div className="flex-1 overflow-y-auto p-8 bg-gray-50 dark:bg-gray-900/50">
+            <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-surface custom-scrollbar">
                {activeTab === 'matching' && (
-                <div className="space-y-6">
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl p-6 border border-purple-100 dark:border-purple-800">
-                        <div className="flex items-center justify-between mb-4">
+                <div className="max-w-4xl mx-auto space-y-8">
+                    <div className="bg-void border border-brand/20 p-8 relative overflow-hidden group hover:border-brand/50 transition-colors">
+                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <div className="text-9xl font-black text-brand">AI</div>
+                        </div>
+                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
                             <div>
-                                <h3 className="text-lg font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                    <span className="text-2xl">🤝</span> AI 智能队友推荐
+                                <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
+                                    <span className="text-brand text-3xl">⚡</span> 
+                                    {lang === 'zh' ? '神经网络匹配系统' : 'NEURAL MATCHING SYSTEM'}
                                 </h3>
-                                <p className="text-sm text-gray-500 mt-1">
-                                    基于你的技能标签 ({currentUserId ? '已登录' : '未登录'}) 和兴趣进行匹配
+                                <p className="text-gray-400 font-mono text-sm mt-2 max-w-lg">
+                                    {lang === 'zh' 
+                                      ? `基于您的技能矩阵 [${currentUserId ? '已连接' : '离线'}] 和兴趣向量进行高维空间匹配` 
+                                      : `Matching based on your skill matrix [${currentUserId ? 'ONLINE' : 'OFFLINE'}] and interest vectors.`}
                                 </p>
                             </div>
                             <button
                                 onClick={handleSmartMatch}
                                 disabled={matchingLoading || !currentUserId}
-                                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition disabled:opacity-50 flex items-center gap-2"
+                                className="px-8 py-3 bg-purple-600/20 text-purple-400 border border-purple-500/50 font-mono font-bold uppercase hover:bg-purple-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                             >
-                                {matchingLoading ? '匹配中...' : '开始匹配'}
+                                {matchingLoading ? (
+                                    <>
+                                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
+                                        {lang === 'zh' ? '计算中...' : 'COMPUTING...'}
+                                    </>
+                                ) : (
+                                    lang === 'zh' ? '启动匹配程序' : 'INITIATE MATCH'
+                                )}
                             </button>
                         </div>
                         
                         {!currentUserId && (
-                             <div className="text-center p-4 bg-yellow-50 text-yellow-700 rounded-lg">
-                                 请先登录并完善个人资料（技能标签）以使用智能匹配功能。
+                             <div className="mt-6 p-4 bg-yellow-500/10 border-l-4 border-yellow-500 text-yellow-500 font-mono text-sm">
+                                 ⚠ {lang === 'zh' ? '警告: 用户未登录。无法访问技能数据库。' : 'WARNING: USER NOT LOGGED IN. SKILL DATABASE INACCESSIBLE.'}
                              </div>
                         )}
 
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
                             {matchingUsers.map(user => (
-                                <div key={user.user_id} className="bg-white dark:bg-gray-800 p-4 rounded-xl border border-purple-100 dark:border-gray-700 shadow-sm hover:shadow-md transition">
-                                    <div className="flex items-center justify-between mb-2">
-                                        <h4 className="font-bold text-gray-900 dark:text-white">{user.name}</h4>
-                                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs rounded-full font-bold">
-                                            匹配度 {user.match_score}%
+                                <div key={user.user_id} className="bg-black/40 p-5 border border-white/10 hover:border-brand hover:bg-black/60 transition-all group/card">
+                                    <div className="flex items-center justify-between mb-4">
+                                        <h4 className="font-bold text-white font-mono text-lg">{user.name}</h4>
+                                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-mono border border-green-500/30">
+                                            MATCH: {user.match_score}%
                                         </span>
                                     </div>
-                                    <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
-                                        技能: {user.skills}
-                                    </p>
-                                    <button className="w-full py-1.5 text-sm border border-purple-600 text-purple-600 rounded-lg hover:bg-purple-50 dark:hover:bg-purple-900/20 transition">
-                                        邀请组队
+                                    <div className="space-y-2 mb-4">
+                                        <div className="text-xs text-gray-500 uppercase font-mono">Skills</div>
+                                        <p className="text-sm text-gray-300 font-mono break-words">
+                                            {user.skills}
+                                        </p>
+                                    </div>
+                                    <button className="w-full py-2 bg-white/5 text-brand border border-brand/30 hover:bg-brand hover:text-black hover:border-brand font-mono text-sm font-bold uppercase transition-all">
+                                        {lang === 'zh' ? '发送信号' : 'SEND SIGNAL'}
                                     </button>
                                 </div>
                             ))}
                         </div>
                         
                         {matchingUsers.length === 0 && !matchingLoading && currentUserId && (
-                            <div className="text-center py-12 text-gray-400">
-                                点击“开始匹配”寻找志同道合的队友
+                            <div className="text-center py-12 text-gray-600 font-mono text-sm border-2 border-dashed border-white/5 rounded-lg mt-8">
+                                {lang === 'zh' ? '等待指令...' : 'AWAITING COMMAND...'}
                             </div>
                         )}
                     </div>
@@ -417,70 +461,81 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
               )}
 
               {activeTab === 'overview' && (
-                 <div className="grid grid-cols-3 gap-8">
+                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                     {/* Left Column: Details */}
-                    <div className="col-span-2 space-y-8">
+                    <div className="lg:col-span-2 space-y-8">
                         {/* Results Section */}
                         {hackathon.results_detail && (
-                            <section className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 p-6 rounded-xl border border-yellow-200 dark:border-yellow-700/50">
-                                <h3 className="text-xl font-bold mb-6 text-yellow-800 dark:text-yellow-500 flex items-center gap-2">
-                                    🏆 获奖名单公布
+                            <section className="bg-yellow-500/5 border border-yellow-500/20 p-6 relative">
+                                <div className="absolute top-0 right-0 px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-mono uppercase">
+                                    {lang === 'zh' ? '最新情报' : 'LATEST INTEL'}
+                                </div>
+                                <h3 className="text-xl font-bold mb-6 text-yellow-500 flex items-center gap-2 font-mono uppercase tracking-tight">
+                                    🏆 {lang === 'zh' ? '获奖名单公布' : 'WINNERS ANNOUNCED'}
                                 </h3>
                                 <div className="grid gap-4">
                                     {(() => {
                                         try {
                                             const winners = JSON.parse(hackathon.results_detail);
                                             return winners.map((w: any, idx: number) => (
-                                                <div key={idx} className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-sm border border-yellow-100 dark:border-yellow-900/30 flex justify-between items-center">
+                                                <div key={idx} className="bg-black/40 p-4 border border-yellow-500/30 flex justify-between items-center group hover:bg-yellow-500/10 transition-colors">
                                                     <div className="flex items-center gap-4">
-                                                        <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-full font-bold text-sm">
+                                                        <div className="bg-yellow-500/20 text-yellow-500 px-3 py-1 font-mono font-bold text-sm border border-yellow-500/50 uppercase">
                                                             {w.award_name}
                                                         </div>
                                                         <div>
-                                                            <h4 className="font-bold text-lg">{w.project_name}</h4>
-                                                            {w.comment && <p className="text-sm text-gray-500 mt-1">{w.comment}</p>}
+                                                            <h4 className="font-bold text-lg text-white font-mono">{w.project_name}</h4>
+                                                            {w.comment && <p className="text-sm text-gray-400 mt-1 font-mono">"{w.comment}"</p>}
                                                         </div>
                                                     </div>
                                                 </div>
                                             ));
                                         } catch (e) {
-                                            return <p>结果数据解析失败</p>;
+                                            return <p className="text-red-500 font-mono">{lang === 'zh' ? '结果数据解析失败' : 'DATA PARSING ERROR'}</p>;
                                         }
                                     })()}
                                 </div>
                             </section>
                         )}
 
-                        <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="text-lg font-bold mb-4 border-l-4 border-blue-500 pl-3">活动介绍</h3>
-                            <p className="whitespace-pre-wrap text-gray-600 dark:text-gray-300 leading-relaxed">
+                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
+                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
+                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '活动介绍' : 'MISSION BRIEF'}
+                            </h3>
+                            <p className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono text-sm">
                                 {hackathon.description}
                             </p>
                         </section>
 
-                        <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="text-lg font-bold mb-4 border-l-4 border-purple-500 pl-3">详细规则</h3>
-                            <div className="whitespace-pre-wrap text-gray-600 dark:text-gray-300">
-                                {hackathon.rules_detail || "暂无详细规则"}
+                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
+                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
+                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '详细规则' : 'PROTOCOL RULES'}
+                            </h3>
+                            <div className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
+                                {hackathon.rules_detail || (lang === 'zh' ? "暂无详细规则" : "NO PROTOCOL DATA")}
                             </div>
                         </section>
 
-                        <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="text-lg font-bold mb-4 border-l-4 border-yellow-500 pl-3">奖项设置</h3>
-                            <div className="whitespace-pre-wrap text-gray-600 dark:text-gray-300">
-                                {hackathon.awards_detail || "暂无奖项信息"}
+                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
+                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
+                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '奖项设置' : 'BOUNTY DATA'}
+                            </h3>
+                            <div className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
+                                {hackathon.awards_detail || (lang === 'zh' ? "暂无奖项信息" : "NO BOUNTY DATA")}
                             </div>
                         </section>
 
-                        <section className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="text-lg font-bold mb-4 border-l-4 border-green-500 pl-3">提交要求</h3>
-                            <div className="text-gray-600 dark:text-gray-300 space-y-2">
-                                <p>参赛者需在规定时间内提交作品，包含以下内容：</p>
-                                <ul className="list-disc list-inside pl-4">
-                                    <li><strong>项目名称与简介</strong>：清晰描述项目解决了什么问题。</li>
-                                    <li><strong>代码仓库 URL</strong>：公开的 GitHub/GitLab 仓库链接。</li>
-                                    <li><strong>演示 Demo URL</strong>：可访问的在线演示地址。</li>
-                                    <li><strong>演示视频 URL</strong>：(可选) YouTube/Bilibili 等视频链接。</li>
+                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
+                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
+                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '提交要求' : 'SUBMISSION REQS'}
+                            </h3>
+                            <div className="text-gray-300 space-y-2 font-mono text-sm">
+                                <p>{lang === 'zh' ? '参赛者需在规定时间内提交作品，包含以下内容：' : 'Participants must submit the following within the timeframe:'}</p>
+                                <ul className="list-disc list-inside pl-4 space-y-2 marker:text-brand">
+                                    <li><strong className="text-white">{lang === 'zh' ? '项目名称与简介' : 'Project Name & Brief'}</strong>: {lang === 'zh' ? '清晰描述项目解决了什么问题。' : 'Clear description of the problem solved.'}</li>
+                                    <li><strong className="text-white">{lang === 'zh' ? '代码仓库 URL' : 'Repo URL'}</strong>: {lang === 'zh' ? '公开的 GitHub/GitLab 仓库链接。' : 'Public GitHub/GitLab link.'}</li>
+                                    <li><strong className="text-white">{lang === 'zh' ? '演示 Demo URL' : 'Demo URL'}</strong>: {lang === 'zh' ? '可访问的在线演示地址。' : 'Accessible online demo link.'}</li>
+                                    <li><strong className="text-white">{lang === 'zh' ? '演示视频 URL' : 'Video URL'}</strong>: {lang === 'zh' ? '(可选) YouTube/Bilibili 等视频链接。' : '(Optional) Video link.'}</li>
                                 </ul>
                             </div>
                         </section>
@@ -488,28 +543,34 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                     {/* Right Column: Timeline & Info */}
                     <div className="col-span-1 space-y-6">
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="font-bold mb-4 text-gray-900 dark:text-white">📅 日程安排</h3>
-                            <div className="space-y-4 relative before:absolute before:left-1.5 before:top-2 before:h-full before:w-0.5 before:bg-gray-200 dark:before:bg-gray-700">
-                                <TimelineItem label="报名开始" date={hackathon.registration_start_date} active />
-                                <TimelineItem label="报名截止" date={hackathon.registration_end_date} />
-                                <TimelineItem label="比赛开始" date={hackathon.start_date} />
-                                <TimelineItem label="提交截止" date={hackathon.submission_end_date} />
-                                <TimelineItem label="评审开始" date={hackathon.judging_start_date} />
-                                <TimelineItem label="评审结束" date={hackathon.judging_end_date} />
-                                <TimelineItem label="比赛结束" date={hackathon.end_date} />
+                        <div className="bg-white/5 border border-white/10 p-6">
+                            <h3 className="font-black mb-6 text-white uppercase tracking-tight flex items-center gap-2">
+                                <span className="text-brand">📅</span> {lang === 'zh' ? '日程安排' : 'TIMELINE'}
+                            </h3>
+                            <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:h-[calc(100%-20px)] before:w-[2px] before:bg-white/10">
+                                <TimelineItem label={lang === 'zh' ? "报名开始" : "REG OPEN"} date={hackathon.registration_start_date} active />
+                                <TimelineItem label={lang === 'zh' ? "报名截止" : "REG CLOSE"} date={hackathon.registration_end_date} />
+                                <TimelineItem label={lang === 'zh' ? "比赛开始" : "HACK START"} date={hackathon.start_date} />
+                                <TimelineItem label={lang === 'zh' ? "提交截止" : "SUBMIT DUE"} date={hackathon.submission_end_date} />
+                                <TimelineItem label={lang === 'zh' ? "评审开始" : "JUDGE START"} date={hackathon.judging_start_date} />
+                                <TimelineItem label={lang === 'zh' ? "评审结束" : "JUDGE END"} date={hackathon.judging_end_date} />
+                                <TimelineItem label={lang === 'zh' ? "比赛结束" : "HACK END"} date={hackathon.end_date} />
                             </div>
                         </div>
 
-                        <div className="bg-white dark:bg-gray-800 p-6 rounded-xl shadow-sm">
-                            <h3 className="font-bold mb-4">主办方</h3>
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
+                        <div className="bg-white/5 border border-white/10 p-6">
+                            <h3 className="font-black mb-6 text-white uppercase tracking-tight flex items-center gap-2">
+                                <span className="text-brand">♟</span> {lang === 'zh' ? '主办方' : 'ORGANIZER'}
+                            </h3>
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 bg-brand text-black flex items-center justify-center font-black text-xl border-2 border-white">
                                     {hackathon.organizer_id}
                                 </div>
                                 <div>
-                                    <div className="font-medium">Organizer #{hackathon.organizer_id}</div>
-                                    <div className="text-xs text-gray-500">已认证</div>
+                                    <div className="font-mono font-bold text-white uppercase">Organizer #{hackathon.organizer_id}</div>
+                                    <div className="text-xs text-brand font-mono border border-brand px-1 inline-block mt-1 uppercase">
+                                        {lang === 'zh' ? '已认证' : 'VERIFIED'}
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -518,20 +579,23 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                )}
 
                {activeTab === 'participants' && (
-                 <div className="text-center py-10 text-gray-500">
-                   <p>团队列表即将上线...</p>
+                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
+                   <div className="text-4xl mb-4">🚧</div>
+                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '团队列表即将上线...' : 'SQUAD LIST INCOMING...'}</p>
                  </div>
                )}
 
                {activeTab === 'projects' && (
-                 <div className="text-center py-10 text-gray-500">
-                   <p>项目展示区...</p>
+                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
+                   <div className="text-4xl mb-4">🚧</div>
+                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '项目展示区...' : 'PROTOTYPE SHOWCASE...'}</p>
                  </div>
                )}
 
                {activeTab === 'results' && (
-                 <div className="text-center py-10 text-gray-500">
-                   <p>比赛结果将在活动结束后公布。</p>
+                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
+                   <div className="text-4xl mb-4">🔒</div>
+                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '比赛结果将在活动结束后公布。' : 'RESULTS CLASSIFIED UNTIL EVENT END.'}</p>
                  </div>
                )}
             </div>
@@ -545,10 +609,10 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 function TimelineItem({ label, date, active }: { label: string, date?: string, active?: boolean }) {
     if (!date) return null;
     return (
-        <div className="relative pl-6">
-            <div className={`absolute left-0 top-1.5 w-3.5 h-3.5 rounded-full border-2 ${active ? 'bg-blue-600 border-blue-600' : 'bg-white border-gray-300 dark:border-gray-500 dark:bg-gray-800'}`}></div>
-            <div className="text-xs text-gray-500 dark:text-gray-400 mb-0.5">{new Date(date).toLocaleString()}</div>
-            <div className="font-medium text-gray-900 dark:text-gray-200">{label}</div>
+        <div className="relative pl-8 pb-6 last:pb-0 group">
+            <div className={`absolute left-0 top-1.5 w-4 h-4 border-2 transition-colors ${active ? 'bg-brand border-brand shadow-[0_0_10px_rgba(212,163,115,0.5)]' : 'bg-black border-gray-600 group-hover:border-brand'}`}></div>
+            <div className="text-xs text-gray-500 font-mono mb-1">{new Date(date).toLocaleString()}</div>
+            <div className={`font-bold font-mono uppercase text-sm ${active ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>{label}</div>
         </div>
     );
 }

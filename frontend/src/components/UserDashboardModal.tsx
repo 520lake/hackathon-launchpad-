@@ -32,9 +32,10 @@ interface UserDashboardModalProps {
   onClose: () => void;
   onHackathonSelect: (id: number) => void;
   onVerifyClick: () => void;
+  lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, lang }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
@@ -56,25 +57,29 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const fetchMyData = async () => {
     setLoading(true);
     try {
-      // 0. 获取当前用户信息
       const token = localStorage.getItem('token');
-      if (token) {
-        const resUser = await axios.get('/api/v1/users/me', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        setUser(resUser.data);
-        // Init form data
-        setSkills(resUser.data.skills || '');
-        setInterests(resUser.data.interests || '');
-        setResume(resUser.data.resume || '');
-      }
+      if (!token) return;
+
+      // 0. 获取当前用户信息
+      const resUser = await axios.get('/api/v1/users/me', {
+          headers: { Authorization: `Bearer ${token}` }
+      });
+      setUser(resUser.data);
+      // Init form data
+      setSkills(resUser.data.skills || '');
+      setInterests(resUser.data.interests || '');
+      setResume(resUser.data.resume || '');
 
       // 1. 获取我创建的活动
-      const resCreated = await axios.get('/api/v1/hackathons/my');
+      const resCreated = await axios.get('/api/v1/hackathons/my', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setMyCreated(resCreated.data);
       
       // 2. 获取我参与的活动
-      const resJoined = await axios.get('/api/v1/enrollments/me');
+      const resJoined = await axios.get('/api/v1/enrollments/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setMyJoined(resJoined.data);
     } catch (err) {
       console.error(err);
@@ -133,31 +138,40 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-4xl p-0 relative transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+      <div className="bg-void border border-brand shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-4xl p-0 relative transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-gray-50 dark:bg-gray-900">
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-white">个人中心</h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700">✕</button>
+        <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface">
+          <h2 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
+             <span className="text-brand">◈</span> {lang === 'zh' ? '个人中心' : 'USER DASHBOARD'}
+          </h2>
+          <button onClick={onClose} className="text-gray-500 hover:text-brand transition-colors text-xl">✕</button>
         </div>
 
         {/* User Info & Verification */}
         {user && (
-            <div className="px-6 py-4 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
+            <div className="px-6 py-6 bg-void border-b border-brand/20 flex justify-between items-center">
                 <div>
-                    <div className="font-bold text-lg text-gray-900 dark:text-white">{user.email}</div>
-                    <div className="text-sm text-gray-500">ID: {user.id}</div>
+                    <div className="font-bold text-lg text-white font-mono">{user.email}</div>
+                    <div className="text-xs text-brand/60 font-mono mt-1">ID: {user.id}</div>
                 </div>
                 <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 rounded-full text-xs font-medium ${user.is_verified ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
-                        {user.is_verified ? '已实名认证' : '未认证'}
+                    <span className={`px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider border ${
+                        user.is_verified 
+                        ? 'bg-brand/20 text-brand border-brand' 
+                        : 'bg-red-500/10 text-red-500 border-red-500/30'
+                    }`}>
+                        {user.is_verified 
+                            ? (lang === 'zh' ? '已实名认证' : 'VERIFIED') 
+                            : (lang === 'zh' ? '未认证' : 'UNVERIFIED')
+                        }
                     </span>
                     {!user.is_verified && (
                         <button 
                             onClick={handleVerify}
-                            className="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg transition"
+                            className="px-4 py-1 bg-brand text-black text-xs font-bold hover:bg-white transition uppercase tracking-wider"
                         >
-                            立即认证
+                            {lang === 'zh' ? '立即认证' : 'VERIFY NOW'}
                         </button>
                     )}
                 </div>
@@ -165,93 +179,104 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         )}
 
         {/* Tabs */}
-        <div className="flex border-b border-gray-200 dark:border-gray-700">
+        <div className="flex border-b border-brand/20 bg-surface">
           <button
             onClick={() => setActiveTab('created')}
-            className={`flex-1 py-4 text-center font-medium transition ${
+            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
               activeTab === 'created' 
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'text-brand border-b-2 border-brand bg-brand/5' 
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            我发起的活动
+            {lang === 'zh' ? '我发起的活动' : 'INITIATED'}
           </button>
           <button
             onClick={() => setActiveTab('joined')}
-            className={`flex-1 py-4 text-center font-medium transition ${
+            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
               activeTab === 'joined' 
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'text-brand border-b-2 border-brand bg-brand/5' 
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            我参与的活动
+            {lang === 'zh' ? '我参与的活动' : 'JOINED'}
           </button>
           <button
             onClick={() => setActiveTab('profile')}
-            className={`flex-1 py-4 text-center font-medium transition ${
+            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
               activeTab === 'profile' 
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' 
-                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                ? 'text-brand border-b-2 border-brand bg-brand/5' 
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            个人资料 & 技能
+            {lang === 'zh' ? '个人资料 & 技能' : 'PROFILE & SKILLS'}
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1">
+        <div className="p-6 overflow-y-auto flex-1 bg-void custom-scrollbar">
           {loading ? (
             <div className="text-center py-10">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+              <div className="inline-block animate-spin w-8 h-8 border-4 border-brand border-t-transparent rounded-full"></div>
             </div>
           ) : (
             <>
           {activeTab === 'profile' && (
-            <div className="space-y-6">
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">技能标签</label>
+            <div className="space-y-8 max-w-2xl mx-auto py-4">
+                <div className="group">
+                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                        {lang === 'zh' ? '技能标签' : 'SKILL TAGS'}
+                    </label>
                     <input
                         type="text"
                         value={skills}
                         onChange={(e) => setSkills(e.target.value)}
-                        placeholder="例如: React, Python, UI/UX (用逗号分隔)"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder={lang === 'zh' ? "例如: React, Python, UI/UX (用逗号分隔)" : "e.g., React, Python, UI/UX (comma separated)"}
+                        className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
                     />
-                    <p className="text-xs text-gray-500 mt-1">用于智能组队匹配</p>
+                    <p className="text-xs text-gray-500 mt-2 font-mono">
+                        {lang === 'zh' ? '用于智能组队匹配' : 'Used for AI neural matching'}
+                    </p>
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">兴趣领域</label>
+                <div className="group">
+                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                        {lang === 'zh' ? '兴趣领域' : 'INTEREST AREAS'}
+                    </label>
                     <input
                         type="text"
                         value={interests}
                         onChange={(e) => setInterests(e.target.value)}
-                        placeholder="例如: Web3, AI, DeFi (用逗号分隔)"
-                        className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                        placeholder={lang === 'zh' ? "例如: Web3, AI, DeFi (用逗号分隔)" : "e.g., Web3, AI, DeFi (comma separated)"}
+                        className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
                     />
                 </div>
-                <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">简历上传</label>
-                    <div className="flex gap-2 items-center">
+                <div className="group">
+                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                        {lang === 'zh' ? '简历上传' : 'RESUME UPLOAD'}
+                    </label>
+                    <div className="relative">
                         <input type="file" onChange={handleResumeUpload} className="block w-full text-sm text-gray-500
                             file:mr-4 file:py-2 file:px-4
-                            file:rounded-full file:border-0
-                            file:text-sm file:font-semibold
-                            file:bg-blue-50 file:text-blue-700
-                            hover:file:bg-blue-100
+                            file:border-0
+                            file:text-xs file:font-bold file:uppercase
+                            file:bg-brand file:text-black
+                            hover:file:bg-white
+                            cursor-pointer font-mono
                         "/>
                     </div>
                     {resume && (
-                        <div className="mt-2 text-sm text-blue-600">
-                            <a href={resume} target="_blank" rel="noopener noreferrer">查看已上传简历</a>
+                        <div className="mt-3 text-xs text-brand font-mono">
+                            <a href={resume} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-2">
+                                <span>📄</span> {lang === 'zh' ? '查看已上传简历' : 'VIEW UPLOADED RESUME'}
+                            </a>
                         </div>
                     )}
                 </div>
                 <button
                     onClick={handleSaveProfile}
                     disabled={savingProfile}
-                    className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg shadow-sm transition disabled:opacity-50"
+                    className="w-full px-6 py-4 bg-brand hover:bg-white text-black font-black uppercase tracking-widest text-sm transition-all disabled:opacity-50 mt-8 clip-path-polygon"
                 >
-                    {savingProfile ? '保存中...' : '保存资料'}
+                    {savingProfile ? (lang === 'zh' ? '保存中...' : 'SAVING...') : (lang === 'zh' ? '保存资料' : 'SAVE PROFILE')}
                 </button>
             </div>
           )}
@@ -259,22 +284,35 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
               {activeTab === 'created' && (
                 <div className="space-y-4">
                   {myCreated.length === 0 ? (
-                    <p className="text-center text-gray-500 py-10">你还没有发起过任何活动。</p>
+                    <div className="text-center py-20 border border-dashed border-gray-800">
+                        <p className="text-gray-600 font-mono text-sm uppercase">
+                            {lang === 'zh' ? '你还没有发起过任何活动' : 'NO HACKATHONS INITIATED'}
+                        </p>
+                    </div>
                   ) : (
                     myCreated.map(h => (
                       <div 
                         key={h.id} 
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition flex justify-between items-center cursor-pointer"
+                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
                         onClick={() => {
                           onHackathonSelect(h.id);
                           onClose();
                         }}
                       >
-                        <div>
-                          <h3 className="font-bold text-lg">{h.title}</h3>
-                          <p className="text-sm text-gray-500">{new Date(h.start_date).toLocaleDateString()}</p>
+                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <div className="text-4xl font-black text-brand">INIT</div>
                         </div>
-                        <span className="px-3 py-1 bg-gray-100 rounded-full text-xs text-gray-700">{h.status}</span>
+                        <div className="flex justify-between items-start relative z-10">
+                          <div>
+                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{h.title}</h3>
+                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
+                                {lang === 'zh' ? '开始时间' : 'START'}: <span className="text-gray-300">{new Date(h.start_date).toLocaleDateString()}</span>
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">
+                            {h.status}
+                          </span>
+                        </div>
                       </div>
                     ))
                   )}
@@ -284,28 +322,44 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
               {activeTab === 'joined' && (
                 <div className="space-y-4">
                   {myJoined.length === 0 ? (
-                    <p className="text-center text-gray-500 py-10">你还没有参与任何活动。</p>
+                    <div className="text-center py-20 border border-dashed border-gray-800">
+                        <p className="text-gray-600 font-mono text-sm uppercase">
+                            {lang === 'zh' ? '你还没有参与任何活动' : 'NO HACKATHONS JOINED'}
+                        </p>
+                    </div>
                   ) : (
                     myJoined.map(e => (
                       <div 
                         key={e.id} 
-                        className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition flex justify-between items-center cursor-pointer"
+                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
                         onClick={() => {
                           onHackathonSelect(e.hackathon.id);
                           onClose();
                         }}
                       >
-                        <div>
-                          <h3 className="font-bold text-lg">{e.hackathon.title}</h3>
-                          <p className="text-sm text-gray-500">报名时间: {new Date(e.joined_at).toLocaleDateString()}</p>
+                         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <div className="text-4xl font-black text-white">JOIN</div>
                         </div>
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                          e.status === 'approved' ? 'bg-green-100 text-green-700' :
-                          e.status === 'rejected' ? 'bg-red-100 text-red-700' :
-                          'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {e.status === 'pending' ? '审核中' : e.status === 'approved' ? '已通过' : '已拒绝'}
-                        </span>
+                        <div className="flex justify-between items-start relative z-10">
+                          <div>
+                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
+                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
+                                {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-gray-300">{new Date(e.joined_at).toLocaleDateString()}</span>
+                            </p>
+                          </div>
+                          <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border ${
+                            e.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
+                            e.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
+                            'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                          }`}>
+                            {e.status === 'pending' 
+                                ? (lang === 'zh' ? '审核中' : 'PENDING') 
+                                : e.status === 'approved' 
+                                    ? (lang === 'zh' ? '已通过' : 'APPROVED') 
+                                    : (lang === 'zh' ? '已拒绝' : 'REJECTED')
+                            }
+                          </span>
+                        </div>
                       </div>
                     ))
                   )}

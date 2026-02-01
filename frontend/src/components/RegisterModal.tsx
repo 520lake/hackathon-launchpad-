@@ -4,9 +4,10 @@ import axios from 'axios';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  lang?: 'zh' | 'en';
 }
 
-export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: RegisterModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -43,34 +44,39 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-md p-8 relative transform transition-all">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="card-brutal w-full max-w-md p-8 relative bg-surface border border-brand/20">
         <button 
           onClick={onClose}
-          className="absolute top-4 right-4 text-gray-500 hover:text-gray-700 dark:hover:text-gray-300"
+          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
         >
           ✕
         </button>
         
-        <h2 className="text-2xl font-bold mb-6 text-center text-gray-900 dark:text-white">
-          注册 VibeBuild
-        </h2>
+        <div className="mb-8 text-center">
+            <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
+            JOIN <span className="text-brand">AURA</span>
+            </h2>
+            <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                {lang === 'zh' ? '初始序列' : 'Initial Sequence'}
+            </p>
+        </div>
         
         {error && (
-          <div className="mb-4 p-3 bg-red-100 border border-red-200 text-red-700 rounded-lg text-sm">
+          <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 text-red-400 rounded-none text-sm font-mono">
             {error}
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              邮箱
+            <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
+              {lang === 'zh' ? '邮箱' : 'EMAIL'}
             </label>
             <input
               type="email"
               required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="name@example.com"
@@ -78,39 +84,39 @@ export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              全名
+            <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
+              {lang === 'zh' ? '代号 (全名)' : 'CODENAME (FULL NAME)'}
             </label>
             <input
               type="text"
               required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder="你的名字"
+              placeholder={lang === 'zh' ? "您的名字" : "YOUR_NAME"}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              密码
+            <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
+              {lang === 'zh' ? '密码' : 'PASSWORD'}
             </label>
             <input
               type="password"
               required
-              className="w-full px-4 py-2 rounded-lg border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:text-white outline-none transition"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="********"
+              placeholder="••••••••"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-md hover:shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed mt-2"
+            className="w-full py-4 bg-brand text-void font-bold text-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-8 clip-path-slant"
           >
-            {loading ? '注册中...' : '立即注册'}
+            {loading ? (lang === 'zh' ? '处理中...' : 'PROCESSING...') : (lang === 'zh' ? '加入网络' : 'JOIN_NETWORK')}
           </button>
         </form>
       </div>

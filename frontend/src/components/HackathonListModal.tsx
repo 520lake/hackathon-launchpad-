@@ -18,9 +18,10 @@ interface HackathonListModalProps {
   isOpen: boolean;
   onClose: () => void;
   onHackathonSelect: (id: number) => void;
+  lang: 'zh' | 'en';
 }
 
-export default function HackathonListModal({ isOpen, onClose, onHackathonSelect }: HackathonListModalProps) {
+export default function HackathonListModal({ isOpen, onClose, onHackathonSelect, lang }: HackathonListModalProps) {
   const [hackathons, setHackathons] = useState<Hackathon[]>([]);
   const [filteredHackathons, setFilteredHackathons] = useState<Hackathon[]>([]);
   const [loading, setLoading] = useState(false);
@@ -89,105 +90,117 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/50 backdrop-blur-sm">
-      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-2xl w-full max-w-6xl p-0 relative transform transition-all h-[90vh] flex flex-col">
+    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
+      <div className="bg-surface border border-brand/20 card-brutal w-full max-w-6xl p-0 relative transform transition-all h-[90vh] flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center bg-white dark:bg-gray-800 rounded-t-2xl z-10">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white">探索黑客松</h2>
-            <button onClick={onClose} className="text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">✕</button>
+        <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface/50 z-10">
+            <h2 className="text-3xl font-black text-ink tracking-tighter uppercase">
+                <span className="text-brand mr-2">//</span>
+                {lang === 'zh' ? '探索网络' : 'EXPLORE NETWORK'}
+            </h2>
+            <button onClick={onClose} className="text-gray-500 hover:text-brand text-xl">✕</button>
         </div>
         
         {/* Filters */}
-        <div className="p-4 bg-gray-50 dark:bg-gray-900/50 border-b border-gray-200 dark:border-gray-700 flex flex-wrap gap-4 items-center">
+        <div className="p-4 bg-void border-b border-brand/20 flex flex-wrap gap-4 items-center">
             <select 
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm"
                 value={statusFilter}
                 onChange={e => setStatusFilter(e.target.value)}
             >
-                <option value="all">所有状态</option>
-                <option value="published">已发布</option>
-                <option value="ongoing">进行中</option>
-                <option value="ended">已结束</option>
+                <option value="all" className="bg-surface text-ink">所有状态</option>
+                <option value="published" className="bg-surface text-ink">已发布</option>
+                <option value="ongoing" className="bg-surface text-ink">进行中</option>
+                <option value="ended" className="bg-surface text-ink">已结束</option>
             </select>
             
             <input 
                 type="text" 
-                placeholder="筛选主题 (如 Web3)" 
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 w-40"
+                placeholder="筛选主题 [例如: AI]" 
+                className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm w-48 placeholder-gray-400"
                 value={themeFilter}
                 onChange={e => setThemeFilter(e.target.value)}
             />
 
             <input 
                 type="text" 
-                placeholder="筛选专业度" 
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 w-32"
+                placeholder="筛选等级" 
+                className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm w-40 placeholder-gray-400"
                 value={levelFilter}
                 onChange={e => setLevelFilter(e.target.value)}
             />
 
             <select 
-                className="px-3 py-2 rounded-lg border border-gray-300 dark:border-gray-600 dark:bg-gray-700 ml-auto"
+                className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm ml-auto"
                 value={sortOrder}
                 onChange={e => setSortOrder(e.target.value)}
             >
-                <option value="hot">热门推荐 (进行中优先)</option>
-                <option value="newest">最新发布</option>
-                <option value="oldest">最早发布</option>
+                <option value="hot" className="bg-surface text-ink">热度排序</option>
+                <option value="newest" className="bg-surface text-ink">最新发布</option>
+                <option value="oldest" className="bg-surface text-ink">最早发布</option>
             </select>
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-gray-50 dark:bg-gray-900">
+        <div className="flex-1 overflow-y-auto p-6 bg-surface/50">
             {loading ? (
                 <div className="text-center py-20">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+                    <div className="font-mono text-brand animate-pulse">正在加载数据...</div>
                 </div>
             ) : filteredHackathons.length === 0 ? (
-                <div className="text-center py-20 text-gray-500">
-                    <p className="text-lg">暂无符合条件的活动。</p>
+                <div className="text-center py-20 text-gray-500 font-mono">
+                    <p className="text-lg">未发现活动信号。</p>
                 </div>
             ) : (
                 <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
                     {filteredHackathons.map((hackathon) => (
                         <div 
                             key={hackathon.id} 
-                            className="group bg-white dark:bg-gray-800 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 hover:shadow-xl transition cursor-pointer flex flex-col"
+                            className="group bg-void border border-brand/20 hover:border-brand transition-colors cursor-pointer flex flex-col relative overflow-hidden"
                             onClick={() => {
                                 onHackathonSelect(hackathon.id);
                                 onClose();
                             }}
                         >
-                            <div className="h-40 bg-gray-200 dark:bg-gray-700 relative overflow-hidden">
+                            <div className="h-40 bg-white/5 relative overflow-hidden flex items-center justify-center">
                                 {hackathon.cover_image ? (
-                                    <img src={hackathon.cover_image} alt={hackathon.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-500" />
+                                    <img src={hackathon.cover_image} alt={hackathon.title} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition duration-500" />
                                 ) : (
-                                    <div className="w-full h-full bg-gradient-to-br from-blue-500 to-purple-600 opacity-80 group-hover:opacity-100 transition" />
+                                    <div className="w-full h-full bg-noise opacity-20" />
                                 )}
                                 <div className="absolute top-3 right-3">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full backdrop-blur-md ${
-                                        hackathon.status === 'published' ? 'bg-green-500/80 text-white' : 
-                                        hackathon.status === 'ongoing' ? 'bg-blue-500/80 text-white' : 'bg-gray-500/80 text-white'
+                                    <span className={`text-[10px] font-bold uppercase tracking-widest px-2 py-0.5 border ${
+                                        hackathon.status === 'published' ? 'border-green-500 text-green-500' :
+                                        hackathon.status === 'ongoing' ? 'border-brand text-brand' :
+                                        hackathon.status === 'ended' ? 'border-gray-500 text-gray-500' :
+                                        'border-yellow-500 text-yellow-500'
                                     }`}>
-                                        {hackathon.status}
+                                        {hackathon.status === 'published' ? (lang === 'zh' ? '已发布' : 'PUBLISHED') : 
+                                         hackathon.status === 'ongoing' ? (lang === 'zh' ? '进行中' : 'ONGOING') : 
+                                         hackathon.status === 'ended' ? (lang === 'zh' ? '已结束' : 'ENDED') : (lang === 'zh' ? '草稿' : 'DRAFT')}
                                     </span>
                                 </div>
+                                {!hackathon.cover_image && (
+                                    <span className="absolute text-6xl font-black text-white/5 group-hover:text-brand/20 transition-colors select-none">
+                                        {hackathon.title.substring(0, 2).toUpperCase()}
+                                    </span>
+                                )}
                             </div>
                             
                             <div className="p-5 flex-1 flex flex-col">
-                                <div className="flex gap-2 mb-2 flex-wrap">
+                                <div className="flex gap-2 mb-4 flex-wrap">
                                     {hackathon.theme_tags?.split(',').slice(0, 2).map(tag => (
-                                        <span key={tag} className="text-xs px-2 py-0.5 bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded">{tag}</span>
+                                        <span key={tag} className="text-[10px] px-1 py-0.5 border border-brand/30 text-brand/80 font-mono uppercase">{tag}</span>
                                     ))}
                                 </div>
                                 
-                                <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-1">{hackathon.title}</h3>
-                                <p className="text-gray-500 dark:text-gray-400 text-sm mb-4 line-clamp-2 flex-1">{hackathon.description}</p>
+                                <h3 className="text-xl font-bold text-ink mb-2 line-clamp-1 group-hover:text-brand transition-colors">{hackathon.title}</h3>
+                                <p className="text-gray-500 text-sm mb-6 line-clamp-2 flex-1 font-light">{hackathon.description}</p>
                                 
-                                <div className="pt-4 border-t border-gray-100 dark:border-gray-700 mt-auto">
-                                    <div className="flex justify-between items-center text-sm text-gray-500">
-                                        <span>📅 {new Date(hackathon.start_date).toLocaleDateString()}</span>
-                                        <span>Host #{hackathon.organizer_id}</span>
+                                <div className="pt-4 border-t border-white/5 mt-auto">
+                                    <div className="flex justify-between items-center text-xs font-mono text-gray-500">
+                                        <span>日期: {new Date(hackathon.start_date).toLocaleDateString()}</span>
+                                        <span className="group-hover:text-brand transition-colors">访问终端 &gt;&gt;</span>
                                     </div>
                                 </div>
                             </div>

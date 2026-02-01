@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
@@ -34,12 +34,30 @@ app.mount("/static", StaticFiles(directory="uploads"), name="static")
 
 # 3. Frontend Static Files (Root)
 # Determine path to frontend/dist relative to this file
-# backend/app/main.py -> backend/app -> backend -> frontend/dist
+# In Docker/Production, we will copy dist to a local 'static_dist' folder
 current_dir = os.path.dirname(os.path.abspath(__file__))
-frontend_dist = os.path.join(current_dir, "..", "..", "frontend", "dist")
+# Check local Docker path first
+local_dist = os.path.join(current_dir, "..", "static_dist")
+# Fallback to dev path
+dev_dist = os.path.join(current_dir, "..", "..", "frontend", "dist")
 
-if os.path.exists(frontend_dist):
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
+dist_path = local_dist if os.path.exists(local_dist) else dev_dist
+
+if os.path.exists(dist_path):
+    # SPA Catch-all route for history mode
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        # Allow API requests to pass through
+        if full_path.startswith("api/") or full_path.startswith("static/") or full_path.startswith("health"):
+            raise HTTPException(status_code=404)
+            
+        # Check if file exists
+        file_path = os.path.join(dist_path, full_path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return FileResponse(file_path)
+            
+        # Otherwise return index.html
+        return FileResponse(os.path.join(dist_path, "index.html"))
 
 @app.get("/health")
 def health_check():

@@ -1,33 +1,46 @@
-# 贡献指南
+# 🤝 Contribution Protocol // 协作协议
 
-欢迎为 VibeBuild 做出贡献！
+> **Status**: Open for Contribution
+> **Protocol**: Git Flow
+> **Mission**: Build the Future Together
 
-## 开发流程
+---
 
-1. **Fork** 本仓库到你的个人账号。
-2. **Clone** 你的 Fork 到本地。
-3. 创建一个新的 **Branch** 进行开发 (`git checkout -b feature/amazing-feature`)。
-4. 提交你的代码 (`git commit -m 'Add some amazing feature'`)。
-5. 推送到你的 Fork (`git push origin feature/amazing-feature`)。
-6. 创建一个 **Pull Request**。
+## 🔄 Sync & Merge // 协作流程
 
-## 代码规范
+| Step | Action | Description | Command |
+| :--- | :--- | :--- | :--- |
+| **01** | **Fork** | Fork repository to your personal matrix | `Click 'Fork'` |
+| **02** | **Clone** | Clone your fork to local workspace | `git clone <fork-url>` |
+| **03** | **Branch** | Create a new neural branch | `git checkout -b feature/amazing-feature` |
+| **04** | **Commit** | Save your code changes | `git commit -m 'feat: add amazing feature'` |
+| **05** | **Push** | Upload to your remote matrix | `git push origin feature/amazing-feature` |
+| **06** | **PR** | Initiate Pull Request | `Click 'New Pull Request'` |
 
-- **Backend**: 遵循 PEP 8 规范。使用 `black` 和 `isort` 进行格式化。
-- **Frontend**: 使用 ESLint 和 Prettier。
+---
 
-## 提交信息规范
+## 📏 Code Standards // 代码规范
 
-请使用 [Conventional Commits](https://www.conventionalcommits.org/) 规范：
+### 🐍 Backend (Python)
+*   **Style**: PEP 8
+*   **Formatter**: `black`, `isort`
+*   **Type Hinting**: Required for all new endpoints
 
-- `feat`: 新功能
-- `fix`: 修复 Bug
-- `docs`: 文档变更
-- `style`: 代码格式调整 (不影响逻辑)
-- `refactor`: 代码重构
-- `test`: 测试相关
-- `chore`: 构建过程或辅助工具的变动
+### ⚛️ Frontend (React)
+*   **Style**: ESLint + Prettier
+*   **Framework**: React 18 + TypeScript
+*   **Styling**: Tailwind CSS v4 (No custom CSS unless necessary)
 
-## 联系我们
+---
 
-如有问题，请在 Issue 中提出。
+## 📝 Commit Matrix // 提交规范
+
+| Type | Meaning | Example |
+| :--- | :--- | :--- |
+| **feat** | New Feature | `feat: add AI team matching` |
+| **fix** | Bug Fix | `fix: resolve login token error` |
+| **docs** | Documentation | `docs: update deployment guide` |
+| **style** | Formatting | `style: reformat code with black` |
+| **refactor** | Code Restructuring | `refactor: optimize database queries` |
+| **test** | Testing | `test: add unit tests for auth` |
+| **chore** | Maintenance | `chore: update dependencies` |

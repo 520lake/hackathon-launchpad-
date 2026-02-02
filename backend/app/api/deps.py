@@ -4,11 +4,14 @@ from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
 from sqlmodel import Session
+import logging
 
 from app.core import security
 from app.core.config import settings
 from app.db.session import get_session
 from app.models.user import User
+
+logger = logging.getLogger(__name__)
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token"
@@ -24,7 +27,9 @@ def get_current_user(
         )
         token_data = payload.get("sub")
     except (JWTError, ValidationError) as e:
-        print(f"DEBUG: Token validation failed: {e}")
+        logger.error(f"Token validation failed: {str(e)}")
+        logger.error(f"Received Token (first 20 chars): {token[:20]}...")
+        logger.error(f"Expected Secret Key: {settings.SECRET_KEY}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",

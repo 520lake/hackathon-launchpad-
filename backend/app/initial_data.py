@@ -27,7 +27,11 @@ def init_db() -> None:
             db.commit()
             logger.info("Superuser created: admin@aura.com / admin123")
         else:
-            logger.info("Superuser already exists.")
+            # Update password in case it was created with a broken bcrypt version
+            user.hashed_password = get_password_hash("admin123")
+            db.add(user)
+            db.commit()
+            logger.info("Superuser already exists. Password reset to: admin123")
     except Exception as e:
         logger.error(f"Error creating superuser: {e}")
     finally:

@@ -53,12 +53,18 @@ function App() {
   const fetchCurrentUser = async () => {
     try {
         const token = localStorage.getItem('token');
+        console.log('[DEBUG] fetchCurrentUser - Token:', token ? token.substring(0, 10) + '...' : 'null');
+        
         const res = await axios.get('/api/v1/users/me', {
             headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(res.data);
-    } catch (e) {
+    } catch (e: any) {
         console.error("Failed to fetch user", e);
+        if (e.response) {
+            console.log('[DEBUG] fetchCurrentUser Error Status:', e.response.status);
+            console.log('[DEBUG] fetchCurrentUser Error Data:', e.response.data);
+        }
         // If token is invalid or user doesn't exist, clear state
         localStorage.removeItem('token');
         setIsLoggedIn(false);

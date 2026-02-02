@@ -104,7 +104,8 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           }, 1000);
           // Show code to user for demo
           if (res.data.code) {
-             alert(`验证码已发送: ${res.data.code}`);
+             setCode(res.data.code);
+             alert(`验证码已发送: ${res.data.code} (已自动填入)`);
           } else {
              alert('验证码已发送（请查看后端控制台日志）');
           }

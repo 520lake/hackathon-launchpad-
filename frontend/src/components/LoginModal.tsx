@@ -51,7 +51,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
   const loadWeChatQr = async () => {
       try {
           setLoading(true);
-          const res = await axios.get('/api/v1/wechat/qr');
+          const res = await axios.get('api/v1/wechat/qr');
           setQrUrl(res.data.qr_url);
           setSceneId(res.data.scene_id);
           startPolling(res.data.scene_id);
@@ -67,7 +67,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
       stopPolling();
       pollTimerRef.current = window.setInterval(async () => {
           try {
-              const res = await axios.get(`/api/v1/wechat/poll?scene_id=${sid}`);
+              const res = await axios.get(`api/v1/wechat/poll?scene_id=${sid}`);
               if (res.data.status === 'success') {
                   handleLoginSuccess(res.data.access_token);
               }
@@ -91,7 +91,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           return;
       }
       try {
-          const res = await axios.post('/api/v1/email-code', { email });
+          const res = await axios.post('api/v1/email-code', { email });
           setCountDown(60);
           const timer = setInterval(() => {
               setCountDown(prev => {
@@ -117,7 +117,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
   const handleEmailLogin = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-          const res = await axios.post('/api/v1/login/email', { email, code });
+          const res = await axios.post('api/v1/login/email', { email, code });
           handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
           setError(err.response?.data?.detail || '登录失败');
@@ -130,7 +130,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           const params = new URLSearchParams();
           params.append('username', email);
           params.append('password', password);
-          const res = await axios.post('/api/v1/login/access-token', params);
+          const res = await axios.post('api/v1/login/access-token', params);
           handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
           setError(err.response?.data?.detail || '登录失败');
@@ -198,7 +198,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
                             {lang === 'zh' ? '请使用微信扫一扫登录' : 'Scan via WeChat to Login'}
                         </p>
                         <p className="text-xs text-gray-400 mt-4 font-mono">
-                            [DEV_MODE]: <a href={`/api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
+                            [DEV_MODE]: <a href={`api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
                         </p>
                     </>
                 )}

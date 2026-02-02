@@ -75,7 +75,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             setCurrentUserId(payload.sub ? parseInt(payload.sub) : null);
             
             // Check verification status
-            axios.get('/api/v1/users/me', {
+            axios.get('api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             }).then(res => {
                 setIsVerified(res.data.is_verified);
@@ -93,7 +93,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     setMatchingLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('/api/v1/ai/generate', {
+      const res = await axios.post('api/v1/ai/generate', {
         prompt: 'match',
         type: 'matching'
       }, {
@@ -118,7 +118,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`/api/v1/hackathons/${hackathonId}`, {
+      await axios.delete(`api/v1/hackathons/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       alert(lang === 'zh' ? '活动删除成功' : 'Hackathon deleted successfully');
@@ -135,14 +135,14 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     setLoading(true);
     try {
       // Temporary: fetch all and find
-      const res = await axios.get('/api/v1/hackathons'); 
+      const res = await axios.get('api/v1/hackathons'); 
       const found = res.data.find((h: Hackathon) => h.id === hackathonId);
       setHackathon(found);
 
       // Check Enrollment and Project
       if (localStorage.getItem('token')) {
          try {
-           const resEnroll = await axios.get('/api/v1/enrollments/me');
+           const resEnroll = await axios.get('api/v1/enrollments/me');
            const myEnrollment = resEnroll.data.find((e: any) => e.hackathon_id === hackathonId);
            setEnrollment(myEnrollment || null);
 
@@ -150,7 +150,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
            // Assuming we have an endpoint or we filter
            // For now, let's assume we can get projects via /projects/ and filter (inefficient)
            // Or assume a dedicated endpoint
-           const resProjects = await axios.get('/api/v1/projects');
+           const resProjects = await axios.get('api/v1/projects');
            // Filter by hackathon_id and current user (if project has user/team info)
            // This part is tricky without proper backend support for "my project in this hackathon"
            // Let's assume the project list returns projects I have access to or I created
@@ -171,7 +171,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
            // Check Judge Status
            try {
-              const resJudges = await axios.get(`/api/v1/hackathons/${hackathonId}/judges`);
+              const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`);
               const judgeList = resJudges.data;
               // Assuming judgeList returns Judge objects with user_id
               const amIJudge = judgeList.some((j: any) => j.user_id === currentUserId);
@@ -199,7 +199,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         return;
     }
     try {
-      await axios.post('/api/v1/enrollments/', {
+      await axios.post('api/v1/enrollments/', {
         hackathon_id: hackathonId,
         user_id: 0 
       });

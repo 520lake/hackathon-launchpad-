@@ -77,7 +77,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
     setLoading(true);
     // setError('');
     try {
-      const response = await axios.get('/api/v1/hackathons');
+      const response = await axios.get('api/v1/hackathons');
       setHackathons(response.data);
     } catch (err) {
       console.error(err);

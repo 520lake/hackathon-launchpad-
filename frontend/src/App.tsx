@@ -55,7 +55,7 @@ function App() {
         const token = localStorage.getItem('token');
         console.log('[DEBUG] fetchCurrentUser - Token:', token ? token.substring(0, 10) + '...' : 'null');
         
-        const res = await axios.get('/api/v1/users/me', {
+        const res = await axios.get('api/v1/users/me', {
             headers: { Authorization: `Bearer ${token}` }
         });
         setCurrentUser(res.data);
@@ -74,7 +74,7 @@ function App() {
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('/api/v1/hackathons');
+      const response = await axios.get('api/v1/hackathons');
       // 取前6个
       setLatestHackathons(response.data.slice(0, 6));
     } catch (err) {
@@ -111,7 +111,7 @@ function App() {
                  return;
             }
 
-            const res = await axios.get('/api/v1/users/me', {
+            const res = await axios.get('api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             console.log('[DEBUG] User info fetched:', res.data);

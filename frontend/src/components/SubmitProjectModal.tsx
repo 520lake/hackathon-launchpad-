@@ -50,7 +50,7 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
     setAiLoading(true);
     try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('/api/v1/ai/generate', {
+        const res = await axios.post('api/v1/ai/generate', {
             prompt: innovationPrompt,
             type: 'project'
         }, {
@@ -98,9 +98,9 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
       };
 
       if (existingProject) {
-        await axios.put(`/api/v1/projects/${existingProject.id}`, payload, { headers });
+        await axios.put(`api/v1/projects/${existingProject.id}`, payload, { headers });
       } else {
-        await axios.post('/api/v1/projects/', payload, { headers });
+        await axios.post('api/v1/projects/', payload, { headers });
       }
       
       alert(lang === 'zh' ? '作品提交成功！' : 'Project submitted successfully!');

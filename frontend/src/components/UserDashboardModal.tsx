@@ -62,7 +62,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       if (!token) return;
 
       // 0. 获取当前用户信息
-      const resUser = await axios.get('/api/v1/users/me', {
+      const resUser = await axios.get('api/v1/users/me', {
           headers: { Authorization: `Bearer ${token}` }
       });
       setUser(resUser.data);
@@ -72,13 +72,13 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       setResume(resUser.data.resume || '');
 
       // 1. 获取我创建的活动
-      const resCreated = await axios.get('/api/v1/hackathons/my', {
+      const resCreated = await axios.get('api/v1/hackathons/my', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMyCreated(resCreated.data);
       
       // 2. 获取我参与的活动
-      const resJoined = await axios.get('/api/v1/enrollments/me', {
+      const resJoined = await axios.get('api/v1/enrollments/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMyJoined(resJoined.data);
@@ -96,7 +96,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const handleMockVerify = async () => {
     try {
         const token = localStorage.getItem('token');
-        await axios.post('/api/v1/users/me/verify', {}, {
+        await axios.post('api/v1/users/me/verify', {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         alert(lang === 'zh' ? '模拟认证成功！' : 'Mock verification successful!');
@@ -118,7 +118,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('/api/v1/upload/file', formData, {
+            const res = await axios.post('api/v1/upload/file', formData, {
                 headers: { 
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}` 
@@ -136,7 +136,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     setSavingProfile(true);
     try {
         const token = localStorage.getItem('token');
-        await axios.put('/api/v1/users/me', {
+        await axios.put('api/v1/users/me', {
             skills,
             interests,
             resume

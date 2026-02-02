@@ -32,7 +32,7 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.get('/api/v1/users/', {
+      const res = await axios.get('api/v1/users/', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setUsers(res.data);
@@ -52,7 +52,7 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
       // Optimistic update
       setUsers(users.map(u => u.id === user.id ? { ...u, [field]: newValue } : u));
 
-      await axios.put(`/api/v1/users/${user.id}`, {
+      await axios.put(`api/v1/users/${user.id}`, {
         [field]: newValue
       }, {
         headers: { Authorization: `Bearer ${token}` }

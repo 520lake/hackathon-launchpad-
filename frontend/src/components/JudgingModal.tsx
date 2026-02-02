@@ -47,7 +47,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
       const token = localStorage.getItem('token');
       
       // Fetch hackathon details for dimensions
-      const hackathonRes = await axios.get(`/api/v1/hackathons/${hackathonId}`, {
+      const hackathonRes = await axios.get(`api/v1/hackathons/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (hackathonRes.data.scoring_dimensions) {
@@ -59,7 +59,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
       }
 
       // Fetch projects
-      const projectsRes = await axios.get(`/api/v1/projects/?hackathon_id=${hackathonId}`, {
+      const projectsRes = await axios.get(`api/v1/projects/?hackathon_id=${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setProjects(projectsRes.data);
@@ -97,7 +97,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
         
         // Use project-specific score endpoint
         // Payload must match ScoreCreate (requires judge_id/project_id, though backend overrides)
-        await axios.post(`/api/v1/projects/${selectedProject.id}/score`, {
+        await axios.post(`api/v1/projects/${selectedProject.id}/score`, {
             project_id: selectedProject.id,
             judge_id: 0, // Dummy, backend uses current_user.id
             score_value: Math.round(totalScore), 

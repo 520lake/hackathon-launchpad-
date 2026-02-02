@@ -22,7 +22,7 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
     setError('');
 
     try {
-      await axios.post('/api/v1/register', {
+      await axios.post('api/v1/register', {
         email,
         password,
         full_name: fullName,

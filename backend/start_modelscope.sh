@@ -16,6 +16,8 @@ echo "Using database: $DATABASE_URL"
 
 # 运行数据库迁移
 echo "Running migrations..."
+# 确保在迁移前数据库文件目录存在
+mkdir -p /mnt/workspace
 alembic upgrade head
 
 # 创建初始数据（管理员账号）

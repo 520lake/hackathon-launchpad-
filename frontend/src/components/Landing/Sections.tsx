@@ -36,7 +36,7 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll, lang }: { h
     if (hackathons.length === 0) return null;
 
     return (
-        <section ref={containerRef} className="py-24 container mx-auto px-6 border-b border-brand/10">
+        <section ref={containerRef} className="py-24 max-w-[1200px] mx-auto w-full px-6 border-b border-brand/10">
             <div className="flex justify-between items-end mb-12">
                 <h2 className="text-4xl font-black text-ink uppercase tracking-tight">
                     <span className="text-brand mr-2">//</span>
@@ -98,7 +98,7 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
 
     return (
         <section className="py-32 bg-void relative overflow-hidden">
-            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
+            <div className="max-w-[1200px] mx-auto w-full px-6 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
                 <div className="md:col-span-7" ref={textRef}>
                     <h2 className="text-5xl font-black mb-8 text-ink leading-tight">
                         {lang === 'zh' ? '智能' : 'INTELLIGENT'} <br />
@@ -134,7 +134,7 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
 export function Partners() {
     return (
         <section className="py-12 border-y border-brand/10 bg-surface/50 overflow-hidden">
-             <div className="container mx-auto px-6 mb-8">
+             <div className="max-w-[1200px] mx-auto w-full px-6 mb-8">
                 <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Strategic_Partners //</span>
              </div>
              <div className="flex overflow-hidden whitespace-nowrap">
@@ -159,7 +159,7 @@ export function Partners() {
 // --- 4. Schedule ---
 export function Schedule({ lang }: { lang: 'zh' | 'en' }) {
     return (
-        <section className="py-24 container mx-auto px-6">
+        <section className="py-24 max-w-[1200px] mx-auto w-full px-6">
              <h2 className="text-3xl font-bold mb-16 text-center text-ink uppercase tracking-widest">
                 {lang === 'zh' ? '活动_时间轴' : 'Event_Timeline'}
             </h2>
@@ -191,7 +191,7 @@ export function Schedule({ lang }: { lang: 'zh' | 'en' }) {
 export function Footer({ lang }: { lang: 'zh' | 'en' }) {
     return (
         <footer className="bg-surface border-t border-brand/10 py-20">
-            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="max-w-[1200px] mx-auto w-full px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
                 <div className="col-span-1 md:col-span-2">
                     <h2 className="text-4xl font-black text-ink mb-6">AURA</h2>
                     <p className="text-gray-500 max-w-sm">
@@ -216,7 +216,7 @@ export function Footer({ lang }: { lang: 'zh' | 'en' }) {
                     </ul>
                 </div>
             </div>
-            <div className="container mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-600">
+            <div className="max-w-[1200px] mx-auto w-full px-6 mt-20 pt-8 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-600">
                 <span>© 2026 AURA NETWORK</span>
                 <span>SYSTEM_STATUS: ONLINE [v1.0.2-fix]</span>
             </div>

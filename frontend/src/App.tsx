@@ -1,20 +1,31 @@
-import { useState, useEffect } from 'react'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import { Routes, Route, useLocation, useNavigate } from "react-router-dom";
+import axios from "axios";
 
 // Landing Components
-import Navbar from './components/Landing/Navbar'
-import Hero from './components/Landing/Hero'
-import { LatestEvents, About, Partners, Schedule, Footer } from './components/Landing/Sections'
+import Navbar from "./components/Landing/Navbar";
+import Hero from "./components/Landing/Hero";
+import {
+  LatestEvents,
+  About,
+  Partners,
+  Schedule,
+} from "./components/Landing/Sections";
+import { SiteFooter } from "./components/Layout/SiteFooter";
+
+// Pages (full-page views for Create, Explore, and Hackathon Detail)
+import CreateHackathonPage from "./pages/CreateHackathonPage";
+import ExplorePage from "./pages/ExplorePage";
+import HackathonDetailPage from "./pages/HackathonDetailPage";
+import UserPage from "./pages/UserPage";
 
 // Modals
-import RegisterModal from './components/RegisterModal'
-import LoginModal from './components/LoginModal'
-import CreateHackathonModal from './components/CreateHackathonModal'
-import HackathonListModal from './components/HackathonListModal'
-import UserDashboardModal from './components/UserDashboardModal'
-import HackathonDetailModal from './components/HackathonDetailModal'
-import VerificationModal from './components/VerificationModal'
-import AdminDashboardModal from './components/AdminDashboardModal'
+import RegisterModal from "./components/RegisterModal";
+import LoginModal from "./components/LoginModal";
+import CreateHackathonModal from "./components/CreateHackathonModal";
+import HackathonListModal from "./components/HackathonListModal";
+import VerificationModal from "./components/VerificationModal";
+import AdminDashboardModal from "./components/AdminDashboardModal";
 
 interface Hackathon {
   id: number;
@@ -26,23 +37,22 @@ interface Hackathon {
 }
 
 function App() {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isCreateHackathonOpen, setIsCreateHackathonOpen] = useState(false);
   const [isHackathonListOpen, setIsHackathonListOpen] = useState(false);
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
-  const [isDetailOpen, setIsDetailOpen] = useState(false);
-  const [selectedHackathonId, setSelectedHackathonId] = useState<number | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([]);
   const [editingHackathon, setEditingHackathon] = useState<any>(null);
   const [currentUser, setCurrentUser] = useState<any>(null);
-  const [lang, setLang] = useState<'zh' | 'en'>('zh');
+  const [lang, setLang] = useState<"zh" | "en">("zh");
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
     fetchLatestHackathons();
     if (token) {
@@ -50,32 +60,34 @@ function App() {
     }
   }, []);
 
+  // When navigating to home with state openLogin (e.g. from Create page "Log in" button), open the login modal.
+  useEffect(() => {
+    const state = location.state as { openLogin?: boolean } | null;
+    if (location.pathname !== "/") return;
+    if (state?.openLogin) {
+      setIsLoginOpen(true);
+      navigate("/", { replace: true, state: {} });
+    }
+  }, [location.pathname, location.state, navigate]);
+
   const fetchCurrentUser = async () => {
     try {
-        const token = localStorage.getItem('token');
-        console.log('[DEBUG] fetchCurrentUser - Token:', token ? token.substring(0, 10) + '...' : 'null');
-        
-        const res = await axios.get('/api/v1/users/me', {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        setCurrentUser(res.data);
+      const token = localStorage.getItem("token");
+      const res = await axios.get("/api/v1/users/me", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setCurrentUser(res.data);
     } catch (e: any) {
-        console.error("Failed to fetch user", e);
-        if (e.response) {
-            console.log('[DEBUG] fetchCurrentUser Error Status:', e.response.status);
-            console.log('[DEBUG] fetchCurrentUser Error Data:', e.response.data);
-        }
-        // If token is invalid or user doesn't exist, clear state
-        localStorage.removeItem('token');
-        setIsLoggedIn(false);
-        setCurrentUser(null);
+      console.error("Failed to fetch user", e);
+      localStorage.removeItem("token");
+      setIsLoggedIn(false);
+      setCurrentUser(null);
     }
   };
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('/api/v1/hackathons');
-      // 取前6个
+      const response = await axios.get("/api/v1/hackathons");
       setLatestHackathons(response.data.slice(0, 6));
     } catch (err) {
       console.error(err);
@@ -83,70 +95,19 @@ function App() {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('token');
+    localStorage.removeItem("token");
     setIsLoggedIn(false);
     setCurrentUser(null);
     window.location.reload();
   };
 
-  const handleCreateHackathonClick = async () => {
-    // Debug logic for auth flow
-    console.log('[DEBUG] handleCreateHackathonClick - isLoggedIn:', isLoggedIn);
-    
-    if (isLoggedIn) {
-        try {
-            const token = localStorage.getItem('token');
-            console.log('[DEBUG] Token present:', !!token);
-            
-            // If we already have currentUser loaded, use it directly to avoid extra API call delay
-            if (currentUser) {
-                 console.log('[DEBUG] Using cached currentUser:', currentUser);
-                 if (currentUser.is_verified) {
-                     console.log('[DEBUG] User verified, opening Create Modal');
-                     setIsCreateHackathonOpen(true);
-                 } else {
-                     console.log('[DEBUG] User NOT verified, opening Verification Modal');
-                     setIsVerificationOpen(true);
-                 }
-                 return;
-            }
-
-            const res = await axios.get('/api/v1/users/me', {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            console.log('[DEBUG] User info fetched:', res.data);
-            setCurrentUser(res.data); // Update global user state
-            
-            if (res.data.is_verified) {
-                console.log('[DEBUG] User verified, opening Create Modal');
-                setIsCreateHackathonOpen(true);
-            } else {
-                console.log('[DEBUG] User NOT verified, opening Verification Modal');
-                // Show verification modal directly
-                setIsVerificationOpen(true);
-            }
-        } catch (e: any) {
-            console.error('[DEBUG] Failed to fetch user info:', e);
-            if (e.response && (e.response.status === 401 || e.response.status === 403)) {
-                console.log('[DEBUG] 401/403 detected, opening Login Modal');
-                // Token invalid, clear it
-                localStorage.removeItem('token');
-                setIsLoggedIn(false);
-                setCurrentUser(null);
-                setIsLoginOpen(true);
-            } else {
-                alert(lang === 'zh' ? '无法获取用户信息，请重试' : 'Failed to fetch user info');
-            }
-        }
-    } else {
-      console.log('[DEBUG] Not logged in, opening Login Modal');
-      setIsLoginOpen(true);
-    }
+  const openHackathonDetail = (id: number) => {
+    window.open(`/hackathon/${id}`, "_blank", "noopener,noreferrer");
   };
 
-  const openHackathonDetail = (id: number) => {
-    setSelectedHackathonId(id);
-    setIsDetailOpen(true);
+  // Navigate to home and open login modal (used by Create page when user is not logged in).
+  const openLoginFromPage = () => {
+    navigate("/", { state: { openLogin: true } });
   };
 
   return (
@@ -154,94 +115,139 @@ function App() {
       {/* Global Noise Overlay */}
       <div className="noise-overlay" />
 
-      {/* Navigation */}
-      <Navbar 
-        isLoggedIn={isLoggedIn}
-        currentUser={currentUser}
-        onLoginClick={() => setIsLoginOpen(true)}
-        onRegisterClick={() => setIsRegisterOpen(true)}
-        onLogoutClick={handleLogout}
-        onDashboardClick={() => setIsDashboardOpen(true)}
-        onAdminClick={() => setIsAdminDashboardOpen(true)}
-        lang={lang}
-        setLang={setLang}
-      />
-
-      {/* Main Content Sections */}
-      <main>
-        <Hero 
-            onCreateClick={handleCreateHackathonClick}
-            onExploreClick={() => setIsHackathonListOpen(true)}
-            lang={lang}
+      <Routes>
+        {/* Landing page: Hero, About, Latest Events, etc. */}
+        <Route
+          path="/"
+          element={
+            <>
+              <Navbar
+                isLoggedIn={isLoggedIn}
+                currentUser={currentUser}
+                onLoginClick={() => setIsLoginOpen(true)}
+                onRegisterClick={() => setIsRegisterOpen(true)}
+                onLogoutClick={handleLogout}
+                onAdminClick={() => setIsAdminDashboardOpen(true)}
+                lang={lang}
+                setLang={setLang}
+              />
+              <main>
+                <Hero lang={lang} />
+                <About lang={lang} />
+                <LatestEvents
+                  hackathons={latestHackathons}
+                  onDetailClick={openHackathonDetail}
+                  onViewAll={() => setIsHackathonListOpen(true)}
+                  lang={lang}
+                />
+                <Schedule lang={lang} />
+                <Partners />
+              </main>
+              <SiteFooter lang={lang} />
+            </>
+          }
         />
-        
-        <About lang={lang} />
-        
-        <LatestEvents 
-            hackathons={latestHackathons}
-            onDetailClick={openHackathonDetail}
-            onViewAll={() => setIsHackathonListOpen(true)}
-            lang={lang}
+        {/* Create hackathon page (Initiate Action) – opened from Hero "发起行动" button */}
+        <Route
+          path="/create"
+          element={
+            <CreateHackathonPage
+              lang={lang}
+              setLang={setLang}
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              onOpenLogin={openLoginFromPage}
+            />
+          }
         />
-        
-        <Schedule lang={lang} />
-        
-        <Partners />
-      </main>
-
-      {/* Footer */}
-      <Footer lang={lang} />
+        {/* Explore hackathons page – opened from Hero "探索网络" button */}
+        <Route
+          path="/explore"
+          element={
+            <ExplorePage
+              lang={lang}
+              setLang={setLang}
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              onOpenLogin={openLoginFromPage}
+              onHackathonSelect={openHackathonDetail}
+            />
+          }
+        />
+        {/* Hackathon detail page – opened when clicking a hackathon (Explore, Latest Events, Dashboard) */}
+        <Route
+          path="/hackathon/:id"
+          element={
+            <HackathonDetailPage
+              lang={lang}
+              setLang={setLang}
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              onOpenLogin={openLoginFromPage}
+              onEdit={(hackathon) =>
+                navigate("/create", { state: { editingHackathon: hackathon } })
+              }
+            />
+          }
+        />
+        {/* User dashboard page – opened when clicking the user button in the navbar */}
+        <Route
+          path="/user"
+          element={
+            <UserPage
+              lang={lang}
+              setLang={setLang}
+              isLoggedIn={isLoggedIn}
+              currentUser={currentUser}
+              onOpenLogin={openLoginFromPage}
+              onLogoutClick={handleLogout}
+              onHackathonSelect={openHackathonDetail}
+              onVerifyClick={() => setIsVerificationOpen(true)}
+              onUserUpdate={fetchCurrentUser}
+            />
+          }
+        />
+      </Routes>
 
       {/* Modals */}
-      <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} lang={lang} />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} lang={lang} />
-      <CreateHackathonModal 
-        isOpen={isCreateHackathonOpen} 
+      <RegisterModal
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+        lang={lang}
+      />
+      <LoginModal
+        isOpen={isLoginOpen}
+        onClose={() => setIsLoginOpen(false)}
+        lang={lang}
+      />
+      <CreateHackathonModal
+        isOpen={isCreateHackathonOpen}
         onClose={() => {
-            setIsCreateHackathonOpen(false);
-            setEditingHackathon(null);
+          setIsCreateHackathonOpen(false);
+          setEditingHackathon(null);
         }}
         initialData={editingHackathon}
         lang={lang}
       />
-      <HackathonListModal 
-        isOpen={isHackathonListOpen} 
-        onClose={() => setIsHackathonListOpen(false)} 
+      <HackathonListModal
+        isOpen={isHackathonListOpen}
+        onClose={() => setIsHackathonListOpen(false)}
         onHackathonSelect={openHackathonDetail}
         lang={lang}
       />
-      <UserDashboardModal 
-        isOpen={isDashboardOpen} 
-        onClose={() => setIsDashboardOpen(false)}
-        onHackathonSelect={openHackathonDetail}
-        onVerifyClick={() => setIsVerificationOpen(true)}
-        onUserUpdate={fetchCurrentUser}
-        lang={lang}
-      />
-      <HackathonDetailModal 
-        isOpen={isDetailOpen} 
-        onClose={() => setIsDetailOpen(false)} 
-        hackathonId={selectedHackathonId}
-        onEdit={(hackathon) => {
-            setIsDetailOpen(false);
-            setEditingHackathon(hackathon);
-            setIsCreateHackathonOpen(true);
-        }}
-        lang={lang}
-      />
-      <VerificationModal 
-        isOpen={isVerificationOpen} 
+      <VerificationModal
+        isOpen={isVerificationOpen}
         onClose={() => setIsVerificationOpen(false)}
-        onSuccess={() => {}} 
+        onSuccess={() => {}}
         lang={lang}
       />
-      <AdminDashboardModal 
-        isOpen={isAdminDashboardOpen} 
-        onClose={() => setIsAdminDashboardOpen(false)} 
+      <AdminDashboardModal
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
         lang={lang}
       />
     </div>
-  )
+  );
 }
 
-export default App
+export default App;

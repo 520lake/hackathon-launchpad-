@@ -34,7 +34,8 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
     try {
       const token = localStorage.getItem('token');
       console.log('[Admin] Fetching users with token:', token?.substring(0, 10));
-      const res = await axios.get('api/v1/users/', {
+      // Remove trailing slash to match backend @router.get("")
+      const res = await axios.get('api/v1/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('[Admin] Users fetched:', res.data);

@@ -218,7 +218,7 @@ export function Footer({ lang }: { lang: 'zh' | 'en' }) {
             </div>
             <div className="container mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-600">
                 <span>© 2026 AURA NETWORK</span>
-                <span>SYSTEM_STATUS: ONLINE</span>
+                <span>SYSTEM_STATUS: ONLINE [v1.0.2-fix]</span>
             </div>
         </footer>
     );

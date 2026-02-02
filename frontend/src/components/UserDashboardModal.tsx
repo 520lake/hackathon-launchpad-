@@ -92,6 +92,20 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     onVerifyClick();
   };
 
+  const handleMockVerify = async () => {
+    try {
+        const token = localStorage.getItem('token');
+        await axios.post('/api/v1/users/me/verify', {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        alert(lang === 'zh' ? '模拟认证成功！' : 'Mock verification successful!');
+        fetchMyData(); // Refresh user data to show verified status
+    } catch (e) {
+        console.error(e);
+        alert(lang === 'zh' ? '模拟认证失败' : 'Mock verification failed');
+    }
+  };
+
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
         const file = e.target.files[0];

@@ -56,3 +56,4 @@ class Settings(BaseSettings):
 settings = Settings()
 # FORCE the key to be this string, ignoring env vars for stability in this demo environment
 settings.SECRET_KEY = "aura_hackathon_stable_secret_key_2026_FIXED"
+print(f"DEBUG: Config loaded. SECRET_KEY={settings.SECRET_KEY}")

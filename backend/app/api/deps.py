@@ -22,20 +22,30 @@ def get_current_user(
     token: str = Depends(reusable_oauth2)
 ) -> User:
     try:
+        print(f"DEBUG: Validating token: {token[:20]}...")
+        print(f"DEBUG: Using Secret Key: {settings.SECRET_KEY[:5]}...")
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = payload.get("sub")
+        print(f"DEBUG: Token payload sub: {token_data}")
     except (JWTError, ValidationError) as e:
+        print(f"ERROR: Token validation failed: {str(e)}")
         logger.error(f"Token validation failed: {str(e)}")
         logger.error(f"Received Token (first 20 chars): {token[:20]}...")
         logger.error(f"Expected Secret Key: {settings.SECRET_KEY}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials",
+            detail=f"Could not validate credentials: {str(e)}",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    user = session.get(User, int(token_data))
+    try:
+        user_id = int(token_data)
+    except (ValueError, TypeError):
+        print(f"ERROR: Token sub is not an int: {token_data}")
+        raise HTTPException(status_code=401, detail="Invalid token subject")
+        
+    user = session.get(User, user_id)
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     if not user.is_active:

@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
+from pydantic import BaseModel
+from datetime import datetime
 
 from app.db.session import get_session
 from app.api.deps import get_current_user
@@ -12,6 +14,19 @@ from app.models.team_project import Team, TeamMember, Project
 from app.models.score import Score
 
 router = APIRouter()
+
+
+class ParticipantRead(BaseModel):
+    """报名活动的用户（参赛人员列表项），公开接口用。"""
+    enrollment_id: int
+    user_id: int
+    nickname: Optional[str] = None
+    full_name: Optional[str] = None
+    status: str
+    joined_at: datetime
+
+    class Config:
+        from_attributes = True
 
 @router.post("", response_model=HackathonRead)
 def create_hackathon(*, session: Session = Depends(get_session), hackathon: HackathonCreate, current_user: User = Depends(get_current_user)):
@@ -38,6 +53,33 @@ def read_my_hackathons(*, session: Session = Depends(get_session), current_user:
     """
     hackathons = session.exec(select(Hackathon).where(Hackathon.organizer_id == current_user.id)).all()
     return hackathons
+
+@router.get("/{hackathon_id}/participants", response_model=List[ParticipantRead])
+def read_hackathon_participants(*, session: Session = Depends(get_session), hackathon_id: int):
+    """
+    本活动所有报名用户（参赛人员），公开。
+    详情页「参赛人员」tab 使用。
+    """
+    hackathon = session.get(Hackathon, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+    results = session.exec(
+        select(Enrollment, User)
+        .join(User, Enrollment.user_id == User.id)
+        .where(Enrollment.hackathon_id == hackathon_id)
+    ).all()
+    return [
+        ParticipantRead(
+            enrollment_id=e.id,
+            user_id=u.id,
+            nickname=u.nickname,
+            full_name=u.full_name,
+            status=e.status.value,
+            joined_at=e.joined_at,
+        )
+        for e, u in results
+    ]
+
 
 @router.get("/{hackathon_id}", response_model=HackathonRead)
 def read_hackathon(*, session: Session = Depends(get_session), hackathon_id: int):

@@ -81,7 +81,8 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
       stopPolling();
       localStorage.setItem('token', token);
       // Set cookie as backup for ModelScope iframe/proxy scenarios
-      document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=Lax`;
+      // MUST use SameSite=None; Secure for cross-site iframes (ModelScope)
+      document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=None; Secure`;
       alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
       onClose();
       window.location.reload();

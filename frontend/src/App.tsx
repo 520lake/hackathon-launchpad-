@@ -25,6 +25,13 @@ interface Hackathon {
   status: string;
 }
 
+function getCookie(name: string) {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift();
+  return null;
+}
+
 function App() {
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
@@ -42,8 +49,19 @@ function App() {
   const [lang, setLang] = useState<'zh' | 'en'>('zh');
 
   useEffect(() => {
-    console.log("--- FRONTEND VERSION: 2026-02-02-FIX-FINAL-v2.3-COOKIE ---");
-    const token = localStorage.getItem('token');
+    console.log("--- FRONTEND VERSION: 2026-02-02-FIX-FINAL-v2.6-COOKIE-SECURE ---");
+    let token = localStorage.getItem('token');
+    
+    // Try to recover from cookie if localStorage is empty on load
+    if (!token || token === 'undefined' || token === 'null') {
+        const cookieToken = getCookie('access_token');
+        if (cookieToken) {
+            console.log('[DEBUG] Init: Recovered token from Cookie');
+            token = cookieToken;
+            localStorage.setItem('token', token);
+        }
+    }
+
     setIsLoggedIn(!!token);
     fetchLatestHackathons();
     if (token) {
@@ -53,12 +71,20 @@ function App() {
 
   const fetchCurrentUser = async () => {
     try {
-      const token = localStorage.getItem('token');
+      let token = localStorage.getItem('token');
       console.log('[DEBUG] fetchCurrentUser - Token from localStorage:', token ? token.substring(0, 10) + '...' : 'null or undefined');
       
       if (!token || token === 'undefined' || token === 'null') {
-          console.warn('[DEBUG] Token is invalid string, skipping fetch');
-          return;
+           // Try to recover from cookie
+          const cookieToken = getCookie('access_token');
+          if (cookieToken) {
+              console.log('[DEBUG] Recovered token from Cookie:', cookieToken.substring(0, 10) + '...');
+              token = cookieToken;
+              localStorage.setItem('token', token);
+          } else {
+              console.warn('[DEBUG] Token is invalid and no cookie found, skipping fetch');
+              return;
+          }
       }
 
       const res = await axios.get('api/v1/users/me', {
@@ -247,6 +273,30 @@ function App() {
         onClose={() => setIsAdminDashboardOpen(false)} 
         lang={lang}
       />
+      
+      {/* DEBUG OVERLAY - ALWAYS VISIBLE FOR V2.6 */}
+      <div style={{
+        position: 'fixed', 
+        bottom: 0, 
+        right: 0, 
+        background: 'rgba(0,0,0,0.85)', 
+        color: '#00ff00', 
+        padding: '8px', 
+        fontSize: '11px', 
+        zIndex: 99999,
+        pointerEvents: 'none',
+        borderTopLeftRadius: '8px',
+        fontFamily: 'monospace',
+        textAlign: 'right',
+        lineHeight: '1.4'
+      }}>
+        <div style={{fontWeight: 'bold', borderBottom: '1px solid #333', marginBottom: '4px'}}>v2.6 SECURE DEBUG</div>
+        <div>LS TOKEN: {localStorage.getItem('token') ? (localStorage.getItem('token')?.substring(0,8) + '...') : 'NONE'}</div>
+        <div>CK TOKEN: {document.cookie.includes('access_token') ? 'FOUND' : 'MISSING'}</div>
+        <div>USER ID: {currentUser ? currentUser.id : '-'}</div>
+        <div>STATUS: {isLoggedIn ? 'LOGGED_IN' : 'GUEST'}</div>
+        <div>VERIFIED: {currentUser?.is_verified ? 'YES' : 'NO'}</div>
+      </div>
     </div>
   )
 }

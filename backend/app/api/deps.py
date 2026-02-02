@@ -5,13 +5,15 @@ from jose import jwt, JWTError
 from pydantic import ValidationError
 from sqlmodel import Session
 import logging
+import sys
 
 from app.core import security
 from app.core.config import settings
 from app.db.session import get_session
 from app.models.user import User
 
-logger = logging.getLogger(__name__)
+# Use uvicorn logger to ensure visibility in ModelScope logs
+logger = logging.getLogger("uvicorn")
 
 reusable_oauth2 = OAuth2PasswordBearer(
     tokenUrl=f"{settings.API_V1_STR}/login/access-token",
@@ -24,22 +26,22 @@ def get_current_user(
     token: Optional[str] = Depends(reusable_oauth2)
 ) -> User:
     # DEBUG: Check why token might be missing
-    if not token:
+    # OAuth2PasswordBearer returns None if header missing, but might return "null" string if header is "Bearer null"
+    if not token or token == "null" or token == "undefined":
         auth_header = request.headers.get("Authorization")
-        logger.error(f"DEBUG: Missing Token. Auth Header: {auth_header}")
-        print(f"DEBUG: Missing Token. Auth Header: {auth_header}")
+        logger.error(f"DEBUG: Token invalid or missing (token={token}). Auth Header: {auth_header}")
         
         # Try to get from cookie as fallback
         token = request.cookies.get("access_token")
         if token:
              logger.info(f"DEBUG: Found token in cookie: {token[:10]}...")
         else:
-            logger.error(f"DEBUG: Missing Token. Auth Header: {auth_header}")
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated (Missing Token - Header & Cookie)",
-                headers={"WWW-Authenticate": "Bearer"},
-            )
+             logger.error(f"DEBUG: Missing Token in both Header and Cookie.")
+             raise HTTPException(
+                 status_code=status.HTTP_401_UNAUTHORIZED,
+                 detail="Not authenticated (Missing Token - Header & Cookie)",
+                 headers={"WWW-Authenticate": "Bearer"},
+             )
 
     try:
         logger.info(f"DEBUG: Validating token: {token[:20]}...")

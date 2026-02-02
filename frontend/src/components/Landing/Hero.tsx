@@ -77,7 +77,7 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                     </div>
                     
           <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter glitch-text" data-text="BUILD THE FUTURE">
-            BUILD THE FUTURE <span className="text-2xl text-brand">(v2.4 Logger Fix)</span>
+            BUILD THE FUTURE <span className="text-2xl text-brand">(v2.5 Debug)</span>
           </h1>
 
                     <p ref={subTextRef} className="max-w-2xl text-xl md:text-2xl text-gray-400 font-light mb-12 leading-relaxed">

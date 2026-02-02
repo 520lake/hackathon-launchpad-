@@ -16,7 +16,7 @@ api_router = APIRouter()
 @api_router.get("/version")
 def get_version():
     return {
-        "version": "v2.4-LOGGER",
+        "version": "v2.5-DEBUG-ALL",
         "description": "Fix 401 Unauthorized via Logger Debugging"
     }
 

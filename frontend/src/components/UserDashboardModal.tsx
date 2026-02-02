@@ -208,10 +208,10 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                         <div className="flex gap-2">
                             <button 
                                 onClick={handleMockVerify}
-                                className="px-4 py-1 bg-gray-700 text-white text-xs font-bold hover:bg-gray-600 transition uppercase tracking-wider border border-gray-500"
+                                className="px-4 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-500 transition uppercase tracking-wider border border-green-400 animate-pulse"
                                 title="Click to instantly verify (Demo)"
                             >
-                                {lang === 'zh' ? '模拟认证 (测试)' : 'MOCK VERIFY'}
+                                {lang === 'zh' ? '👉 点此模拟认证' : '👉 CLICK TO MOCK VERIFY'}
                             </button>
                             <button 
                                 onClick={handleVerify}

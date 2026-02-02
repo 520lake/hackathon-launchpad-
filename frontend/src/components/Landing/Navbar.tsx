@@ -61,7 +61,7 @@ export default function Navbar({
                             )}
                             <button onClick={onDashboardClick} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
                                 <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                {currentUser?.name || (lang === 'zh' ? '用户' : 'USER')}
+                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || (lang === 'zh' ? '用户' : 'USER')}
                             </button>
                             <button onClick={onLogoutClick} className="text-gray-500 hover:text-red-500 transition-colors">
                                 // {lang === 'zh' ? '退出' : 'EXIT'}

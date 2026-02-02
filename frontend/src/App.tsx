@@ -135,19 +135,16 @@ function App() {
             const token = localStorage.getItem('token');
             console.log('[DEBUG] Token present:', !!token);
             
-            // If we already have currentUser loaded, use it directly to avoid extra API call delay
-            if (currentUser) {
-                 console.log('[DEBUG] Using cached currentUser:', currentUser);
-                 if (currentUser.is_verified) {
-                     console.log('[DEBUG] User verified, opening Create Modal');
-                     setIsCreateHackathonOpen(true);
-                 } else {
-                     console.log('[DEBUG] User NOT verified, opening Verification Modal');
-                     setIsVerificationOpen(true);
-                 }
+            // Check current cached state first
+            if (currentUser && currentUser.is_verified) {
+                 console.log('[DEBUG] Cached user is verified, opening Create Modal');
+                 setIsCreateHackathonOpen(true);
                  return;
             }
 
+            // If cached user is not verified (or null), double check with API
+            // This ensures that if they just verified in the dashboard, we get the latest status
+            console.log('[DEBUG] Cached user not verified or missing, fetching fresh data...');
             const res = await axios.get('api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
@@ -155,11 +152,10 @@ function App() {
             setCurrentUser(res.data); // Update global user state
             
             if (res.data.is_verified) {
-                console.log('[DEBUG] User verified, opening Create Modal');
+                console.log('[DEBUG] User verified (fresh fetch), opening Create Modal');
                 setIsCreateHackathonOpen(true);
             } else {
-                console.log('[DEBUG] User NOT verified, opening Verification Modal');
-                // Show verification modal directly
+                console.log('[DEBUG] User NOT verified (fresh fetch), opening Verification Modal');
                 setIsVerificationOpen(true);
             }
         } catch (e: any) {

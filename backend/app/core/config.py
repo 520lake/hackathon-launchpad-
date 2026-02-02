@@ -40,8 +40,8 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
 
     # WeChat
-    WECHAT_APP_ID: str = "wx2a602f36c8819aba"
-    WECHAT_APP_SECRET: str = "4b391b6f8904d6f9784a90eed13c507d"
+    WECHAT_APP_ID: str = "wx_test_appid"
+    WECHAT_APP_SECRET: str = "wx_test_secret"
     WECHAT_TOKEN: str = "vibebuild_token"
 
     # ModelScope AI

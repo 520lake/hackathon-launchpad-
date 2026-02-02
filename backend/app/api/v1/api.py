@@ -20,7 +20,7 @@ def get_version():
         "description": "Fix 401 Unauthorized via Logger Debugging"
     }
 
-api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
+api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(hackathons.router, prefix="/hackathons", tags=["hackathons"])
 api_router.include_router(enrollments.router, prefix="/enrollments", tags=["enrollments"])

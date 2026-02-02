@@ -273,30 +273,6 @@ function App() {
         onClose={() => setIsAdminDashboardOpen(false)} 
         lang={lang}
       />
-      
-      {/* DEBUG OVERLAY - ALWAYS VISIBLE FOR V2.6 */}
-      <div style={{
-        position: 'fixed', 
-        bottom: 0, 
-        right: 0, 
-        background: 'rgba(0,0,0,0.85)', 
-        color: '#00ff00', 
-        padding: '8px', 
-        fontSize: '11px', 
-        zIndex: 99999,
-        pointerEvents: 'none',
-        borderTopLeftRadius: '8px',
-        fontFamily: 'monospace',
-        textAlign: 'right',
-        lineHeight: '1.4'
-      }}>
-        <div style={{fontWeight: 'bold', borderBottom: '1px solid #333', marginBottom: '4px'}}>v2.6 SECURE DEBUG</div>
-        <div>LS TOKEN: {localStorage.getItem('token') ? (localStorage.getItem('token')?.substring(0,8) + '...') : 'NONE'}</div>
-        <div>CK TOKEN: {document.cookie.includes('access_token') ? 'FOUND' : 'MISSING'}</div>
-        <div>USER ID: {currentUser ? currentUser.id : '-'}</div>
-        <div>STATUS: {isLoggedIn ? 'LOGGED_IN' : 'GUEST'}</div>
-        <div>VERIFIED: {currentUser?.is_verified ? 'YES' : 'NO'}</div>
-      </div>
     </div>
   )
 }

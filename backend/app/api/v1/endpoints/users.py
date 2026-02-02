@@ -3,6 +3,7 @@ from sqlmodel import Session, select
 from typing import List
 
 from app.api import deps
+from app.core.security import get_password_hash
 from app.db.session import get_session
 from app.models.user import User, UserCreate, UserRead, UserUpdate, UserUpdateAdmin
 

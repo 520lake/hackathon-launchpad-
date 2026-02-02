@@ -149,6 +149,26 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         </div>
 
         {/* User Info & Verification */}
+        {!loading && !user && (
+            <div className="px-6 py-6 bg-void border-b border-brand/20 text-center">
+                <p className="text-red-500 font-mono mb-2">
+                    {lang === 'zh' ? '无法加载用户信息' : 'FAILED TO LOAD USER INFO'}
+                </p>
+                <button 
+                    onClick={fetchMyData}
+                    className="text-brand hover:underline font-mono text-sm"
+                >
+                    {lang === 'zh' ? '点击重试' : 'RETRY'}
+                </button>
+            </div>
+        )}
+        
+        {user.is_verified && (
+            <div className="px-4 py-1 bg-green-900/30 text-green-400 text-xs font-bold border border-green-700 uppercase tracking-wider">
+                {lang === 'zh' ? '已实名认证' : 'VERIFIED ACCOUNT'}
+            </div>
+        )}
+      </div>  
         {user && (
             <div className="px-6 py-6 bg-void border-b border-brand/20 flex justify-between items-center">
                 <div>

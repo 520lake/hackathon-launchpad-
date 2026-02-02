@@ -84,28 +84,38 @@ function App() {
   };
 
   const handleCreateHackathonClick = async () => {
+    // Debug logic for auth flow
+    console.log('[DEBUG] handleCreateHackathonClick - isLoggedIn:', isLoggedIn);
+    
     if (isLoggedIn) {
         try {
             const token = localStorage.getItem('token');
+            console.log('[DEBUG] Token present:', !!token);
+            
             const res = await axios.get('/api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
+            console.log('[DEBUG] User info fetched:', res.data);
+            
             if (res.data.is_verified) {
+                console.log('[DEBUG] User verified, opening Create Modal');
                 setIsCreateHackathonOpen(true);
             } else {
+                console.log('[DEBUG] User NOT verified, opening Verification Modal');
                 // Show verification modal directly
                 setIsVerificationOpen(true);
             }
         } catch (e: any) {
-            console.error(e);
-            // Only open login if unauthorized
+            console.error('[DEBUG] Failed to fetch user info:', e);
             if (e.response && (e.response.status === 401 || e.response.status === 403)) {
+                console.log('[DEBUG] 401/403 detected, opening Login Modal');
                 setIsLoginOpen(true);
             } else {
                 alert(lang === 'zh' ? '无法获取用户信息，请重试' : 'Failed to fetch user info');
             }
         }
     } else {
+      console.log('[DEBUG] Not logged in, opening Login Modal');
       setIsLoginOpen(true);
     }
   };

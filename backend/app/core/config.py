@@ -8,7 +8,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Aura API"
     API_V1_STR: str = "/api/v1"
     # Use a stable key for hackathon demo to persist sessions across restarts
-    SECRET_KEY: str = "aura_hackathon_stable_secret_key_2026"
+    # FORCE the key to be this string, ignoring env vars for stability in this demo environment
+    SECRET_KEY: str = "aura_hackathon_stable_secret_key_2026_FIXED"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Database
@@ -53,3 +54,5 @@ class Settings(BaseSettings):
         env_file = ".env"
 
 settings = Settings()
+# FORCE the key to be this string, ignoring env vars for stability in this demo environment
+settings.SECRET_KEY = "aura_hackathon_stable_secret_key_2026_FIXED"

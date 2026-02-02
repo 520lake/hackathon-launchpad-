@@ -7,7 +7,8 @@ from pydantic_settings import BaseSettings
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Aura API"
     API_V1_STR: str = "/api/v1"
-    SECRET_KEY: str = secrets.token_urlsafe(32)
+    # Use a stable key for hackathon demo to persist sessions across restarts
+    SECRET_KEY: str = "aura_hackathon_stable_secret_key_2026"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8  # 8 days
     
     # Database

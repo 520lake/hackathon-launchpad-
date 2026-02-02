@@ -59,6 +59,10 @@ function App() {
         setCurrentUser(res.data);
     } catch (e) {
         console.error("Failed to fetch user", e);
+        // If token is invalid or user doesn't exist, clear state
+        localStorage.removeItem('token');
+        setIsLoggedIn(false);
+        setCurrentUser(null);
     }
   };
 

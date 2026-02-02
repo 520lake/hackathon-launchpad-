@@ -91,7 +91,8 @@ async def send_email_code(
     session.commit()
     
     await EmailService.send_verification_code(email_req.email, code)
-    return {"message": "Verification code sent"}
+    # For hackathon/demo purposes, return the code directly so user can login without checking logs
+    return {"message": "Verification code sent", "code": code}
 
 @router.post("/login/email")
 def login_email(

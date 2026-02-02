@@ -91,7 +91,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           return;
       }
       try {
-          await axios.post('/api/v1/email-code', { email });
+          const res = await axios.post('/api/v1/email-code', { email });
           setCountDown(60);
           const timer = setInterval(() => {
               setCountDown(prev => {
@@ -102,7 +102,12 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
                   return prev - 1;
               });
           }, 1000);
-          alert('验证码已发送（请查看后端控制台日志）');
+          // Show code to user for demo
+          if (res.data.code) {
+             alert(`验证码已发送: ${res.data.code}`);
+          } else {
+             alert('验证码已发送（请查看后端控制台日志）');
+          }
       } catch (err: any) {
           setError(err.response?.data?.detail || '发送失败');
       }

@@ -29,9 +29,11 @@ def init_db() -> None:
         else:
             # Update password in case it was created with a broken bcrypt version
             user.hashed_password = get_password_hash("admin123")
+            user.is_superuser = True  # Force superuser status
+            user.is_active = True     # Force active status
             db.add(user)
             db.commit()
-            logger.info("Superuser already exists. Password reset to: admin123")
+            logger.info("Superuser already exists. Password reset to: admin123. Privileges updated.")
     except Exception as e:
         logger.error(f"Error creating superuser: {e}")
     finally:

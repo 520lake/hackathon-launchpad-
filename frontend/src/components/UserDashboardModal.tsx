@@ -100,6 +100,9 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         });
         alert(lang === 'zh' ? '模拟认证成功！' : 'Mock verification successful!');
         fetchMyData(); // Refresh user data to show verified status
+        if (onUserUpdate) {
+            onUserUpdate(); // Notify parent component
+        }
     } catch (e) {
         console.error(e);
         alert(lang === 'zh' ? '模拟认证失败' : 'Mock verification failed');

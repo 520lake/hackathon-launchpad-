@@ -215,6 +215,7 @@ function App() {
         onClose={() => setIsDashboardOpen(false)}
         onHackathonSelect={openHackathonDetail}
         onVerifyClick={() => setIsVerificationOpen(true)}
+        onUserUpdate={fetchCurrentUser}
         lang={lang}
       />
       <HackathonDetailModal 

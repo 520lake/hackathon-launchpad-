@@ -167,12 +167,21 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                         }
                     </span>
                     {!user.is_verified && (
-                        <button 
-                            onClick={handleVerify}
-                            className="px-4 py-1 bg-brand text-black text-xs font-bold hover:bg-white transition uppercase tracking-wider"
-                        >
-                            {lang === 'zh' ? '立即认证' : 'VERIFY NOW'}
-                        </button>
+                        <div className="flex gap-2">
+                            <button 
+                                onClick={handleMockVerify}
+                                className="px-4 py-1 bg-gray-700 text-white text-xs font-bold hover:bg-gray-600 transition uppercase tracking-wider border border-gray-500"
+                                title="Click to instantly verify (Demo)"
+                            >
+                                {lang === 'zh' ? '模拟认证 (测试)' : 'MOCK VERIFY'}
+                            </button>
+                            <button 
+                                onClick={handleVerify}
+                                className="px-4 py-1 bg-brand text-black text-xs font-bold hover:bg-white transition uppercase tracking-wider"
+                            >
+                                {lang === 'zh' ? '立即认证' : 'VERIFY NOW'}
+                            </button>
+                        </div>
                     )}
                 </div>
             </div>

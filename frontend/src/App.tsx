@@ -93,12 +93,17 @@ function App() {
             if (res.data.is_verified) {
                 setIsCreateHackathonOpen(true);
             } else {
-                alert('发布活动需要先完成实名认证');
+                // Show verification modal directly
                 setIsVerificationOpen(true);
             }
-        } catch (e) {
+        } catch (e: any) {
             console.error(e);
-            setIsLoginOpen(true);
+            // Only open login if unauthorized
+            if (e.response && e.response.status === 401) {
+                setIsLoginOpen(true);
+            } else {
+                alert(lang === 'zh' ? '无法获取用户信息，请重试' : 'Failed to fetch user info');
+            }
         }
     } else {
       setIsLoginOpen(true);

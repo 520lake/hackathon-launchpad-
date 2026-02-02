@@ -1,9 +1,26 @@
 from fastapi import APIRouter
 
-from app.api.v1.endpoints import users, hackathons, auth, enrollments, projects, teams, ai, upload
+from app.api.v1.endpoints import (
+    auth,
+    users,
+    hackathons,
+    teams,
+    projects,
+    enrollments,
+    upload,
+    ai
+)
 
 api_router = APIRouter()
-api_router.include_router(auth.router, tags=["login"])
+
+@api_router.get("/version")
+def get_version():
+    return {
+        "version": "v2.4-LOGGER",
+        "description": "Fix 401 Unauthorized via Logger Debugging"
+    }
+
+api_router.include_router(auth.router, prefix="/auth", tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(hackathons.router, prefix="/hackathons", tags=["hackathons"])
 api_router.include_router(enrollments.router, prefix="/enrollments", tags=["enrollments"])

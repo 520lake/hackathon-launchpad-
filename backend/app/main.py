@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger("uvicorn")
 @app.on_event("startup")
 async def startup_event():
-    logger.info("--- AURA API STARTUP: VERSION 2026-02-02-FIX-FINAL-v2.3-COOKIE ---")
+    logger.info("--- AURA API STARTUP: VERSION 2026-02-02-FIX-FINAL-v2.4-LOGGER ---")
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):

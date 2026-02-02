@@ -32,25 +32,25 @@ def get_current_user(
         # Try to get from cookie as fallback
         token = request.cookies.get("access_token")
         if token:
-             print(f"DEBUG: Found token in cookie: {token[:10]}...")
+             logger.info(f"DEBUG: Found token in cookie: {token[:10]}...")
         else:
+            logger.error(f"DEBUG: Missing Token. Auth Header: {auth_header}")
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Not authenticated (Missing Token)",
+                detail="Not authenticated (Missing Token - Header & Cookie)",
                 headers={"WWW-Authenticate": "Bearer"},
             )
 
     try:
-        print(f"DEBUG: Validating token: {token[:20]}...")
-        print(f"DEBUG: Using Secret Key: {settings.SECRET_KEY[:5]}...")
+        logger.info(f"DEBUG: Validating token: {token[:20]}...")
+        logger.info(f"DEBUG: Using Secret Key: {settings.SECRET_KEY[:5]}...")
         payload = jwt.decode(
             token, settings.SECRET_KEY, algorithms=[security.ALGORITHM]
         )
         token_data = payload.get("sub")
-        print(f"DEBUG: Token payload sub: {token_data}")
+        logger.info(f"DEBUG: Token payload sub: {token_data}")
     except (JWTError, ValidationError) as e:
-        print(f"ERROR: Token validation failed: {str(e)}")
-        logger.error(f"Token validation failed: {str(e)}")
+        logger.error(f"ERROR: Token validation failed: {str(e)}")
         logger.error(f"Received Token (first 20 chars): {token[:20]}...")
         logger.error(f"Expected Secret Key: {settings.SECRET_KEY}")
         raise HTTPException(

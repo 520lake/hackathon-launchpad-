@@ -41,26 +41,24 @@ def verify_user_me(
     session.refresh(current_user)
     return current_user
 
-@router.post("/", response_model=UserRead)
-def create_user(*, session: Session = Depends(get_session), user: UserCreate):
-    db_user = User.from_orm(user)
-    # TODO: Hash password properly
-    db_user.hashed_password = user.password + "notreallyhashed" 
+@router.post("", response_model=UserRead)
+def create_user(*, session: Session = Depends(get_session), user_in: UserCreate):
+    db_user = session.exec(select(User).where(User.email == user_in.email)).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+    
+    # Hash password
+    hashed_password = get_password_hash(user_in.password)
+    user_data = user_in.dict(exclude={"password"})
+    db_user = User(**user_data, hashed_password=hashed_password)
+    
     session.add(db_user)
     session.commit()
     session.refresh(db_user)
     return db_user
 
-@router.get("/", response_model=List[UserRead])
-def read_users(
-    *,
-    session: Session = Depends(get_session),
-    offset: int = 0,
-    limit: int = 100,
-    current_user: User = Depends(deps.get_current_user),
-):
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=400, detail="The user doesn't have enough privileges")
+@router.get("", response_model=List[UserRead])
+def read_users(*, session: Session = Depends(get_session), offset: int = 0, limit: int = 100, current_user: User = Depends(deps.get_current_active_superuser)):
     users = session.exec(select(User).offset(offset).limit(limit)).all()
     return users
 

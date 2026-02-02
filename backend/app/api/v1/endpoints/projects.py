@@ -12,7 +12,7 @@ from app.models.score import Score, ScoreCreate, ScoreRead
 
 router = APIRouter()
 
-@router.post("/", response_model=ProjectRead)
+@router.post("", response_model=ProjectRead)
 def create_project(*, session: Session = Depends(get_session), project_in: ProjectCreate, team_id: int, current_user: User = Depends(get_current_user)):
     """
     Submit a project (Team Leader only).
@@ -52,7 +52,7 @@ def update_project(*, session: Session = Depends(get_session), project_id: int, 
     session.refresh(project)
     return project
 
-@router.get("/", response_model=List[ProjectRead])
+@router.get("", response_model=List[ProjectRead])
 def read_projects(*, session: Session = Depends(get_session), offset: int = 0, limit: int = 100, sort_by_score: bool = False):
     query = select(Project)
     if sort_by_score:

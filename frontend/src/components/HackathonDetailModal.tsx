@@ -135,7 +135,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     setLoading(true);
     try {
       // Temporary: fetch all and find
-      const res = await axios.get('/api/v1/hackathons/'); 
+      const res = await axios.get('/api/v1/hackathons'); 
       const found = res.data.find((h: Hackathon) => h.id === hackathonId);
       setHackathon(found);
 
@@ -150,7 +150,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
            // Assuming we have an endpoint or we filter
            // For now, let's assume we can get projects via /projects/ and filter (inefficient)
            // Or assume a dedicated endpoint
-           const resProjects = await axios.get('/api/v1/projects/');
+           const resProjects = await axios.get('/api/v1/projects');
            // Filter by hackathon_id and current user (if project has user/team info)
            // This part is tricky without proper backend support for "my project in this hackathon"
            // Let's assume the project list returns projects I have access to or I created

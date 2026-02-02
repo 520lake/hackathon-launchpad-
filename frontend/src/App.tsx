@@ -68,7 +68,7 @@ function App() {
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('/api/v1/hackathons/');
+      const response = await axios.get('/api/v1/hackathons');
       // 取前6个
       setLatestHackathons(response.data.slice(0, 6));
     } catch (err) {

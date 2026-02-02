@@ -95,11 +95,13 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
         const token = localStorage.getItem('token');
         const totalScore = parseFloat(calculateTotal());
         
-        await axios.post('/api/v1/scores/', {
+        // Use project-specific score endpoint
+        // Payload must match ScoreCreate (requires judge_id/project_id, though backend overrides)
+        await axios.post(`/api/v1/projects/${selectedProject.id}/score`, {
             project_id: selectedProject.id,
+            judge_id: 0, // Dummy, backend uses current_user.id
             score_value: Math.round(totalScore), 
-            comment: comment,
-            details: JSON.stringify(scores)
+            comment: comment
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });

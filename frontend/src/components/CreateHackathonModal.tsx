@@ -285,7 +285,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
           });
       } else {
           // Create mode
-          res = await axios.post('/api/v1/hackathons/', payload, {
+          res = await axios.post('/api/v1/hackathons', payload, {
               headers: { Authorization: `Bearer ${token}` }
           });
       }

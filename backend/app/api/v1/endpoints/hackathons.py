@@ -13,7 +13,7 @@ from app.models.score import Score
 
 router = APIRouter()
 
-@router.post("/", response_model=HackathonRead)
+@router.post("", response_model=HackathonRead)
 def create_hackathon(*, session: Session = Depends(get_session), hackathon: HackathonCreate, current_user: User = Depends(get_current_user)):
     try:
         hackathon_data = hackathon.dict()
@@ -26,7 +26,7 @@ def create_hackathon(*, session: Session = Depends(get_session), hackathon: Hack
         print(f"Error creating hackathon: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.get("/", response_model=List[HackathonRead])
+@router.get("", response_model=List[HackathonRead])
 def read_hackathons(*, session: Session = Depends(get_session), offset: int = 0, limit: int = 100):
     hackathons = session.exec(select(Hackathon).offset(offset).limit(limit)).all()
     return hackathons

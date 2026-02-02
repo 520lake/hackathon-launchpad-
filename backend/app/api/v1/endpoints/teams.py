@@ -10,7 +10,7 @@ from app.models.team_project import Team, TeamCreate, TeamRead, TeamMember, Team
 
 router = APIRouter()
 
-@router.post("/", response_model=TeamRead)
+@router.post("", response_model=TeamRead)
 def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate, hackathon_id: int, current_user: User = Depends(get_current_user)):
     """
     Create a team for a hackathon.
@@ -32,7 +32,7 @@ def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate,
     
     return team
 
-@router.get("/", response_model=List[TeamRead])
+@router.get("", response_model=List[TeamRead])
 def read_teams(*, session: Session = Depends(get_session), hackathon_id: int = None, offset: int = 0, limit: int = 100):
     query = select(Team)
     if hackathon_id:

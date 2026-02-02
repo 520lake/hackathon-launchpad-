@@ -99,7 +99,7 @@ function App() {
         } catch (e: any) {
             console.error(e);
             // Only open login if unauthorized
-            if (e.response && e.response.status === 401) {
+            if (e.response && (e.response.status === 401 || e.response.status === 403)) {
                 setIsLoginOpen(true);
             } else {
                 alert(lang === 'zh' ? '无法获取用户信息，请重试' : 'Failed to fetch user info');

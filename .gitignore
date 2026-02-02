@@ -18,7 +18,7 @@ backend/.venv
 backend/venv/
 backend/.env
 backend/.pytest_cache/
-backend/alembic.ini
+# backend/alembic.ini
 backend/*.db
 backend/*.sqlite3
 backend/uploads/

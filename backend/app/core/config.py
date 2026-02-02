@@ -35,11 +35,7 @@ class Settings(BaseSettings):
         # ).unicode_string()
 
     # CORS
-    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
-        "http://localhost:5173", 
-        "http://localhost:3000",
-        "http://127.0.0.1:5173"
-    ]
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["*"]
 
     # WeChat
     WECHAT_APP_ID: str = "wx2a602f36c8819aba"

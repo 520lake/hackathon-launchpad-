@@ -98,10 +98,24 @@ function App() {
             const token = localStorage.getItem('token');
             console.log('[DEBUG] Token present:', !!token);
             
+            // If we already have currentUser loaded, use it directly to avoid extra API call delay
+            if (currentUser) {
+                 console.log('[DEBUG] Using cached currentUser:', currentUser);
+                 if (currentUser.is_verified) {
+                     console.log('[DEBUG] User verified, opening Create Modal');
+                     setIsCreateHackathonOpen(true);
+                 } else {
+                     console.log('[DEBUG] User NOT verified, opening Verification Modal');
+                     setIsVerificationOpen(true);
+                 }
+                 return;
+            }
+
             const res = await axios.get('/api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             console.log('[DEBUG] User info fetched:', res.data);
+            setCurrentUser(res.data); // Update global user state
             
             if (res.data.is_verified) {
                 console.log('[DEBUG] User verified, opening Create Modal');
@@ -115,6 +129,10 @@ function App() {
             console.error('[DEBUG] Failed to fetch user info:', e);
             if (e.response && (e.response.status === 401 || e.response.status === 403)) {
                 console.log('[DEBUG] 401/403 detected, opening Login Modal');
+                // Token invalid, clear it
+                localStorage.removeItem('token');
+                setIsLoggedIn(false);
+                setCurrentUser(null);
                 setIsLoginOpen(true);
             } else {
                 alert(lang === 'zh' ? '无法获取用户信息，请重试' : 'Failed to fetch user info');

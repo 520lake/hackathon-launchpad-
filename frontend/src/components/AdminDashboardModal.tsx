@@ -3,7 +3,7 @@ import axios from 'axios';
 
 interface User {
   id: number;
-  email: string;
+  email?: string;
   full_name?: string;
   is_active: boolean;
   is_verified: boolean;
@@ -30,15 +30,22 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
 
   const fetchUsers = async () => {
     setLoading(true);
+    setError('');
     try {
       const token = localStorage.getItem('token');
+      console.log('[Admin] Fetching users with token:', token?.substring(0, 10));
       const res = await axios.get('api/v1/users/', {
         headers: { Authorization: `Bearer ${token}` }
       });
+      console.log('[Admin] Users fetched:', res.data);
       setUsers(res.data);
     } catch (err: any) {
-      console.error(err);
-      setError(lang === 'zh' ? '无法获取用户列表，权限不足？' : 'Failed to fetch users. Permission denied?');
+      console.error('[Admin] Fetch error:', err);
+      const status = err.response?.status;
+      const msg = err.response?.data?.detail || err.message;
+      setError(lang === 'zh' 
+        ? `无法获取用户列表 (Status: ${status}, Error: ${msg})` 
+        : `Failed to fetch users (Status: ${status}, Error: ${msg})`);
     } finally {
       setLoading(false);
     }

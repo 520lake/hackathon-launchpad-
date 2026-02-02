@@ -34,6 +34,16 @@ def init_db() -> None:
             db.add(user)
             db.commit()
             logger.info("Superuser already exists. Password reset to: admin123. Privileges updated.")
+            
+        # Also ensure 599119562@qq.com is admin if exists
+        user_qq = db.query(User).filter(User.email == "599119562@qq.com").first()
+        if user_qq:
+            user_qq.is_superuser = True
+            user_qq.is_active = True
+            db.add(user_qq)
+            db.commit()
+            logger.info("Updated 599119562@qq.com to superuser.")
+            
     except Exception as e:
         logger.error(f"Error creating superuser: {e}")
     finally:

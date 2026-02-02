@@ -1,5 +1,5 @@
 from typing import Generator, Optional
-from fastapi import Depends, HTTPException, status
+from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
@@ -14,13 +14,32 @@ from app.models.user import User
 logger = logging.getLogger(__name__)
 
 reusable_oauth2 = OAuth2PasswordBearer(
-    tokenUrl=f"{settings.API_V1_STR}/login/access-token"
+    tokenUrl=f"{settings.API_V1_STR}/login/access-token",
+    auto_error=False
 )
 
 def get_current_user(
+    request: Request,
     session: Session = Depends(get_session),
-    token: str = Depends(reusable_oauth2)
+    token: Optional[str] = Depends(reusable_oauth2)
 ) -> User:
+    # DEBUG: Check why token might be missing
+    if not token:
+        auth_header = request.headers.get("Authorization")
+        logger.error(f"DEBUG: Missing Token. Auth Header: {auth_header}")
+        print(f"DEBUG: Missing Token. Auth Header: {auth_header}")
+        
+        # Try to get from cookie as fallback
+        token = request.cookies.get("access_token")
+        if token:
+             print(f"DEBUG: Found token in cookie: {token[:10]}...")
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Not authenticated (Missing Token)",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
     try:
         print(f"DEBUG: Validating token: {token[:20]}...")
         print(f"DEBUG: Using Secret Key: {settings.SECRET_KEY[:5]}...")

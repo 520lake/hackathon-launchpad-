@@ -76,12 +76,9 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                         System Online // v2.0.4
                     </div>
                     
-                    <h1 ref={textRef} className="text-6xl md:text-9xl font-black mb-6 leading-none tracking-tighter mix-blend-difference text-ink">
-                        <span className="block text-glitch" data-text="AURA">AURA</span>
-                        <span className="block text-3xl md:text-5xl text-brand font-mono mt-4 tracking-normal opacity-90">
-                            {lang === 'zh' ? 'AI 赋能的极客创新平台' : 'AI-POWERED INNOVATION HUB'}
-                        </span>
-                    </h1>
+          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter glitch-text" data-text="BUILD THE FUTURE">
+            BUILD THE FUTURE <span className="text-2xl text-brand">(v2.3 Cookie Fix)</span>
+          </h1>
 
                     <p ref={subTextRef} className="max-w-2xl text-xl md:text-2xl text-gray-400 font-light mb-12 leading-relaxed">
                         {lang === 'zh' ? (

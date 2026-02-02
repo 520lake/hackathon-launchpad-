@@ -80,7 +80,9 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
   const handleLoginSuccess = (token: string) => {
       stopPolling();
       localStorage.setItem('token', token);
-      alert('登录成功！');
+      // Set cookie as backup for ModelScope iframe/proxy scenarios
+      document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=Lax`;
+      alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
       onClose();
       window.location.reload();
   };

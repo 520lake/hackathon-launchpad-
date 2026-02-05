@@ -70,6 +70,31 @@ function App() {
     }
   }, [location.pathname, location.state, navigate]);
 
+  // Set browser tab title per route, following current language (zh/en). All titles use suffix "- Aura".
+  useEffect(() => {
+    const path = location.pathname;
+    let title: string;
+    if (path === "/") {
+      // Home page: no "- Aura" suffix
+      title =
+        lang === "zh" ? "Aura - AI 黑客松平台" : "Aura - AI Hackathon Platform";
+    } else if (path === "/create") {
+      title = lang === "zh" ? "发起活动 - Aura" : "Initiate Action - Aura";
+    } else if (path === "/explore") {
+      title = lang === "zh" ? "探索活动 - Aura" : "Explore Network - Aura";
+    } else if (path.startsWith("/hackathon/")) {
+      // Placeholder until HackathonDetailModal sets the event title
+      title = lang === "zh" ? "活动详情 - Aura" : "Hackathon Details - Aura";
+    } else if (path === "/user") {
+      title = lang === "zh" ? "个人中心 - Aura" : "Profile - Aura";
+    } else {
+      // Fallback: same as home, no "- Aura" suffix
+      title =
+        lang === "zh" ? "Aura - AI 黑客松平台" : "Aura - AI Hackathon Platform";
+    }
+    document.title = title;
+  }, [location.pathname, lang]);
+
   const fetchCurrentUser = async () => {
     try {
       const token = localStorage.getItem("token");

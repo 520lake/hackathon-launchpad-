@@ -116,11 +116,20 @@ export default function HackathonDetailModal({
     }
   }, [isOpen, asPage, hackathonId]);
 
+  // When this component is used as a full page (/hackathon/:id), set the browser tab title to the event title. Suffix: "- Aura".
+  useEffect(() => {
+    if (asPage && hackathon?.title) {
+      document.title = `${hackathon.title} - Aura`;
+    }
+  }, [asPage, hackathon?.title]);
+
   const fetchParticipants = async () => {
     if (!hackathonId) return;
     setParticipantsLoading(true);
     try {
-      const res = await axios.get(`/api/v1/hackathons/${hackathonId}/participants`);
+      const res = await axios.get(
+        `/api/v1/hackathons/${hackathonId}/participants`
+      );
       setParticipants(res.data || []);
     } catch (e) {
       console.error("Failed to fetch participants", e);
@@ -340,12 +349,18 @@ export default function HackathonDetailModal({
                 <div>
                   <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
                     <span className="text-brand text-3xl">⚡</span>
-                    {lang === "zh" ? "神经网络匹配系统" : "NEURAL MATCHING SYSTEM"}
+                    {lang === "zh"
+                      ? "神经网络匹配系统"
+                      : "NEURAL MATCHING SYSTEM"}
                   </h3>
                   <p className="text-gray-400 font-mono text-sm mt-2 max-w-lg">
                     {lang === "zh"
-                      ? `基于您的技能矩阵 [${currentUserId ? "已连接" : "离线"}] 和兴趣向量进行高维空间匹配`
-                      : `Matching based on your skill matrix [${currentUserId ? "ONLINE" : "OFFLINE"}] and interest vectors.`}
+                      ? `基于您的技能矩阵 [${
+                          currentUserId ? "已连接" : "离线"
+                        }] 和兴趣向量进行高维空间匹配`
+                      : `Matching based on your skill matrix [${
+                          currentUserId ? "ONLINE" : "OFFLINE"
+                        }] and interest vectors.`}
                   </p>
                 </div>
                 <button
@@ -367,7 +382,10 @@ export default function HackathonDetailModal({
               </div>
               {!currentUserId && (
                 <div className="mb-6 p-4 bg-yellow-500/10 border-l-4 border-yellow-500 text-yellow-500 font-mono text-sm">
-                  ⚠ {lang === "zh" ? "警告: 用户未登录。无法访问技能数据库。" : "WARNING: USER NOT LOGGED IN. SKILL DATABASE INACCESSIBLE."}
+                  ⚠{" "}
+                  {lang === "zh"
+                    ? "警告: 用户未登录。无法访问技能数据库。"
+                    : "WARNING: USER NOT LOGGED IN. SKILL DATABASE INACCESSIBLE."}
                 </div>
               )}
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -377,14 +395,20 @@ export default function HackathonDetailModal({
                     className="bg-black/40 p-5 border border-white/10 hover:border-brand hover:bg-black/60 transition-all"
                   >
                     <div className="flex items-center justify-between mb-4">
-                      <h4 className="font-bold text-white font-mono text-lg">{user.name}</h4>
+                      <h4 className="font-bold text-white font-mono text-lg">
+                        {user.name}
+                      </h4>
                       <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-mono border border-green-500/30">
                         MATCH: {user.match_score}%
                       </span>
                     </div>
                     <div className="space-y-2 mb-4">
-                      <div className="text-xs text-gray-500 uppercase font-mono">Skills</div>
-                      <p className="text-sm text-gray-300 font-mono break-words">{user.skills}</p>
+                      <div className="text-xs text-gray-500 uppercase font-mono">
+                        Skills
+                      </div>
+                      <p className="text-sm text-gray-300 font-mono break-words">
+                        {user.skills}
+                      </p>
                     </div>
                     <button className="w-full py-2 bg-white/5 text-brand border border-brand/30 hover:bg-brand hover:text-black hover:border-brand font-mono text-sm font-bold uppercase transition-all">
                       {lang === "zh" ? "发送信号" : "SEND SIGNAL"}
@@ -392,11 +416,13 @@ export default function HackathonDetailModal({
                   </div>
                 ))}
               </div>
-              {matchingUsers.length === 0 && !matchingLoading && currentUserId && (
-                <div className="text-center py-12 text-gray-600 font-mono text-sm border-2 border-dashed border-white/5 rounded-lg">
-                  {lang === "zh" ? "等待指令..." : "AWAITING COMMAND..."}
-                </div>
-              )}
+              {matchingUsers.length === 0 &&
+                !matchingLoading &&
+                currentUserId && (
+                  <div className="text-center py-12 text-gray-600 font-mono text-sm border-2 border-dashed border-white/5 rounded-lg">
+                    {lang === "zh" ? "等待指令..." : "AWAITING COMMAND..."}
+                  </div>
+                )}
             </div>
           </div>
         </div>
@@ -610,8 +636,14 @@ export default function HackathonDetailModal({
         <div className={asPage ? `flex w-full ${contentWrapper}` : "flex"}>
           {[
             { id: "overview", label: lang === "zh" ? "活动详情" : "DETAILS" },
-            { id: "enrolled-users", label: lang === "zh" ? "参赛人员" : "PARTICIPANTS" },
-            { id: "participants", label: lang === "zh" ? "我的报名" : "MY ENROLLMENT" },
+            {
+              id: "enrolled-users",
+              label: lang === "zh" ? "参赛人员" : "PARTICIPANTS",
+            },
+            {
+              id: "participants",
+              label: lang === "zh" ? "我的报名" : "MY ENROLLMENT",
+            },
             { id: "projects", label: lang === "zh" ? "作品展示" : "PROJECTS" },
             { id: "results", label: lang === "zh" ? "评审结果" : "RESULTS" },
           ].map((tab) => (
@@ -619,7 +651,11 @@ export default function HackathonDetailModal({
               key={tab.id}
               onClick={() => {
                 setActiveTab(tab.id);
-                if (tab.id === "enrolled-users" && participants.length === 0 && !participantsLoading) {
+                if (
+                  tab.id === "enrolled-users" &&
+                  participants.length === 0 &&
+                  !participantsLoading
+                ) {
                   fetchParticipants();
                 }
               }}
@@ -672,14 +708,22 @@ export default function HackathonDetailModal({
                         </span>
                         <span className="shrink-0 px-2 py-1 text-xs font-mono border border-brand/50 text-brand bg-brand/10">
                           {p.status === "approved"
-                            ? lang === "zh" ? "已入围" : "APPROVED"
+                            ? lang === "zh"
+                              ? "已入围"
+                              : "APPROVED"
                             : p.status === "pending"
-                            ? lang === "zh" ? "审核中" : "PENDING"
-                            : lang === "zh" ? "已拒绝" : "REJECTED"}
+                            ? lang === "zh"
+                              ? "审核中"
+                              : "PENDING"
+                            : lang === "zh"
+                            ? "已拒绝"
+                            : "REJECTED"}
                         </span>
                       </div>
                       <div className="text-xs text-gray-500 font-mono">
-                        {new Date(p.joined_at).toLocaleString(lang === "zh" ? "zh-CN" : "en-US")}
+                        {new Date(p.joined_at).toLocaleString(
+                          lang === "zh" ? "zh-CN" : "en-US"
+                        )}
                       </div>
                     </li>
                   ))}

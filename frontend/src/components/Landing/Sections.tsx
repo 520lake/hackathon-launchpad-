@@ -48,7 +48,7 @@ export function LatestEvents({
   return (
     <section
       ref={containerRef}
-      className="py-24 max-w-[1200px] mx-auto w-full px-6 divider-b-accent"
+      className="py-24 max-w-[1200px] mx-auto w-full px-6 divider-b"
     >
       <div className="flex justify-between items-end mb-12">
         <h2 className="text-4xl font-black text-ink uppercase tracking-tight">

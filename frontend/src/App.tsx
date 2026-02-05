@@ -5,12 +5,7 @@ import axios from "axios";
 // Landing Components
 import Navbar from "./components/Landing/Navbar";
 import Hero from "./components/Landing/Hero";
-import {
-  LatestEvents,
-  About,
-  Partners,
-  Schedule,
-} from "./components/Landing/Sections";
+import { LatestEvents, About, Schedule } from "./components/Landing/Sections";
 import { SiteFooter } from "./components/Layout/SiteFooter";
 
 // Pages (full-page views for Create, Explore, and Hackathon Detail)
@@ -166,7 +161,6 @@ function App() {
                   lang={lang}
                 />
                 <Schedule lang={lang} />
-                <Partners />
               </main>
               <SiteFooter lang={lang} />
             </>

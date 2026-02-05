@@ -7,6 +7,8 @@ interface SiteFooterProps {
 
 /**
  * Global site footer.
+ * Divider lines use global classes (divider-t-accent, divider-t) from index.css —
+ * change --color-divider / --color-divider-accent there to restyle all dividers app-wide.
  *
  * Layout philosophy:
  * - Background + top/bottom borders span the full viewport width (full-bleed).
@@ -23,7 +25,7 @@ export const SiteFooter: FC<SiteFooterProps> = ({ lang }) => {
   const contentWrapper = "max-w-[1200px] mx-auto w-full px-6";
 
   return (
-    <footer className="bg-black/40 border-t-2 border-brand">
+    <footer className="bg-black/40 divider-t-accent">
       {/* Top section: brand + navigation columns */}
       <div
         className={`${contentWrapper} py-12 lg:py-16 grid grid-cols-1 md:grid-cols-4 gap-10 lg:gap-16`}
@@ -102,7 +104,7 @@ export const SiteFooter: FC<SiteFooterProps> = ({ lang }) => {
       </div>
 
       {/* Bottom bar: full‑width separator, core content still at 1200px */}
-      <div className="border-t border-white/5">
+      <div className="divider-t">
         <div
           className={`${contentWrapper} py-4 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 text-xs font-mono text-gray-600`}
         >

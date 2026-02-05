@@ -1,12 +1,33 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand: #D4A373;
-  --color-brand-dim: #8B5E3C;
-  --color-brand-glow: #FFD6A5;
-  --color-void: #0A0A0A;
-  --color-surface: #1A1A1A;
-  --color-ink: #E5E5E5;
+  --color-brand: #d4a373;
+  --color-brand-dim: #8b5e3c;
+  --color-brand-glow: #ffd6a5;
+  --color-void: #0a0a0a;
+  --color-surface: #1a1a1a;
+  --color-ink: #e5e5e5;
+
+  /*
+   * Divider lines: one variable per look (width + color). Change here to restyle all dividers app-wide.
+   *
+   * WHERE TO SEE EACH VARIABLE (page → location → element):
+   *
+   * --divider-line (subtle thin line):
+   *   • Home (/) → scroll to footer → thin line above "© 2026 AURA Network" / "SYSTEM_STATUS"
+   *   • Home (/) → "最新_信号" section → inside each event card, thin line above the date + "访问" button
+   *   • /user → thin line under the header (title + Verify); under modal title bar when as modal
+   *   • Open "探索网络" or "查看_全部_日志" → filter row → thin line under the search/filter bar
+   *   • Create Hackathon / Hackathon List modals → thin line under the modal title bar
+   *
+   * --divider-line-accent (strong brand line):
+   *   • Home (/) → very top of the dark footer block (AURA + 产品/关于) — the line between page and footer
+   *   • Scroll the page a bit → navbar gets a brand-colored bottom line (sticky header)
+   *   • /hackathon/:id → under the big hero image → brand line; same page → under the tab row (活动详情 | 参赛人员 | …)
+   *   • Home (/) → "最新_信号" section → bottom border of that whole section block
+   */
+  --divider-line: 1px solid rgba(255, 255, 255, 0.05);
+  --divider-line-accent: 2px solid #d4a373;
 
   --font-sans: "JetBrains Mono", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -28,7 +49,7 @@
     @apply bg-void text-ink font-sans antialiased overflow-x-hidden;
     color-scheme: dark;
   }
-  
+
   /* Custom Scrollbar */
   ::-webkit-scrollbar {
     width: 8px;
@@ -73,25 +94,40 @@
     opacity: 0.8;
   }
   .text-glitch::before {
-    color: #D4A373;
+    color: #d4a373;
     z-index: -1;
     transform: translate(-2px, 0);
     clip-path: polygon(0 0, 100% 0, 100% 45%, 0 45%);
   }
   .text-glitch::after {
-    color: #8B5E3C;
+    color: #8b5e3c;
     z-index: -2;
     transform: translate(2px, 0);
     clip-path: polygon(0 55%, 100% 55%, 100% 100%, 0 100%);
   }
 
-  /* Asymmetric Grid Helpers */
-  .grid-asymmetric {
-    display: grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1rem;
+  /* Divider classes: apply --divider-line or --divider-line-accent. Edit the 2 variables in @theme to change all dividers. */
+  .divider-t {
+    border-top: var(--divider-line);
   }
-  
+  .divider-b {
+    border-bottom: var(--divider-line);
+  }
+  .divider-y {
+    border-top: var(--divider-line);
+    border-bottom: var(--divider-line);
+  }
+  .divider-t-accent {
+    border-top: var(--divider-line-accent);
+  }
+  .divider-b-accent {
+    border-bottom: var(--divider-line-accent);
+  }
+  .divider-y-accent {
+    border-top: var(--divider-line-accent);
+    border-bottom: var(--divider-line-accent);
+  }
+
   /* Brutalist Card */
   .card-brutal {
     @apply bg-surface border border-brand/20 p-6 relative transition-all duration-300;

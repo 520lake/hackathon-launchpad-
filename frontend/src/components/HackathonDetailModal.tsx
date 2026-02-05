@@ -463,7 +463,7 @@ export default function HackathonDetailModal({
   ) : (
     <>
       {/* Hero Section: fixed height so gradient overlay (absolute inset-0) and hero block stay the same height. */}
-      <div className="relative h-64 md:h-80 bg-black border-b-2 border-brand shrink-0">
+      <div className="relative h-64 md:h-80 bg-black divider-b-accent shrink-0">
         {hackathon.cover_image ? (
           <div className="relative w-full h-full">
             <img
@@ -632,7 +632,7 @@ export default function HackathonDetailModal({
       </div>
 
       {/* Tabs: bar full width edge-to-edge; when asPage, tab buttons live inside contentWrapper (1200px / 1170px inner). */}
-      <div className="flex border-b-2 border-brand bg-black/40 sticky top-0 z-10 overflow-x-auto justify-center w-full">
+      <div className="flex divider-y-accent bg-black/40 sticky top-0 z-10 overflow-x-auto justify-center w-full">
         <div className={asPage ? `flex w-full ${contentWrapper}` : "flex"}>
           {[
             { id: "overview", label: lang === "zh" ? "活动详情" : "DETAILS" },

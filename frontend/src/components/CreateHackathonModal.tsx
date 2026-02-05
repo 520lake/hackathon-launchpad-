@@ -392,7 +392,7 @@ export default function CreateHackathonModal({
   // Shared tabs (used in both page and modal)
   const tabsEl = (
     <div
-      className={`flex border-b border-white/10 font-mono text-sm ${
+      className={`flex divider-b font-mono text-sm ${
         asPage ? "px-0" : "px-6 bg-white/5"
       }`}
     >
@@ -618,7 +618,7 @@ export default function CreateHackathonModal({
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-white/10 pb-1">
+              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest divider-b pb-1">
                 {lang === "zh" ? "报名窗口" : "REGISTRATION WINDOW"}
               </h3>
               <div>
@@ -645,7 +645,7 @@ export default function CreateHackathonModal({
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-white/10 pb-1">
+              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest divider-b pb-1">
                 {lang === "zh" ? "提交窗口" : "SUBMISSION WINDOW"}
               </h3>
               <div>
@@ -672,7 +672,7 @@ export default function CreateHackathonModal({
               </div>
             </div>
             <div className="space-y-4">
-              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest border-b border-white/10 pb-1">
+              <h3 className="font-bold text-gray-400 text-xs uppercase tracking-widest divider-b pb-1">
                 {lang === "zh" ? "评审周期" : "JUDGING PERIOD"}
               </h3>
               <div>
@@ -741,7 +741,7 @@ export default function CreateHackathonModal({
               ))}
             </div>
           </div>
-          <div className="pt-6 border-t border-white/10">
+          <div className="pt-6 divider-t">
             <h3 className="font-bold text-ink text-sm uppercase tracking-widest border-l-2 border-brand pl-3 mb-4">
               {lang === "zh" ? "评分维度" : "EVALUATION METRICS"}
             </h3>
@@ -911,7 +911,7 @@ export default function CreateHackathonModal({
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="flex items-center justify-center p-4 w-full">
         <div className="bg-surface border border-brand/20 card-brutal w-full max-w-4xl p-0 relative transform transition-all max-h-[90vh] flex flex-col">
-          <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface/50">
+          <div className="p-6 divider-b flex justify-between items-center bg-surface/50">
             <h2 className="text-2xl font-black text-ink uppercase tracking-tight">
               <span className="text-brand mr-2">//</span>
               {pageTitle}

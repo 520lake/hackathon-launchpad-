@@ -132,7 +132,7 @@ export default function HackathonListModal({
           </div>
 
           {/* Filters: toolbar style, no card border */}
-          <div className="flex flex-wrap gap-4 items-center mb-10 pb-6 border-b border-white/10">
+          <div className="flex flex-wrap gap-4 items-center mb-10 pb-6 divider-b">
             <select
               className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm"
               value={statusFilter}
@@ -284,7 +284,7 @@ export default function HackathonListModal({
                     <p className="text-gray-500 text-sm mb-4 line-clamp-2 flex-1 font-light">
                       {hackathon.description}
                     </p>
-                    <div className="pt-4 border-t border-white/10 mt-auto flex justify-between items-center text-xs font-mono text-gray-500">
+                    <div className="pt-4 divider-t mt-auto flex justify-between items-center text-xs font-mono text-gray-500">
                       <span>
                         {new Date(hackathon.start_date).toLocaleDateString()}
                       </span>
@@ -307,7 +307,7 @@ export default function HackathonListModal({
     <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="flex items-center justify-center p-4 w-full">
         <div className="bg-surface border border-brand/20 card-brutal w-full max-w-6xl p-0 relative transform transition-all h-[90vh] flex flex-col">
-          <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface/50 z-10">
+          <div className="p-6 divider-b flex justify-between items-center bg-surface/50 z-10">
             <h2 className="text-3xl font-black text-ink tracking-tighter uppercase">
               <span className="text-brand mr-2">//</span>
               {lang === "zh" ? "探索网络" : "EXPLORE NETWORK"}
@@ -320,7 +320,7 @@ export default function HackathonListModal({
               ✕
             </button>
           </div>
-          <div className="p-4 bg-void border-b border-brand/20 flex flex-wrap gap-4 items-center">
+          <div className="p-4 bg-void divider-b flex flex-wrap gap-4 items-center">
             <select
               className="px-3 py-2 bg-white/5 border border-white/10 text-ink rounded-none focus:border-brand outline-none font-mono text-sm"
               value={statusFilter}
@@ -456,7 +456,7 @@ export default function HackathonListModal({
                       <p className="text-gray-500 text-sm mb-6 line-clamp-2 flex-1 font-light">
                         {hackathon.description}
                       </p>
-                      <div className="pt-4 border-t border-white/5 mt-auto">
+                      <div className="pt-4 divider-t mt-auto">
                         <div className="flex justify-between items-center text-xs font-mono text-gray-500">
                           <span>
                             日期:{" "}

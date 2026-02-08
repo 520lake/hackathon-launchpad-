@@ -15,6 +15,7 @@ router = APIRouter()
 class AIRequest(BaseModel):
     prompt: str
     type: str # 'hackathon', 'project', 'matching'
+    context_data: Optional[dict] = None # For refinement
 
 class AIResponse(BaseModel):
     content: dict
@@ -32,20 +33,54 @@ async def generate_content(
 ):
     try:
         if req.type == 'hackathon':
-            system_prompt = """You are an expert hackathon organizer. 
+            if req.context_data:
+                # Refinement Mode
+                system_prompt = """You are an expert hackathon organizer assisting a user in refining their event plan.
+You will receive the CURRENT event data and a user instruction.
+Update the event data based on the user's instruction.
+Return ONLY a valid JSON object with the updated fields (keep existing fields if not changed).
+Ensure the JSON structure matches the original format:
+- title, subtitle, description, requirements, theme_tags, professionalism_tags, rules_detail
+- resource_detail (resources, APIs, mentors, support)
+- organizer_name, location, registration_type ("individual" or "team"), format ("online" or "offline"), contact_info_text
+- awards_detail (list of objects)
+- scoring_dimensions (list of objects)
+
+Do not include any markdown formatting (like ```json).
+"""
+                user_prompt = f"Current Data: {json.dumps(req.context_data, ensure_ascii=False)}\nUser Instruction: {req.prompt}"
+            else:
+                # Creation Mode
+                system_prompt = """You are an expert hackathon organizer. 
 Generate a detailed hackathon event plan based on the user's topic.
 Return ONLY a valid JSON object with the following fields:
 - title: A creative title for the hackathon
-- description: A compelling description (markdown supported)
-- theme_tags: A string of comma-separated tags
-- professionalism_tags: A string of comma-separated tags (e.g., Beginner, Advanced)
-- rules_detail: Detailed rules
-- awards_detail: Awards and prizes
-- scoring_dimensions: A list of objects, each with 'name', 'description', and 'weight' (integer) fields.
+- subtitle: A catchy short subtitle (max 50 chars)
+- description: A compelling description including an agenda/schedule overview (markdown supported)
+- requirements: Specific submission requirements for participants (markdown supported)
+- theme_tags: A string of comma-separated tags (e.g. "Web3, DeFi")
+- professionalism_tags: A string of comma-separated tags (e.g. "Beginner Friendly, Hardcore")
+- rules_detail: Detailed rules and code of conduct
+- resource_detail: Resources provided, API access, mentor support, etc. (markdown supported)
+- organizer_name: Suggested organizer name
+- location: Suggested location (if offline) or "Online"
+- registration_type: "individual" or "team"
+- format: "online" or "offline"
+- contact_info_text: Suggested contact email or info
+- awards_detail: A list of objects, each with:
+  - 'type': 'cash' | 'other' | 'mixed'
+  - 'name': Award name (e.g. "First Prize")
+  - 'count': Number of winners (integer)
+  - 'amount': Cash amount (integer, 0 if none)
+  - 'prize': Prize description (string, empty if none)
+- scoring_dimensions: A list of objects, each with:
+  - 'name': Dimension name (e.g. "Innovation")
+  - 'description': Brief explanation
+  - 'weight': Integer percentage (must sum to 100 across all items)
 
 Do not include any markdown formatting (like ```json) in the response, just the raw JSON string.
 """
-            user_prompt = f"Topic: {req.prompt}"
+                user_prompt = f"Topic: {req.prompt}"
             
             completion = client.chat.completions.create(
                 model=settings.MODELSCOPE_MODEL_NAME,
@@ -106,7 +141,7 @@ Each object should have:
             user_prompt = f"{context_prompt}User Skills: {user_skills}. User Interests: {user_interests}. Suggest complementary teammates."
             
             completion = client.chat.completions.create(
-                model=MODEL_NAME,
+                model=settings.MODELSCOPE_MODEL_NAME,
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
@@ -129,6 +164,7 @@ Each object should have:
                     "theme_tags": f"{req.prompt}, Fallback",
                     "professionalism_tags": "General",
                     "rules_detail": "Standard rules apply.",
+                    "resource_detail": "Standard resources provided.",
                     "awards_detail": "Standard awards.",
                     "scoring_dimensions": [{"name": "General", "description": "Overall score", "weight": 100}]
                 }

@@ -6,7 +6,7 @@ from app.db.session import get_session
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.hackathon import Hackathon
-from app.models.team_project import Project, ProjectCreate, ProjectRead, ProjectStatus, Team
+from app.models.team_project import Project, ProjectCreate, ProjectRead, ProjectStatus, Team, ProjectReadWithTeam
 from app.models.judge import Judge
 from app.models.score import Score, ScoreCreate, ScoreRead
 
@@ -52,15 +52,31 @@ def update_project(*, session: Session = Depends(get_session), project_id: int, 
     session.refresh(project)
     return project
 
-@router.get("", response_model=List[ProjectRead])
-def read_projects(*, session: Session = Depends(get_session), offset: int = 0, limit: int = 100, sort_by_score: bool = False):
+@router.get("/me", response_model=List[ProjectReadWithTeam])
+def read_my_projects(*, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    """
+    Get projects that the current user is a member of (via Team).
+    """
+    from app.models.team_project import TeamMember
+    
+    # Join Project -> Team -> TeamMember
+    query = select(Project).join(Team, Project.team_id == Team.id).join(TeamMember, Team.id == TeamMember.team_id).where(TeamMember.user_id == current_user.id)
+    projects = session.exec(query).all()
+    return projects
+
+@router.get("", response_model=List[ProjectReadWithTeam])
+def read_projects(*, session: Session = Depends(get_session), hackathon_id: int = None, offset: int = 0, limit: int = 100, sort_by_score: bool = False):
     query = select(Project)
+    if hackathon_id:
+        query = query.join(Team, Project.team_id == Team.id).where(Team.hackathon_id == hackathon_id)
+    
     if sort_by_score:
         query = query.order_by(Project.total_score.desc())
+        
     projects = session.exec(query.offset(offset).limit(limit)).all()
     return projects
 
-@router.get("/{project_id}", response_model=ProjectRead)
+@router.get("/{project_id}", response_model=ProjectReadWithTeam)
 def read_project(*, session: Session = Depends(get_session), project_id: int):
     project = session.get(Project, project_id)
     if not project:

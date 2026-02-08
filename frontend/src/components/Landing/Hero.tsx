@@ -76,7 +76,7 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                         System Online // v2.0.4
                     </div>
                     
-          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter glitch-text" data-text="BUILD THE FUTURE">
+          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter text-glitch" data-text="BUILD THE FUTURE">
             BUILD THE FUTURE
           </h1>
 

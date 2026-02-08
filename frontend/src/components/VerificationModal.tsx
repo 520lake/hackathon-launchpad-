@@ -38,7 +38,7 @@ export default function VerificationModal({ isOpen, onClose, onSuccess, lang }: 
   };
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/90 backdrop-blur-sm">
       <div className="bg-void border border-brand shadow-[0_0_50px_rgba(212,163,115,0.2)] w-full max-w-md p-8 relative transform transition-all clip-path-polygon">
         <button 
           onClick={onClose}

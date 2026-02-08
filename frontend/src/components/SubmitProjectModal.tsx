@@ -5,17 +5,19 @@ interface SubmitProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   hackathonId: number;
+  teamId?: number; // Added teamId
   existingProject?: any; // If editing
   lang: 'zh' | 'en';
 }
 
-export default function SubmitProjectModal({ isOpen, onClose, hackathonId, existingProject, lang }: SubmitProjectModalProps) {
+export default function SubmitProjectModal({ isOpen, onClose, hackathonId, teamId, existingProject, lang }: SubmitProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
+  const [coverImage, setCoverImage] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -32,6 +34,7 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
       setDemoUrl(existingProject.demo_url || '');
       setVideoUrl(existingProject.video_url || '');
       setAttachmentUrl(existingProject.attachment_url || '');
+      setCoverImage(existingProject.cover_image || '');
     } else {
       // Reset if new
       setTitle('');
@@ -40,8 +43,34 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
       setDemoUrl('');
       setVideoUrl('');
       setAttachmentUrl('');
+      setCoverImage('');
     }
   }, [existingProject, isOpen]);
+
+  const uploadImage = async (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = localStorage.getItem('token');
+    const res = await axios.post('api/v1/upload/image', formData, {
+        headers: { 
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${token}` 
+        }
+    });
+    return res.data.url;
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const url = await uploadImage(e.target.files[0]);
+            setCoverImage(url);
+        } catch (err) {
+            console.error(err);
+            alert('Upload failed');
+        }
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -94,13 +123,17 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
         demo_url: demoUrl,
         video_url: videoUrl,
         attachment_url: attachmentUrl,
-        hackathon_id: hackathonId
+        cover_image: coverImage,
+        // hackathon_id removed as it's not in ProjectCreate and linked via team
       };
 
       if (existingProject) {
-        await axios.put(`api/v1/projects/${existingProject.id}`, payload, { headers });
+        await axios.patch(`api/v1/projects/${existingProject.id}`, payload, { headers }); // Changed put to patch
       } else {
-        await axios.post('api/v1/projects/', payload, { headers });
+        if (!teamId) {
+             throw new Error("Team ID is missing");
+        }
+        await axios.post(`api/v1/projects/?team_id=${teamId}`, payload, { headers });
       }
       
       alert(lang === 'zh' ? '作品提交成功！' : 'Project submitted successfully!');
@@ -137,6 +170,28 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, exist
             )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
+            
+            {/* Cover Image */}
+            <div>
+                <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
+                    {lang === 'zh' ? '项目封面' : 'PROJECT COVER'}
+                </label>
+                <div className="relative w-full h-48 bg-black/50 border border-brand/30 flex items-center justify-center overflow-hidden group">
+                    {coverImage ? (
+                        <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="text-gray-500 font-mono text-sm">{lang === 'zh' ? '点击上传封面图片' : 'Click to upload cover image'}</div>
+                    )}
+                    <input 
+                        type="file" 
+                        accept="image/*"
+                        className="absolute inset-0 opacity-0 cursor-pointer"
+                        onChange={handleCoverUpload}
+                    />
+                    <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+                </div>
+            </div>
+
             <div>
                 <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
                     {lang === 'zh' ? '项目代号' : 'PROJECT CODENAME'} *

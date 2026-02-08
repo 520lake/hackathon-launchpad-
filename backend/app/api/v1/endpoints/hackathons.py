@@ -1,11 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
-from typing import List
-
+from typing import List, Optional
+from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate, HackathonStatus, HackathonFormat
 from app.db.session import get_session
 from app.api.deps import get_current_user
 from app.models.user import User
-from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate
 from app.models.judge import Judge, JudgeCreate, JudgeRead
 from app.models.enrollment import Enrollment
 from app.models.team_project import Team, TeamMember, Project
@@ -27,8 +26,34 @@ def create_hackathon(*, session: Session = Depends(get_session), hackathon: Hack
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.get("", response_model=List[HackathonRead])
-def read_hackathons(*, session: Session = Depends(get_session), offset: int = 0, limit: int = 100):
-    hackathons = session.exec(select(Hackathon).offset(offset).limit(limit)).all()
+def read_hackathons(
+    *,
+    session: Session = Depends(get_session),
+    offset: int = 0,
+    limit: int = 100,
+    status: Optional[HackathonStatus] = None,
+    format: Optional[HackathonFormat] = None,
+    location: Optional[str] = None,
+    search: Optional[str] = None
+):
+    query = select(Hackathon)
+    
+    if status:
+        query = query.where(Hackathon.status == status)
+    if format:
+        query = query.where(Hackathon.format == format)
+    if location:
+        query = query.where(Hackathon.location.contains(location))
+    if search:
+        query = query.where(
+            (Hackathon.title.contains(search)) | 
+            (Hackathon.description.contains(search))
+        )
+        
+    # Default sort by created_at desc
+    query = query.order_by(Hackathon.created_at.desc())
+    
+    hackathons = session.exec(query.offset(offset).limit(limit)).all()
     return hackathons
 
 @router.get("/my", response_model=List[HackathonRead])

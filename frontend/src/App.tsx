@@ -228,15 +228,6 @@ function App() {
       {/* Modals */}
       <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} lang={lang} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} lang={lang} />
-      <CreateHackathonModal 
-        isOpen={isCreateHackathonOpen} 
-        onClose={() => {
-            setIsCreateHackathonOpen(false);
-            setEditingHackathon(null);
-        }}
-        initialData={editingHackathon}
-        lang={lang}
-      />
       <HackathonListModal 
         isOpen={isHackathonListOpen} 
         onClose={() => setIsHackathonListOpen(false)} 
@@ -271,6 +262,15 @@ function App() {
       <AdminDashboardModal 
         isOpen={isAdminDashboardOpen} 
         onClose={() => setIsAdminDashboardOpen(false)} 
+        lang={lang}
+      />
+      <CreateHackathonModal 
+        isOpen={isCreateHackathonOpen} 
+        onClose={() => {
+            setIsCreateHackathonOpen(false);
+            setEditingHackathon(null);
+        }}
+        initialData={editingHackathon}
         lang={lang}
       />
     </div>

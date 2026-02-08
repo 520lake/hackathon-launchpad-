@@ -21,10 +21,21 @@ interface User {
   id: number;
   email: string;
   full_name?: string;
+  nickname?: string;
+  avatar_url?: string;
   is_verified: boolean;
   skills?: string;
   interests?: string;
-  resume?: string;
+  city?: string;
+  phone?: string;
+}
+
+interface Project {
+  id: number;
+  title: string;
+  description: string;
+  status: string;
+  created_at: string;
 }
 
 interface UserDashboardModalProps {
@@ -40,14 +51,40 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
+  const [myProjects, setMyProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'profile'>('created');
+  const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'projects' | 'profile'>('created');
   
   // Profile form
+  const [nickname, setNickname] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState('');
   const [skills, setSkills] = useState('');
   const [interests, setInterests] = useState('');
-  const [resume, setResume] = useState('');
+  const [city, setCity] = useState('');
+  const [phone, setPhone] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
+
+  // Constants
+  const CITY_OPTIONS = [
+    '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '西安', '重庆',
+    '天津', '苏州', '长沙', '郑州', '沈阳', '青岛', '大连', '厦门', '合肥', '福州',
+    '济南', '哈尔滨', '长春', '石家庄', '太原', '昆明', '贵阳', '南宁', '南昌', '海口',
+    '乌鲁木齐', '兰州', '银川', '西宁', '呼和浩特', '拉萨', '香港', '澳门', '台北', 'Overseas/海外'
+  ];
+
+  const SKILL_OPTIONS = [
+    { value: 'Full Stack', label: '全栈开发' },
+    { value: 'Frontend', label: '前端开发' },
+    { value: 'Backend', label: '后端开发' },
+    { value: 'Mobile', label: '移动端开发' },
+    { value: 'Data Analysis', label: '数据分析' },
+    { value: 'UI/UX', label: 'UI/UX' },
+    { value: 'Product Design', label: '产品设计' },
+    { value: 'Business Analysis', label: '商业分析' },
+    { value: 'Marketing', label: '市场营销' },
+    { value: 'Product Ops', label: '产品运营' },
+    { value: 'Other', label: '其他' }
+  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -67,9 +104,12 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       });
       setUser(resUser.data);
       // Init form data
+      setNickname(resUser.data.nickname || '');
+      setAvatarUrl(resUser.data.avatar_url || '');
       setSkills(resUser.data.skills || '');
       setInterests(resUser.data.interests || '');
-      setResume(resUser.data.resume || '');
+      setCity(resUser.data.city || '');
+      setPhone(resUser.data.phone || '');
 
       // 1. 获取我创建的活动
       const resCreated = await axios.get('api/v1/hackathons/my', {
@@ -82,6 +122,16 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         headers: { Authorization: `Bearer ${token}` }
       });
       setMyJoined(resJoined.data);
+
+      // 3. Get my projects
+      try {
+        const resProjects = await axios.get('api/v1/projects/me', {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setMyProjects(resProjects.data);
+      } catch (e) {
+        console.error("Failed to fetch projects", e);
+      }
     } catch (err) {
       console.error(err);
     } finally {
@@ -137,9 +187,12 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     try {
         const token = localStorage.getItem('token');
         await axios.put('api/v1/users/me', {
+            nickname,
+            avatar_url: avatarUrl,
             skills,
             interests,
-            resume
+            city,
+            phone
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -150,6 +203,15 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         alert('保存失败');
     } finally {
         setSavingProfile(false);
+    }
+  };
+  
+  const toggleSkill = (skillValue: string) => {
+    const currentSkills = skills ? skills.split(',').map(s => s.trim()).filter(Boolean) : [];
+    if (currentSkills.includes(skillValue)) {
+      setSkills(currentSkills.filter(s => s !== skillValue).join(','));
+    } else {
+      setSkills([...currentSkills, skillValue].join(','));
     }
   };
 
@@ -235,7 +297,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                 : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            {lang === 'zh' ? '我发起的活动' : 'INITIATED'}
+            {lang === 'zh' ? '我发起的' : 'INITIATED'}
           </button>
           <button
             onClick={() => setActiveTab('joined')}
@@ -245,7 +307,17 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                 : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            {lang === 'zh' ? '我参与的活动' : 'JOINED'}
+            {lang === 'zh' ? '我参与的' : 'JOINED'}
+          </button>
+          <button
+            onClick={() => setActiveTab('projects')}
+            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
+              activeTab === 'projects' 
+                ? 'text-brand border-b-2 border-brand bg-brand/5' 
+                : 'text-gray-500 hover:text-white hover:bg-white/5'
+            }`}
+          >
+            {lang === 'zh' ? '我的项目' : 'PROJECTS'}
           </button>
           <button
             onClick={() => setActiveTab('profile')}
@@ -255,7 +327,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                 : 'text-gray-500 hover:text-white hover:bg-white/5'
             }`}
           >
-            {lang === 'zh' ? '个人资料 & 技能' : 'PROFILE & SKILLS'}
+            {lang === 'zh' ? '个人资料' : 'PROFILE'}
           </button>
         </div>
 
@@ -269,24 +341,102 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             <>
           {activeTab === 'profile' && (
             <div className="space-y-8 max-w-2xl mx-auto py-4">
+                <div className="flex items-center gap-6 mb-8">
+                    <div className="w-20 h-20 bg-black/50 border border-brand/30 rounded-full flex items-center justify-center overflow-hidden">
+                        {avatarUrl ? (
+                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                        ) : (
+                            <span className="text-4xl">👤</span>
+                        )}
+                    </div>
+                    <div className="flex-1 space-y-4">
+                        <div className="group">
+                            <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                                {lang === 'zh' ? '昵称' : 'NICKNAME'}
+                            </label>
+                            <input
+                                type="text"
+                                value={nickname}
+                                onChange={(e) => setNickname(e.target.value)}
+                                placeholder={lang === 'zh' ? "输入昵称" : "Enter nickname"}
+                                className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
+                            />
+                        </div>
+                        <div className="group">
+                             <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                                {lang === 'zh' ? '头像链接' : 'AVATAR URL'}
+                            </label>
+                            <input
+                                type="text"
+                                value={avatarUrl}
+                                onChange={(e) => setAvatarUrl(e.target.value)}
+                                placeholder="https://..."
+                                className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                    <div className="group">
+                        <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                            {lang === 'zh' ? '城市' : 'CITY'}
+                        </label>
+                        <select
+                            value={city}
+                            onChange={(e) => setCity(e.target.value)}
+                            className="w-full bg-black/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:border-brand font-mono transition-colors appearance-none"
+                        >
+                            <option value="">{lang === 'zh' ? '选择城市...' : 'Select City...'}</option>
+                            {CITY_OPTIONS.map(c => (
+                                <option key={c} value={c}>{c}</option>
+                            ))}
+                        </select>
+                    </div>
+                    <div className="group">
+                        <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
+                            {lang === 'zh' ? '手机号' : 'PHONE'}
+                        </label>
+                        <input
+                            type="text"
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
+                            placeholder={lang === 'zh' ? "输入手机号" : "Enter phone number"}
+                            className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
+                        />
+                    </div>
+                </div>
+
                 <div className="group">
                     <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                        {lang === 'zh' ? '技能标签' : 'SKILL TAGS'}
+                        {lang === 'zh' ? '专业能力 (多选)' : 'PROFESSIONAL SKILLS (MULTI-SELECT)'}
                     </label>
+                    <div className="flex flex-wrap gap-2">
+                        {SKILL_OPTIONS.map((opt) => {
+                            const isSelected = skills.split(',').map(s => s.trim()).includes(opt.value);
+                            return (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => toggleSkill(opt.value)}
+                                    className={`px-3 py-1 text-xs font-mono font-bold uppercase border transition-all ${
+                                        isSelected 
+                                            ? 'bg-brand text-black border-brand' 
+                                            : 'bg-black/50 text-gray-400 border-gray-700 hover:border-brand hover:text-brand'
+                                    }`}
+                                >
+                                    {lang === 'zh' ? opt.label : opt.value}
+                                </button>
+                            );
+                        })}
+                    </div>
                     <input
-                        type="text"
+                        type="hidden"
                         value={skills}
-                        onChange={(e) => setSkills(e.target.value)}
-                        placeholder={lang === 'zh' ? "例如: React, Python, UI/UX (用逗号分隔)" : "e.g., React, Python, UI/UX (comma separated)"}
-                        className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
                     />
-                    <p className="text-xs text-gray-500 mt-2 font-mono">
-                        {lang === 'zh' ? '用于智能组队匹配' : 'Used for AI neural matching'}
-                    </p>
                 </div>
                 <div className="group">
                     <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                        {lang === 'zh' ? '兴趣领域' : 'INTEREST AREAS'}
+                        {lang === 'zh' ? '兴趣领域 (自定义标签)' : 'INTEREST AREAS (CUSTOM TAGS)'}
                     </label>
                     <input
                         type="text"
@@ -295,29 +445,11 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                         placeholder={lang === 'zh' ? "例如: Web3, AI, DeFi (用逗号分隔)" : "e.g., Web3, AI, DeFi (comma separated)"}
                         className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
                     />
+                    <p className="text-xs text-gray-500 mt-2 font-mono">
+                        {lang === 'zh' ? '用于活动推荐和组队匹配' : 'Used for event recommendation and team matching'}
+                    </p>
                 </div>
-                <div className="group">
-                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                        {lang === 'zh' ? '简历上传' : 'RESUME UPLOAD'}
-                    </label>
-                    <div className="relative">
-                        <input type="file" onChange={handleResumeUpload} className="block w-full text-sm text-gray-500
-                            file:mr-4 file:py-2 file:px-4
-                            file:border-0
-                            file:text-xs file:font-bold file:uppercase
-                            file:bg-brand file:text-black
-                            hover:file:bg-white
-                            cursor-pointer font-mono
-                        "/>
-                    </div>
-                    {resume && (
-                        <div className="mt-3 text-xs text-brand font-mono">
-                            <a href={resume} target="_blank" rel="noopener noreferrer" className="hover:underline flex items-center gap-2">
-                                <span>📄</span> {lang === 'zh' ? '查看已上传简历' : 'VIEW UPLOADED RESUME'}
-                            </a>
-                        </div>
-                    )}
-                </div>
+                
                 <button
                     onClick={handleSaveProfile}
                     disabled={savingProfile}
@@ -405,6 +537,41 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                                     ? (lang === 'zh' ? '已通过' : 'APPROVED') 
                                     : (lang === 'zh' ? '已拒绝' : 'REJECTED')
                             }
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'projects' && (
+                <div className="space-y-4">
+                  {myProjects.length === 0 ? (
+                    <div className="text-center py-20 border border-dashed border-gray-800">
+                        <p className="text-gray-600 font-mono text-sm uppercase">
+                            {lang === 'zh' ? '你还没有提交任何项目' : 'NO PROJECTS SUBMITTED'}
+                        </p>
+                    </div>
+                  ) : (
+                    myProjects.map(p => (
+                      <div 
+                        key={p.id} 
+                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden"
+                      >
+                         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                            <div className="text-4xl font-black text-brand">PROJ</div>
+                        </div>
+                        <div className="flex justify-between items-start relative z-10">
+                          <div>
+                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{p.title}</h3>
+                            <p className="text-sm text-gray-400 mt-1 line-clamp-2">{p.description}</p>
+                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
+                                {lang === 'zh' ? '提交时间' : 'CREATED'}: <span className="text-gray-300">{new Date(p.created_at).toLocaleDateString()}</span>
+                            </p>
+                          </div>
+                          <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">
+                            {p.status}
                           </span>
                         </div>
                       </div>

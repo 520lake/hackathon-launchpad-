@@ -20,73 +20,71 @@ license: Apache-2.0
 
 ## 🚀 最新更新 (What's New)
 
-本次更新主要包含以下核心功能与改进：
+**Version 2.7.0 (Visuals + Stability)**
 
-1.  **魔搭 (ModelScope) 深度集成**:
-    - 支持**单容器全栈部署** (FastAPI 托管前端静态资源)，端口适配 7860。
-    - 实现**数据持久化**，自动识别 `/mnt/workspace` 挂载点，确保 SQLite 数据不丢失。
-2.  **个人中心 (User Dashboard)**:
-    - 新增用户活动追踪面板，可查看“我发起的”和“我参与的”活动。
-    - 支持技能标签与个人资料管理，为 AI 组队提供数据基础。
-3.  **视觉风格重构 (Brutalist UI)**:
-    - 全面实施 "No AI Flavor" 粗野主义设计语言：高对比度、硬朗边框、大字体。
-    - 修复了所有模态框 (Modals) 的主题不一致问题。
-4.  **多语言支持 (i18n)**:
-    - 核心界面实现中英文无缝切换，适配国内与国际化需求。
+1.  **🎨 视觉动效升级 (Visual Effects Upgrade)**:
+    -   **Fluid Gradient Cursor**: 落地页新增 "液态渐变跟随" 效果，AI 模块具备光流交互体验 (Canvas/WebGL)。
+    -   **Enhanced Glitch**: 修复并增强了主标题的 Cyberpunk 故障艺术效果，动态感更强。
+2.  **🐛 逻辑修复 (Bug Fixes)**:
+    -   **Registration Status**: 修复了活动报名状态显示异常的问题（如“报名截止”误显为“即将开始”），实现了更细粒度的时间轴比对逻辑。
+3.  **Stability**:
+    -   优化了 `HackathonDetailModal` 的边界条件判断，提升了未登录/未实名状态下的交互体验。
+
+**Version 2.6.0 (Secure + Mock Auth)**
+
+1.  **模拟实名认证 (Mock Verification)**:
+    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
+    -   一键绕过实名限制，快速测试“发起活动”全流程。
+2.  **ModelScope 兼容性增强**:
+    -   **Cookie Auth Fallback**: 修复了在 iframe 中 LocalStorage 失效导致的 401 登录问题。
+    -   **Mock WeChat Login**: 本地与测试环境支持模拟微信登录（自动生成模拟二维码），无需真实扫码。
+3.  **UI/UX 优化**:
+    -   修复了导航栏管理员显示逻辑，优先展示昵称/全名。
+    -   优化了“发起活动”的状态检测逻辑，认证后立即刷新权限，无需重复登录。
 
 ---
 
 ## ✨ 核心特性 (Key Features)
 
 *   **🤖 AI-Native**: 
-    - 基于 ModelScope (Qwen-Plus) 的活动一键策划、智能组队匹配与项目润色。
+    -   基于 ModelScope (Qwen-Plus) 的活动一键策划、智能组队匹配与项目润色。
 *   **🎨 Brutalist Design**: 
-    - 独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
+    -   独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
 *   **🔄 Full Lifecycle**: 
-    - 覆盖活动发布、报名审核、组队协作、项目提交、评委打分的全流程。
+    -   覆盖活动发布、报名审核、组队协作、项目提交、评委打分的全流程。
 *   **🔐 Dual Auth**: 
-    - 支持微信（测试号）扫码与邮箱验证码双重登录。
+    -   支持微信（测试号）扫码与邮箱验证码双重登录。
 
 ---
 
 ## 🛠️ 快速开始 (Getting Started)
 
-### 推荐：Docker 部署 (Recommended)
-
-为了确保环境一致性，推荐使用 Docker Compose 启动。
-
-```bash
-# 克隆项目
-git clone https://github.com/520lake/hackathon-launchpad-.git
-cd hackathon-launchpad-
-
-# 启动服务 (包含前后端与数据库)
-docker-compose up --build
-```
-- **前端**: http://localhost:5173
-- **后端 API**: http://localhost:8000/docs
+### ModelScope 部署 (Production)
+平台已预配置 `Dockerfile` 和启动脚本，推送到 ModelScope Space 即可自动构建。
+- **启动脚本**: `start_modelscope.sh` (自动处理数据库挂载与迁移)
+- **端口**: 7860
 
 ### 本地开发 (Local Development)
 
-**后端 (Backend)**:
+**1. 后端 (Backend)**:
 ```bash
 cd backend
-python -m venv venv
-# Windows
-venv\Scripts\activate
-# Linux/Mac
-source venv/bin/activate
-
-pip install -r requirements.txt
+# 激活虚拟环境 (可选)
 python -m uvicorn app.main:app --reload
 ```
+*   访问: `http://localhost:8000/docs`
 
-**前端 (Frontend)**:
+**2. 前端 (Frontend)**:
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
+*   访问: `http://localhost:5173`
+
+**3. 模拟登录指南**:
+*   点击登录 -> 选择微信 -> 点击二维码（或等待） -> 自动登录。
+*   点击右上角用户名 -> 点击 "CLICK TO MOCK VERIFY" -> 完成实名。
 
 ---
 

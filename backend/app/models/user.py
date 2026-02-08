@@ -21,7 +21,8 @@ class UserBase(SQLModel):
     # AI Matching fields
     skills: Optional[str] = None # JSON string or comma-separated
     interests: Optional[str] = None # JSON string or comma-separated
-    resume: Optional[str] = None # URL to uploaded resume
+    city: Optional[str] = None # Province + City
+    phone: Optional[str] = None
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -36,7 +37,8 @@ class UserUpdate(SQLModel):
     avatar_url: Optional[str] = None
     skills: Optional[str] = None
     interests: Optional[str] = None
-    resume: Optional[str] = None
+    city: Optional[str] = None
+    phone: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None

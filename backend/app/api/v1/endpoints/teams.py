@@ -6,7 +6,8 @@ from app.db.session import get_session
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.hackathon import Hackathon
-from app.models.team_project import Team, TeamCreate, TeamRead, TeamMember, TeamMemberRead
+from app.models.team_project import Team, TeamCreate, TeamRead, TeamMember, TeamMemberRead, TeamReadWithMembers
+from app.models.user import User
 
 router = APIRouter()
 
@@ -32,7 +33,16 @@ def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate,
     
     return team
 
-@router.get("", response_model=List[TeamRead])
+@router.get("/me", response_model=List[TeamReadWithMembers])
+def read_my_teams(*, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
+    """
+    Get teams that the current user is a member of.
+    """
+    query = select(Team).join(TeamMember, Team.id == TeamMember.team_id).where(TeamMember.user_id == current_user.id)
+    teams = session.exec(query).all()
+    return teams
+
+@router.get("", response_model=List[TeamReadWithMembers])
 def read_teams(*, session: Session = Depends(get_session), hackathon_id: int = None, offset: int = 0, limit: int = 100):
     query = select(Team)
     if hackathon_id:
@@ -40,7 +50,7 @@ def read_teams(*, session: Session = Depends(get_session), hackathon_id: int = N
     teams = session.exec(query.offset(offset).limit(limit)).all()
     return teams
 
-@router.get("/{team_id}", response_model=TeamRead)
+@router.get("/{team_id}", response_model=TeamReadWithMembers)
 def read_team(*, session: Session = Depends(get_session), team_id: int):
     team = session.get(Team, team_id)
     if not team:

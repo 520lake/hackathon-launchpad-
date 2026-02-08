@@ -1,7 +1,7 @@
 # Aura Frontend Guide
 
 > **System Status**: Online
-> **Version**: 1.0.0
+> **Version**: 2.6.0 (Secure + Mock Auth)
 > **Access Level**: Developer
 
 ---
@@ -16,6 +16,7 @@ VibeBuild 前端采用 **React 18 + TypeScript** 构建，搭载 **Tailwind CSS 
 *   **Build Engine**: Vite (HMR enabled)
 *   **Styling**: Tailwind CSS v4
 *   **Data Link**: Axios
+*   **Auth Persistence**: Hybrid (LocalStorage + Cookie Fallback)
 
 ---
 
@@ -50,7 +51,7 @@ frontend/src/
 │   ├── 🧩 HackathonDetailModal.tsx  # [Module] Event Intelligence
 │   ├── 🧩 HackathonListModal.tsx    # [Module] Discovery Grid
 │   ├── 🔐 LoginModal.tsx            # [Module] Auth Gate (WeChat/Email)
-│   └── 👤 UserDashboardModal.tsx    # [Module] User Matrix
+│   └── 👤 UserDashboardModal.tsx    # [Module] User Matrix (w/ Mock Verify)
 ├── ⚛️ App.tsx          # Root Logic & State Orchestration
 ├── 🎨 App.css          # Global Styles
 └── 🚀 main.tsx         # DOM Injection Point
@@ -63,9 +64,11 @@ frontend/src/
 ### 📡 Proxy Configuration
 开发环境下，所有 `/api/*` 信号通过 `vite.config.ts` 自动转发至后端节点 `http://localhost:8000`。
 
-### 🔐 Auth Protocol (JWT)
-*   **Token Storage**: `localStorage.getItem('token')`
-*   **Header Injection**:
+### 🔐 Auth Protocol (Hybrid)
+为兼容 ModelScope 的 iframe 环境，系统实现了双重 Token 存储机制：
+1.  **Primary**: `localStorage.getItem('token')`
+2.  **Fallback**: `document.cookie` (HttpOnly support via Backend)
+3.  **Header Injection**:
     ```typescript
     Authorization: `Bearer ${token}`
     ```
@@ -75,7 +78,7 @@ frontend/src/
 | Module | Endpoint | Action |
 | :--- | :--- | :--- |
 | **Auth** | `/login/access-token` | User Identification |
-| **Auth** | `/wechat/qr` | QR Matrix Generation |
+| **Auth** | `/wechat/qr` | QR Matrix Generation (Supports Mock) |
 | **Core** | `/hackathons/` | Event Data Stream |
 | **AI** | `/ai/generate` | Neural Network Inference |
 
@@ -92,6 +95,11 @@ frontend/src/
 *   **Input**: User Intent (Theme/Topic)
 *   **Process**: Neural Inference
 *   **Output**: Structured Hackathon Plan (Auto-filled)
+
+### 🧪 Mock Verification (`UserDashboardModal`)
+**[New Feature]** 为方便测试“发起活动”流程，用户中心集成了模拟实名功能：
+*   **Trigger**: 点击绿色脉冲按钮 "CLICK TO MOCK VERIFY"
+*   **Effect**: 立即将当前用户状态更新为 `verified=true`，无需真实证件。
 
 ---
 

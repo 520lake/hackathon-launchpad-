@@ -143,7 +143,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-md">
+    <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 backdrop-blur-md">
       <div className="card-brutal w-full max-w-md p-8 relative bg-surface border border-brand/20">
         <button 
             onClick={onClose} 

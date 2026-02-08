@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import FluidCursor from '../ui/FluidCursor';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -117,11 +118,12 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
                 </div>
                 <div className="md:col-span-5 relative">
                     {/* Abstract Graphic */}
-                    <div className="w-full aspect-square border border-brand/20 relative rotate-3">
-                        <div className="absolute inset-0 border border-brand/20 -rotate-6 scale-90" />
-                        <div className="absolute inset-0 border border-brand/20 rotate-6 scale-95" />
-                        <div className="absolute inset-0 bg-brand/5 backdrop-blur-sm flex items-center justify-center">
-                            <span className="font-mono text-brand/40 text-9xl font-black">AI</span>
+                    <div className="w-full aspect-square border border-brand/20 relative rotate-3 bg-black overflow-hidden group">
+                        <FluidCursor />
+                        <div className="absolute inset-0 border border-brand/20 -rotate-6 scale-90 pointer-events-none" />
+                        <div className="absolute inset-0 border border-brand/20 rotate-6 scale-95 pointer-events-none" />
+                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none mix-blend-overlay">
+                            <span className="font-mono text-brand text-9xl font-black tracking-tighter opacity-80">AI</span>
                         </div>
                     </div>
                 </div>

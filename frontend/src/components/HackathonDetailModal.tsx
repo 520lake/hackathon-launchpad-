@@ -3,14 +3,22 @@ import axios from 'axios';
 import SubmitProjectModal from './SubmitProjectModal';
 import JudgingModal from './JudgingModal';
 import ResultPublishModal from './ResultPublishModal';
+import ReactMarkdown from 'react-markdown';
 
 interface Hackathon {
   id: number;
   title: string;
+  subtitle?: string;
   description: string;
   cover_image?: string;
   theme_tags?: string;
   professionalism_tags?: string;
+  registration_type?: 'individual' | 'team';
+  format?: 'online' | 'offline';
+  location?: string;
+  organizer_name?: string;
+  contact_info?: string; // JSON
+  requirements?: string;
   start_date: string;
   end_date: string;
   registration_start_date?: string;
@@ -19,10 +27,11 @@ interface Hackathon {
   submission_end_date?: string;
   judging_start_date?: string;
   judging_end_date?: string;
-  awards_detail?: string;
+  awards_detail?: string; // JSON
   rules_detail?: string;
-  scoring_dimensions?: string;
-  results_detail?: string;
+  scoring_dimensions?: string; // JSON
+  resource_detail?: string;
+  results_detail?: string; // JSON
   status: string;
   organizer_id: number;
 }
@@ -32,6 +41,28 @@ interface Enrollment {
   status: string;
 }
 
+interface User {
+  id: number;
+  full_name?: string;
+  nickname?: string;
+  avatar_url?: string;
+}
+
+interface TeamMember {
+  id: number;
+  user_id: number;
+  user?: User;
+}
+
+interface Team {
+  id: number;
+  name: string;
+  description?: string;
+  hackathon_id: number;
+  leader_id: number;
+  members?: TeamMember[];
+}
+
 interface Project {
   id: number;
   title: string;
@@ -39,6 +70,11 @@ interface Project {
   repo_url?: string;
   demo_url?: string;
   hackathon_id: number;
+  team_id: number;
+  team?: Team;
+  status: string;
+  cover_image?: string;
+  total_score?: number;
 }
 
 interface HackathonDetailModalProps {
@@ -53,173 +89,304 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [myProject, setMyProject] = useState<Project | null>(null);
+  const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
-  const [matchingUsers, setMatchingUsers] = useState<{user_id: number, name: string, skills: string, match_score: number}[]>([]);
-  const [matchingLoading, setMatchingLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [isVerified, setIsVerified] = useState(false);
+  
+  // Data for tabs
+  const [teams, setTeams] = useState<Team[]>([]);
+  const [galleryProjects, setGalleryProjects] = useState<Project[]>([]);
+  
+  // Modals
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [isJudgingOpen, setIsJudgingOpen] = useState(false);
   const [isResultPublishOpen, setIsResultPublishOpen] = useState(false);
   const [isJudge, setIsJudge] = useState(false);
-  const [isVerified, setIsVerified] = useState(false);
+  const [showContact, setShowContact] = useState(false);
 
-  // Load user info to check permissions
+  // Parsed Data
+  const [awards, setAwards] = useState<any[]>([]);
+  const [contact, setContact] = useState<{text?: string, image?: string} | any[] | null>(null);
+  const [scoring, setScoring] = useState<any[]>([]);
+  const [results, setResults] = useState<any[]>([]);
+
+  // Action Button State
+  const [btnState, setBtnState] = useState<{text: string, action: () => void, disabled: boolean, hint?: string}>({ text: '', action: () => {}, disabled: false });
+
+  const sections = [
+    { id: 'intro', label: lang === 'zh' ? '活动简介' : 'Introduction' },
+    { id: 'schedule', label: lang === 'zh' ? '活动日程' : 'Schedule' },
+    { id: 'requirements', label: lang === 'zh' ? '参赛要求' : 'Requirements' },
+    { id: 'rules', label: lang === 'zh' ? '评审规则' : 'Rules' },
+    { id: 'awards', label: lang === 'zh' ? '奖项设置' : 'Awards' },
+    { id: 'resources', label: lang === 'zh' ? '资源与支持' : 'Resources' },
+  ];
+
+  const scrollToSection = (id: string) => {
+    const el = document.getElementById(id);
+    if (el) el.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  const LockedView = () => (
+      <div className="flex flex-col items-center justify-center py-20 text-center h-full">
+          <div className="text-6xl mb-6 opacity-30">🔒</div>
+          <h3 className="text-2xl font-bold text-white mb-2">{lang === 'zh' ? '请先报名' : 'Registration Required'}</h3>
+          <p className="text-gray-400 mb-6 max-w-md">{lang === 'zh' ? '您需要先报名参加活动，才能查看此内容。' : 'You need to register for the hackathon to view this content.'}</p>
+          {renderActionButton()}
+      </div>
+  );
+
+  // Team Creation
+  const [newTeamName, setNewTeamName] = useState('');
+  const [creatingTeam, setCreatingTeam] = useState(false);
+
   useEffect(() => {
-    if (isOpen) {
-      const token = localStorage.getItem('token');
-      if (token) {
-        // Decode token to get user ID (naive implementation)
+    if (isOpen && hackathonId) {
+      checkUser();
+      fetchHackathon();
+      setActiveTab('overview');
+    }
+  }, [isOpen, hackathonId]);
+
+  // Fetch Tab Data
+  useEffect(() => {
+      if (!isOpen || !hackathonId) return;
+      if (activeTab === 'participants') fetchTeams();
+      if (activeTab === 'gallery') fetchGallery();
+  }, [activeTab, isOpen, hackathonId]);
+
+  const checkUser = async () => {
+    const token = localStorage.getItem('token');
+    if (token) {
         try {
             const payload = JSON.parse(atob(token.split('.')[1]));
             setCurrentUserId(payload.sub ? parseInt(payload.sub) : null);
             
-            // Check verification status
-            axios.get('api/v1/users/me', {
-                headers: { Authorization: `Bearer ${token}` }
-            }).then(res => {
-                setIsVerified(res.data.is_verified);
-            }).catch(e => console.error(e));
-
+            const res = await axios.get('api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
+            setIsVerified(res.data.is_verified);
         } catch (e) {
             console.error(e);
         }
-      }
-      fetchDetails();
-    }
-  }, [isOpen, hackathonId]);
-
-  const handleSmartMatch = async () => {
-    setMatchingLoading(true);
-    try {
-      const token = localStorage.getItem('token');
-      const res = await axios.post('api/v1/ai/generate', {
-        prompt: 'match',
-        type: 'matching'
-      }, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      setMatchingUsers(res.data.content.matches);
-    } catch (e) {
-      console.error(e);
-      // Fallback for demo
-      setMatchingUsers([
-        { user_id: 1, name: "AI Recommended User", skills: "React, Node.js", match_score: 95 },
-        { user_id: 2, name: "Design Pro", skills: "Figma, UI/UX", match_score: 88 },
-        { user_id: 3, name: "Backend Guru", skills: "Python, Go", match_score: 85 }
-      ]);
-    } finally {
-      setMatchingLoading(false);
+    } else {
+        setCurrentUserId(null);
     }
   };
 
-  const handleDelete = async () => {
-    if (!confirm(lang === 'zh' ? '确定要删除这个活动吗？此操作不可撤销。' : 'Are you sure you want to delete this hackathon? This action cannot be undone.')) return;
-    
-    try {
-      const token = localStorage.getItem('token');
-      await axios.delete(`api/v1/hackathons/${hackathonId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      alert(lang === 'zh' ? '活动删除成功' : 'Hackathon deleted successfully');
-      onClose();
-      window.location.reload(); // Simple refresh to update list
-    } catch (e) {
-      console.error(e);
-      alert(lang === 'zh' ? '删除失败' : 'Delete failed');
-    }
-  };
-
-  const fetchDetails = async () => {
+  const fetchHackathon = async () => {
     if (!hackathonId) return;
     setLoading(true);
     try {
-      // Temporary: fetch all and find
-      const res = await axios.get('api/v1/hackathons'); 
-      const found = res.data.find((h: Hackathon) => h.id === hackathonId);
-      setHackathon(found);
+        const res = await axios.get(`api/v1/hackathons/${hackathonId}`);
+        const h = res.data;
+        setHackathon(h);
+        
+        // Parse JSON fields
+        try { if (h.awards_detail) setAwards(typeof h.awards_detail === 'string' ? JSON.parse(h.awards_detail) : h.awards_detail); } catch(e) { setAwards([]); }
+        try { if (h.contact_info) setContact(typeof h.contact_info === 'string' ? JSON.parse(h.contact_info) : h.contact_info); } catch(e) { setContact(null); }
+        try { if (h.scoring_dimensions) setScoring(typeof h.scoring_dimensions === 'string' ? JSON.parse(h.scoring_dimensions) : h.scoring_dimensions); } catch(e) { setScoring([]); }
+        try { if (h.results_detail) setResults(typeof h.results_detail === 'string' ? JSON.parse(h.results_detail) : h.results_detail); } catch(e) { setResults([]); }
 
-      // Check Enrollment and Project
-      if (localStorage.getItem('token')) {
-         try {
-           const resEnroll = await axios.get('api/v1/enrollments/me');
-           const myEnrollment = resEnroll.data.find((e: any) => e.hackathon_id === hackathonId);
-           setEnrollment(myEnrollment || null);
+        // Fetch User Data if logged in
+        const token = localStorage.getItem('token');
+        if (token) {
+            try {
+                // Enrollment
+                const resEnroll = await axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
+                const myEnroll = resEnroll.data.find((e: any) => e.hackathon_id === hackathonId);
+                setEnrollment(myEnroll || null);
 
-           // Check Project
-           // Assuming we have an endpoint or we filter
-           // For now, let's assume we can get projects via /projects/ and filter (inefficient)
-           // Or assume a dedicated endpoint
-           const resProjects = await axios.get('api/v1/projects');
-           // Filter by hackathon_id and current user (if project has user/team info)
-           // This part is tricky without proper backend support for "my project in this hackathon"
-           // Let's assume the project list returns projects I have access to or I created
-           // The backend Project model links to Team, Team links to User.
-           // Simplified: If I am in a team that has a project in this hackathon.
-           // For now, let's skip deep check and just see if any project matches (demo logic)
-           // Real logic: GET /projects/my or similar.
-           // I'll assume GET /projects/ returns all, and I filter by hackathon_id.
-           // Note: This is insecure/inefficient for production but okay for prototype.
-           const myProj = resProjects.data.find((p: any) => p.hackathon_id === hackathonId); 
-           // Wait, this finds ANY project for the hackathon. I need MINE.
-           // Since I can't easily filter by "mine" without checking team, I will leave it as is for now
-           // or try to fetch /projects/me if it exists.
-           // I'll leave it null for now unless I'm sure.
-           // Actually, let's trust the user will create one.
-           // If I create a project, it should show up.
-           setMyProject(myProj || null);
+                // My Team
+                const resTeams = await axios.get('api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
+                const myTeamFound = resTeams.data.find((t: any) => t.hackathon_id === hackathonId);
+                setMyTeam(myTeamFound || null);
 
-           // Check Judge Status
-           try {
-              const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`);
-              const judgeList = resJudges.data;
-              // Assuming judgeList returns Judge objects with user_id
-              const amIJudge = judgeList.some((j: any) => j.user_id === currentUserId);
-              setIsJudge(amIJudge);
-           } catch (e) {
-              console.error("Failed to check judge status", e);
-              setIsJudge(false);
-           }
+                // My Project (via Team)
+                if (myTeamFound) {
+                    const resProj = await axios.get('api/v1/projects', { 
+                        params: { hackathon_id: hackathonId },
+                        headers: { Authorization: `Bearer ${token}` } 
+                    });
+                    const myProj = resProj.data.find((p: any) => p.team_id === myTeamFound.id);
+                    setMyProject(myProj || null);
+                } else {
+                    setMyProject(null);
+                }
 
-         } catch (e) {
-           console.error("Failed to check details", e);
-         }
-      }
-    } catch (err) {
-      console.error(err);
+                // Judge Check
+                try {
+                   const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`, { headers: { Authorization: `Bearer ${token}` } });
+                   setIsJudge(resJudges.data.some((j: any) => j.user_id === parseInt(JSON.parse(atob(token.split('.')[1])).sub)));
+                } catch(e) {}
+            } catch (e) { console.error(e); }
+        }
+    } catch (e) {
+        console.error(e);
     } finally {
-      setLoading(false);
+        setLoading(false);
     }
   };
 
-  const handleEnroll = async () => {
-    if (!hackathonId) return;
-    if (!isVerified) {
-        alert('报名需先完成实名认证！请前往个人中心完成认证。');
-        return;
-    }
+  const fetchTeams = async () => {
+      if (!hackathonId) return;
+      try {
+          const res = await axios.get(`api/v1/teams?hackathon_id=${hackathonId}`);
+          setTeams(res.data);
+      } catch (e) { console.error(e); }
+  };
+
+  const fetchGallery = async () => {
+      if (!hackathonId) return;
+      try {
+          const res = await axios.get(`api/v1/projects?hackathon_id=${hackathonId}`);
+          setGalleryProjects(res.data);
+      } catch (e) { console.error(e); }
+  };
+
+  const handleRegister = async () => {
+    if (!currentUserId) { alert(lang === 'zh' ? '请先登录' : 'Please login first'); return; }
+    if (!isVerified) { alert(lang === 'zh' ? '请先完成实名认证' : 'Please verify your identity first'); return; }
     try {
-      await axios.post('api/v1/enrollments/', {
-        hackathon_id: hackathonId,
-        user_id: 0 
-      });
-      alert('报名成功！');
-      fetchDetails(); 
-    } catch (err: any) {
-      alert(err.response?.data?.detail || '报名失败');
+        await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
+            headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        alert(lang === 'zh' ? '报名成功！' : 'Registration successful!');
+        fetchHackathon();
+    } catch (e: any) {
+        alert(e.response?.data?.detail || (lang === 'zh' ? '报名失败' : 'Registration failed'));
     }
   };
 
-  const formatDate = (d?: string) => d ? new Date(d).toLocaleString(lang === 'zh' ? 'zh-CN' : 'en-US') : 'TBD';
+  const handleCreateTeam = async () => {
+      if (!newTeamName.trim()) return;
+      setCreatingTeam(true);
+      try {
+          await axios.post('api/v1/teams', { name: newTeamName }, {
+              params: { hackathon_id: hackathonId },
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          fetchHackathon();
+          setNewTeamName('');
+      } catch (e: any) {
+          alert(e.response?.data?.detail || 'Failed to create team');
+      } finally {
+          setCreatingTeam(false);
+      }
+  };
+
+  const handleJoinTeam = async (teamId: number) => {
+      try {
+          await axios.post(`api/v1/teams/${teamId}/join`, {}, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          fetchHackathon();
+      } catch (e: any) {
+          alert(e.response?.data?.detail || 'Failed to join team');
+      }
+  };
+
+  const handleLeaveTeam = async () => {
+      if (!myTeam) return;
+      if (myTeam.leader_id === currentUserId) {
+          alert(lang === 'zh' ? '作为队长，您无法直接退出战队。' : 'As the leader, you cannot leave the team.');
+          return;
+      }
+      if (!confirm(lang === 'zh' ? '确定要退出战队吗？' : 'Are you sure you want to leave the team?')) return;
+      try {
+          await axios.delete(`api/v1/teams/${myTeam.id}/leave`, {
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          fetchHackathon();
+      } catch (e: any) {
+          alert(e.response?.data?.detail || 'Failed to leave team');
+      }
+  };
+
+  const handleStartIndividual = async () => {
+      // Auto-create team for individual
+      try {
+          // Check if already has team (should be handled by UI, but double check)
+          await axios.post('api/v1/teams', { name: `${lang === 'zh' ? '个人项目' : 'Individual Project'} - ${currentUserId}` }, {
+              params: { hackathon_id: hackathonId },
+              headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+          });
+          fetchHackathon();
+      } catch (e: any) {
+           alert(e.response?.data?.detail || 'Failed to start project');
+      }
+  };
+
+  const renderActionButton = () => {
+    if (!hackathon) return null;
+    const now = new Date().getTime();
+    const regStart = hackathon.registration_start_date ? new Date(hackathon.registration_start_date).getTime() : 0;
+    const regEnd = hackathon.registration_end_date ? new Date(hackathon.registration_end_date).getTime() : Infinity;
+    const isRegOpen = now >= regStart && now <= regEnd;
+
+    if (hackathon.status === 'ended') return <button disabled className="btn-disabled w-full md:w-auto">{lang === 'zh' ? '已结束' : 'ENDED'}</button>;
+
+    // Priority Check: If deadline passed, show closed (handles invalid dates where End < Start)
+    if (now > regEnd) return <button disabled className="btn-disabled w-full md:w-auto">{lang === 'zh' ? '报名已截止' : 'REG CLOSED'}</button>;
+    if (now < regStart) return <button disabled className="btn-disabled w-full md:w-auto">{lang === 'zh' ? '即将开始' : 'UPCOMING'}</button>;
+
+    if (!currentUserId) {
+        return <button onClick={() => alert(lang === 'zh' ? '请先登录' : 'Please Login First')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
+    }
+
+    if (!enrollment) {
+        if (!isVerified) {
+             return <button onClick={() => alert(lang === 'zh' ? '请前往个人中心完成实名认证' : 'Please Verify Identity')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
+        }
+        return <button onClick={handleRegister} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
+    }
+
+    // Enrolled
+    if (!myProject) {
+        return <button onClick={() => setActiveTab('my_project')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '创建作品' : 'CREATE PROJECT'}</button>;
+    }
+
+    return (
+        <div className="flex flex-col items-end gap-1">
+            <button onClick={() => setActiveTab('my_project')} className="btn-secondary w-full md:w-auto">{lang === 'zh' ? '编辑作品' : 'EDIT PROJECT'}</button>
+            <span className="text-[10px] text-gray-400 font-mono">
+                {myProject.status === 'submitted' ? (lang === 'zh' ? '已提交' : 'Submitted') : (lang === 'zh' ? '未提交' : 'Draft')}
+            </span>
+        </div>
+    );
+  };
+
+  const getPrizeInfo = (detailStr?: string) => {
+      if (!detailStr) return null;
+      try {
+          const awards = JSON.parse(detailStr);
+          if (Array.isArray(awards) && awards.length > 0) {
+              const cashAwards = awards.filter((a: any) => a.type === 'cash' || (a.amount && a.amount > 0));
+              if (cashAwards.length > 0) {
+                  const total = cashAwards.reduce((sum: number, a: any) => sum + (Number(a.amount) * Number(a.count)), 0);
+                  if (total > 0) return `¥${total.toLocaleString()}`;
+              }
+              if (awards[0]?.name) return awards[0].name;
+              return `${awards.length} Awards`;
+          }
+      } catch (e) {
+          return detailStr.length > 20 ? detailStr.substring(0, 20) + '...' : detailStr;
+      }
+      return null;
+  };
 
   if (!isOpen || !hackathonId) return null;
 
+  const prizeInfo = hackathon ? getPrizeInfo(hackathon.awards_detail) : null;
+
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-void/90 backdrop-blur-sm p-4 md:p-8">
+    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-md p-0 md:p-8">
+      {/* Sub Modals */}
       <SubmitProjectModal 
         isOpen={isSubmitOpen} 
-        onClose={() => { setIsSubmitOpen(false); fetchDetails(); }} 
+        onClose={() => { setIsSubmitOpen(false); fetchHackathon(); }} 
         hackathonId={hackathonId}
+        teamId={myTeam?.id}
         existingProject={myProject}
         lang={lang}
       />
@@ -232,387 +399,510 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       />
       <ResultPublishModal
         isOpen={isResultPublishOpen}
-        onClose={() => { setIsResultPublishOpen(false); fetchDetails(); }}
+        onClose={() => { setIsResultPublishOpen(false); fetchHackathon(); }}
         hackathonId={hackathonId}
         lang={lang}
       />
-      
-      <div className="bg-surface w-full max-w-6xl h-[90vh] flex flex-col relative border-2 border-brand shadow-[8px_8px_0px_0px_#000]">
-        <button 
-          onClick={onClose}
-          className="absolute top-0 right-0 z-50 p-4 bg-brand text-black hover:bg-white hover:text-black transition-colors font-mono font-bold border-l-2 border-b-2 border-black"
-        >
-          ✕
-        </button>
 
-        {loading ? (
-           <div className="flex-1 flex items-center justify-center bg-surface">
-             <div className="flex flex-col items-center gap-4">
-               <div className="animate-spin h-12 w-12 border-4 border-brand border-t-transparent rounded-full"></div>
-               <div className="font-mono text-brand blink">{lang === 'zh' ? '加载中...' : 'LOADING...'}</div>
-             </div>
-           </div>
-        ) : !hackathon ? (
-            <div className="flex-1 flex items-center justify-center flex-col gap-6 bg-surface">
-                <div className="text-2xl font-black text-gray-500 uppercase tracking-widest">{lang === 'zh' ? '数据丢失' : 'DATA LOST'}</div>
-                <button onClick={onClose} className="px-6 py-3 bg-white/5 border border-white/10 text-gray-400 font-mono hover:text-brand hover:border-brand transition-all">
-                  {lang === 'zh' ? '关闭终端' : 'CLOSE TERMINAL'}
-                </button>
+      <div className="bg-surface w-full max-w-7xl h-[95vh] flex flex-col relative border border-brand/30 shadow-2xl overflow-hidden">
+        {/* Close Button */}
+        <button onClick={onClose} className="absolute top-0 right-0 z-50 p-3 bg-brand text-black hover:bg-white transition-colors font-mono font-bold">✕</button>
+
+        {loading || !hackathon ? (
+            <div className="flex-1 flex items-center justify-center">
+                <div className="font-mono text-brand animate-pulse">{lang === 'zh' ? '正在加载...' : 'LOADING...'}</div>
             </div>
         ) : (
-          <>
-            {/* Hero Section */}
-            <div className="relative h-64 md:h-80 bg-black border-b-2 border-brand shrink-0">
-                {hackathon.cover_image ? (
-                    <div className="relative w-full h-full">
-                        <img src={hackathon.cover_image} alt={hackathon.title} className="w-full h-full object-cover opacity-50 grayscale hover:grayscale-0 transition-all duration-700" />
-                        <div className="absolute inset-0 bg-[url('/noise.png')] opacity-20 mix-blend-overlay pointer-events-none"></div>
-                        <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/50 to-transparent"></div>
-                    </div>
-                ) : (
-                    <div className="w-full h-full bg-void relative overflow-hidden">
-                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(212,163,115,0.1),transparent_70%)]"></div>
-                        <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(0,0,0,0)_40%,rgba(212,163,115,0.1)_50%,rgba(0,0,0,0)_60%)]"></div>
-                    </div>
-                )}
-                
-                <div className="absolute bottom-0 left-0 p-6 md:p-10 w-full">
-                    <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                        <div className="max-w-3xl">
-                            <div className="flex flex-wrap gap-2 mb-4">
-                                <span className={`px-2 py-1 text-xs font-mono font-bold uppercase border border-current ${hackathon.status === 'published' ? 'text-green-500 border-green-500 bg-green-500/10' : 'text-yellow-500 border-yellow-500 bg-yellow-500/10'}`}>
-                                    [{hackathon.status === 'published' ? (lang === 'zh' ? '已发布' : 'PUBLISHED') : (lang === 'zh' ? '草稿' : 'DRAFT')}]
-                                </span>
-                                {hackathon.theme_tags?.split(',').map(tag => (
-                                    <span key={tag} className="px-2 py-1 bg-brand/10 border border-brand/30 text-brand text-xs font-mono uppercase tracking-tight">
-                                        #{tag.trim()}
-                                    </span>
-                                ))}
-                            </div>
-                            <h2 className="text-4xl md:text-6xl font-black text-white mb-2 uppercase tracking-tighter leading-none" style={{ textShadow: '4px 4px 0px #000' }}>
-                                {hackathon.title}
-                            </h2>
-                            <div className="flex items-center gap-6 text-sm font-mono text-gray-400">
-                                <span className="flex items-center gap-2">
-                                    <span className="text-brand">START:</span> {formatDate(hackathon.start_date)}
-                                </span>
-                                <span className="flex items-center gap-2">
-                                    <span className="text-brand">END:</span> {formatDate(hackathon.end_date)}
-                                </span>
-                            </div>
-                        </div>
-                        
-                        {/* Action Button */}
-                        <div className="flex flex-col gap-3 shrink-0">
-                            {currentUserId === hackathon.organizer_id ? (
-                                <div className="flex gap-3">
-                                    <button 
-                                        onClick={() => onEdit && onEdit(hackathon)}
-                                        className="px-6 py-3 bg-white/10 text-white border border-white/20 hover:bg-white hover:text-black font-mono font-bold uppercase transition-all"
-                                    >
-                                        {lang === 'zh' ? '编辑' : 'EDIT'}
-                                    </button>
-                                    <button 
-                                        onClick={handleDelete}
-                                        className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/50 hover:bg-red-500 hover:text-black font-mono font-bold uppercase transition-all"
-                                    >
-                                        {lang === 'zh' ? '删除' : 'DELETE'}
-                                    </button>
-                                    {hackathon.status !== 'draft' && (
-                                        <button 
-                                            onClick={() => setIsResultPublishOpen(true)}
-                                            className="px-6 py-3 bg-brand text-black border-2 border-brand hover:bg-brand-light shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all font-bold uppercase"
-                                        >
-                                            {lang === 'zh' ? '管理结果' : 'MANAGE RESULTS'}
-                                        </button>
-                                    )}
-                                </div>
-                            ) : isJudge ? (
-                                <button 
-                                    onClick={() => setIsJudgingOpen(true)}
-                                    className="px-8 py-4 bg-purple-600 text-white border-2 border-purple-400 font-mono font-bold uppercase hover:bg-purple-500 shadow-[6px_6px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#000] transition-all"
-                                >
-                                    {lang === 'zh' ? '进入评审系统' : 'ENTER JUDGING SYSTEM'}
-                                </button>
-                            ) : enrollment ? (
-                                <div className="flex gap-3 items-center">
-                                    <div className={`px-4 py-2 font-mono text-sm border ${enrollment.status === 'approved' ? 'border-green-500 text-green-500 bg-green-500/10' : 'border-yellow-500 text-yellow-500 bg-yellow-500/10'}`}>
-                                        STATUS: {enrollment.status === 'pending' ? (lang === 'zh' ? '审核中' : 'PENDING') : (lang === 'zh' ? '已入围' : 'APPROVED')}
-                                    </div>
-                                    {/* Show Submit button if approved and within time */}
-                                    {enrollment.status === 'approved' && (
-                                        <button 
-                                            onClick={() => setIsSubmitOpen(true)}
-                                            className="px-6 py-3 bg-brand text-black border-2 border-brand hover:bg-brand-light font-bold uppercase shadow-[4px_4px_0px_0px_#000] transition-all"
-                                        >
-                                            {myProject ? (lang === 'zh' ? '编辑项目' : 'EDIT PROJECT') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
-                                        </button>
-                                    )}
-                                </div>
-                            ) : (
-                                <button 
-                                    onClick={handleEnroll}
-                                    disabled={hackathon.status !== 'published'}
-                                    className="px-10 py-4 bg-brand text-black border-2 border-brand font-black text-lg uppercase tracking-wider hover:bg-brand-light shadow-[6px_6px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[4px_4px_0px_0px_#000] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none disabled:transform-none"
-                                >
-                                    {lang === 'zh' ? '立即报名' : 'REGISTER NOW'}
-                                </button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Tabs */}
-            <div className="flex border-b-2 border-brand bg-black/40 sticky top-0 z-10 overflow-x-auto">
-               {[
-                 { id: 'overview', label: lang === 'zh' ? '情报概览' : 'OVERVIEW' },
-                 { id: 'participants', label: lang === 'zh' ? '行动小队' : 'SQUADS' },
-                 { id: 'projects', label: lang === 'zh' ? '原型展示' : 'PROTOTYPES' },
-                 { id: 'results', label: lang === 'zh' ? '战果评级' : 'RESULTS' },
-                 { id: 'matching', label: lang === 'zh' ? '智能匹配' : 'AI MATCH' }
-               ].map(tab => (
-                 <button
-                   key={tab.id}
-                   onClick={() => setActiveTab(tab.id)}
-                   className={`px-8 py-4 font-mono font-bold text-sm uppercase transition-all relative whitespace-nowrap ${
-                     activeTab === tab.id 
-                       ? 'bg-brand text-black' 
-                       : 'text-gray-500 hover:text-brand hover:bg-white/5'
-                   }`}
-                 >
-                   {tab.id === 'matching' && <span className="mr-2">⚡</span>}
-                   {tab.label}
-                 </button>
-               ))}
-            </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6 md:p-10 bg-surface custom-scrollbar">
-               {activeTab === 'matching' && (
-                <div className="max-w-4xl mx-auto space-y-8">
-                    <div className="bg-void border border-brand/20 p-8 relative overflow-hidden group hover:border-brand/50 transition-colors">
-                        <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <div className="text-9xl font-black text-brand">AI</div>
-                        </div>
-                        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
-                            <div>
-                                <h3 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-3">
-                                    <span className="text-brand text-3xl">⚡</span> 
-                                    {lang === 'zh' ? '神经网络匹配系统' : 'NEURAL MATCHING SYSTEM'}
-                                </h3>
-                                <p className="text-gray-400 font-mono text-sm mt-2 max-w-lg">
-                                    {lang === 'zh' 
-                                      ? `基于您的技能矩阵 [${currentUserId ? '已连接' : '离线'}] 和兴趣向量进行高维空间匹配` 
-                                      : `Matching based on your skill matrix [${currentUserId ? 'ONLINE' : 'OFFLINE'}] and interest vectors.`}
-                                </p>
-                            </div>
-                            <button
-                                onClick={handleSmartMatch}
-                                disabled={matchingLoading || !currentUserId}
-                                className="px-8 py-3 bg-purple-600/20 text-purple-400 border border-purple-500/50 font-mono font-bold uppercase hover:bg-purple-600 hover:text-white transition-all disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                                {matchingLoading ? (
-                                    <>
-                                        <div className="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"></div>
-                                        {lang === 'zh' ? '计算中...' : 'COMPUTING...'}
-                                    </>
-                                ) : (
-                                    lang === 'zh' ? '启动匹配程序' : 'INITIATE MATCH'
-                                )}
-                            </button>
-                        </div>
-                        
-                        {!currentUserId && (
-                             <div className="mt-6 p-4 bg-yellow-500/10 border-l-4 border-yellow-500 text-yellow-500 font-mono text-sm">
-                                 ⚠ {lang === 'zh' ? '警告: 用户未登录。无法访问技能数据库。' : 'WARNING: USER NOT LOGGED IN. SKILL DATABASE INACCESSIBLE.'}
-                             </div>
-                        )}
-
-                        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 mt-8">
-                            {matchingUsers.map(user => (
-                                <div key={user.user_id} className="bg-black/40 p-5 border border-white/10 hover:border-brand hover:bg-black/60 transition-all group/card">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <h4 className="font-bold text-white font-mono text-lg">{user.name}</h4>
-                                        <span className="px-2 py-1 bg-green-500/20 text-green-400 text-xs font-mono border border-green-500/30">
-                                            MATCH: {user.match_score}%
-                                        </span>
-                                    </div>
-                                    <div className="space-y-2 mb-4">
-                                        <div className="text-xs text-gray-500 uppercase font-mono">Skills</div>
-                                        <p className="text-sm text-gray-300 font-mono break-words">
-                                            {user.skills}
-                                        </p>
-                                    </div>
-                                    <button className="w-full py-2 bg-white/5 text-brand border border-brand/30 hover:bg-brand hover:text-black hover:border-brand font-mono text-sm font-bold uppercase transition-all">
-                                        {lang === 'zh' ? '发送信号' : 'SEND SIGNAL'}
-                                    </button>
-                                </div>
-                            ))}
-                        </div>
-                        
-                        {matchingUsers.length === 0 && !matchingLoading && currentUserId && (
-                            <div className="text-center py-12 text-gray-600 font-mono text-sm border-2 border-dashed border-white/5 rounded-lg mt-8">
-                                {lang === 'zh' ? '等待指令...' : 'AWAITING COMMAND...'}
+            <div className="flex flex-col h-full">
+                {/* Header Section */}
+                <div className="relative shrink-0 bg-black border-b border-brand/20">
+                    <div className="relative h-auto min-h-[300px] w-full overflow-hidden flex flex-col justify-end">
+                        {hackathon.cover_image && (
+                            <div className="absolute inset-0">
+                                <img src={hackathon.cover_image} className="w-full h-full object-cover opacity-50" />
+                                <div className="absolute inset-0 bg-gradient-to-t from-surface via-surface/80 to-transparent" />
                             </div>
                         )}
-                    </div>
-                </div>
-              )}
-
-              {activeTab === 'overview' && (
-                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                    {/* Left Column: Details */}
-                    <div className="lg:col-span-2 space-y-8">
-                        {/* Results Section */}
-                        {hackathon.results_detail && (
-                            <section className="bg-yellow-500/5 border border-yellow-500/20 p-6 relative">
-                                <div className="absolute top-0 right-0 px-2 py-1 bg-yellow-500/20 text-yellow-500 text-xs font-mono uppercase">
-                                    {lang === 'zh' ? '最新情报' : 'LATEST INTEL'}
-                                </div>
-                                <h3 className="text-xl font-bold mb-6 text-yellow-500 flex items-center gap-2 font-mono uppercase tracking-tight">
-                                    🏆 {lang === 'zh' ? '获奖名单公布' : 'WINNERS ANNOUNCED'}
-                                </h3>
-                                <div className="grid gap-4">
-                                    {(() => {
-                                        try {
-                                            const winners = JSON.parse(hackathon.results_detail);
-                                            return winners.map((w: any, idx: number) => (
-                                                <div key={idx} className="bg-black/40 p-4 border border-yellow-500/30 flex justify-between items-center group hover:bg-yellow-500/10 transition-colors">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className="bg-yellow-500/20 text-yellow-500 px-3 py-1 font-mono font-bold text-sm border border-yellow-500/50 uppercase">
-                                                            {w.award_name}
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-bold text-lg text-white font-mono">{w.project_name}</h4>
-                                                            {w.comment && <p className="text-sm text-gray-400 mt-1 font-mono">"{w.comment}"</p>}
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            ));
-                                        } catch (e) {
-                                            return <p className="text-red-500 font-mono">{lang === 'zh' ? '结果数据解析失败' : 'DATA PARSING ERROR'}</p>;
-                                        }
-                                    })()}
-                                </div>
-                            </section>
-                        )}
-
-                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
-                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
-                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '活动介绍' : 'MISSION BRIEF'}
-                            </h3>
-                            <p className="whitespace-pre-wrap text-gray-300 leading-relaxed font-mono text-sm">
-                                {hackathon.description}
-                            </p>
-                        </section>
-
-                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
-                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
-                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '详细规则' : 'PROTOCOL RULES'}
-                            </h3>
-                            <div className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
-                                {hackathon.rules_detail || (lang === 'zh' ? "暂无详细规则" : "NO PROTOCOL DATA")}
-                            </div>
-                        </section>
-
-                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
-                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
-                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '奖项设置' : 'BOUNTY DATA'}
-                            </h3>
-                            <div className="whitespace-pre-wrap text-gray-300 font-mono text-sm">
-                                {hackathon.awards_detail || (lang === 'zh' ? "暂无奖项信息" : "NO BOUNTY DATA")}
-                            </div>
-                        </section>
-
-                        <section className="bg-white/5 border border-white/10 p-8 hover:border-brand/30 transition-colors group">
-                            <h3 className="text-xl font-black text-brand uppercase mb-6 flex items-center gap-2 tracking-tight group-hover:translate-x-2 transition-transform">
-                                <span className="text-white opacity-50">//</span> {lang === 'zh' ? '提交要求' : 'SUBMISSION REQS'}
-                            </h3>
-                            <div className="text-gray-300 space-y-2 font-mono text-sm">
-                                <p>{lang === 'zh' ? '参赛者需在规定时间内提交作品，包含以下内容：' : 'Participants must submit the following within the timeframe:'}</p>
-                                <ul className="list-disc list-inside pl-4 space-y-2 marker:text-brand">
-                                    <li><strong className="text-white">{lang === 'zh' ? '项目名称与简介' : 'Project Name & Brief'}</strong>: {lang === 'zh' ? '清晰描述项目解决了什么问题。' : 'Clear description of the problem solved.'}</li>
-                                    <li><strong className="text-white">{lang === 'zh' ? '代码仓库 URL' : 'Repo URL'}</strong>: {lang === 'zh' ? '公开的 GitHub/GitLab 仓库链接。' : 'Public GitHub/GitLab link.'}</li>
-                                    <li><strong className="text-white">{lang === 'zh' ? '演示 Demo URL' : 'Demo URL'}</strong>: {lang === 'zh' ? '可访问的在线演示地址。' : 'Accessible online demo link.'}</li>
-                                    <li><strong className="text-white">{lang === 'zh' ? '演示视频 URL' : 'Video URL'}</strong>: {lang === 'zh' ? '(可选) YouTube/Bilibili 等视频链接。' : '(Optional) Video link.'}</li>
-                                </ul>
-                            </div>
-                        </section>
-                    </div>
-
-                    {/* Right Column: Timeline & Info */}
-                    <div className="col-span-1 space-y-6">
-                        <div className="bg-white/5 border border-white/10 p-6">
-                            <h3 className="font-black mb-6 text-white uppercase tracking-tight flex items-center gap-2">
-                                <span className="text-brand">📅</span> {lang === 'zh' ? '日程安排' : 'TIMELINE'}
-                            </h3>
-                            <div className="space-y-0 relative before:absolute before:left-[7px] before:top-2 before:h-[calc(100%-20px)] before:w-[2px] before:bg-white/10">
-                                <TimelineItem label={lang === 'zh' ? "报名开始" : "REG OPEN"} date={hackathon.registration_start_date} active />
-                                <TimelineItem label={lang === 'zh' ? "报名截止" : "REG CLOSE"} date={hackathon.registration_end_date} />
-                                <TimelineItem label={lang === 'zh' ? "比赛开始" : "HACK START"} date={hackathon.start_date} />
-                                <TimelineItem label={lang === 'zh' ? "提交截止" : "SUBMIT DUE"} date={hackathon.submission_end_date} />
-                                <TimelineItem label={lang === 'zh' ? "评审开始" : "JUDGE START"} date={hackathon.judging_start_date} />
-                                <TimelineItem label={lang === 'zh' ? "评审结束" : "JUDGE END"} date={hackathon.judging_end_date} />
-                                <TimelineItem label={lang === 'zh' ? "比赛结束" : "HACK END"} date={hackathon.end_date} />
-                            </div>
-                        </div>
-
-                        <div className="bg-white/5 border border-white/10 p-6">
-                            <h3 className="font-black mb-6 text-white uppercase tracking-tight flex items-center gap-2">
-                                <span className="text-brand">♟</span> {lang === 'zh' ? '主办方' : 'ORGANIZER'}
-                            </h3>
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-brand text-black flex items-center justify-center font-black text-xl border-2 border-white">
-                                    {hackathon.organizer_id}
+                        
+                        <div className="relative z-10 w-full p-6 md:p-10 flex flex-col gap-6">
+                             {/* Organizer Info */}
+                            <div className="flex items-center gap-3 mb-2">
+                                <div className="w-10 h-10 rounded-full bg-brand/20 border border-brand/50 flex items-center justify-center text-brand font-bold">
+                                    {hackathon.organizer_name ? hackathon.organizer_name[0].toUpperCase() : 'O'}
                                 </div>
                                 <div>
-                                    <div className="font-mono font-bold text-white uppercase">Organizer #{hackathon.organizer_id}</div>
-                                    <div className="text-xs text-brand font-mono border border-brand px-1 inline-block mt-1 uppercase">
-                                        {lang === 'zh' ? '已认证' : 'VERIFIED'}
+                                    <div className="text-[10px] text-gray-400 uppercase tracking-widest mb-0.5">{lang === 'zh' ? '主办方' : 'ORGANIZED BY'}</div>
+                                    <div className="font-bold text-white hover:text-brand cursor-pointer transition-colors text-sm">{hackathon.organizer_name || 'Unknown'}</div>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col md:flex-row justify-between items-end gap-6">
+                                <div className="flex-1 space-y-4">
+                                    <h1 className="text-4xl md:text-6xl font-black text-white uppercase tracking-tighter leading-none text-shadow-brand">
+                                        {hackathon.title}
+                                    </h1>
+                                    {hackathon.subtitle && <p className="text-xl text-gray-300 font-light">{hackathon.subtitle}</p>}
+                                    
+                                    {/* Key Info Bar */}
+                                    <div className="flex flex-wrap items-center gap-4 text-xs md:text-sm font-mono text-gray-300 bg-black/40 backdrop-blur-md border border-white/10 p-3 rounded-sm inline-flex">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-brand">📅</span>
+                                            <span>{new Date(hackathon.start_date).toLocaleDateString()} - {new Date(hackathon.end_date).toLocaleDateString()}</span>
+                                        </div>
+                                        <div className="w-px h-3 bg-white/20" />
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-brand">{hackathon.format === 'online' ? '🌐' : '📍'}</span>
+                                            <span>{hackathon.format === 'online' ? 'ONLINE' : (hackathon.location || 'OFFLINE')}</span>
+                                        </div>
+                                        {hackathon.theme_tags && (
+                                            <>
+                                                <div className="w-px h-3 bg-white/20" />
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-brand">🏷️</span>
+                                                    <span className="uppercase">{hackathon.theme_tags.split(',').slice(0, 2).join(', ')}</span>
+                                                </div>
+                                            </>
+                                        )}
+                                        <div className="w-px h-3 bg-white/20" />
+                                        <button className="hover:text-white transition-colors flex items-center gap-1">
+                                            <span className="text-brand">🔗</span> SHARE
+                                        </button>
                                     </div>
+                                </div>
+
+                                <div className="min-w-[200px] flex flex-col items-end gap-3">
+                                    {renderActionButton()}
                                 </div>
                             </div>
                         </div>
                     </div>
-                 </div>
-               )}
+                </div>
 
-               {activeTab === 'participants' && (
-                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
-                   <div className="text-4xl mb-4">🚧</div>
-                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '团队列表即将上线...' : 'SQUAD LIST INCOMING...'}</p>
-                 </div>
-               )}
+                {/* Tabs */}
+                <div className="flex border-b border-brand/20 bg-black/20 backdrop-blur-sm overflow-x-auto">
+                    {[
+                        { id: 'overview', label: lang === 'zh' ? '活动详情' : 'OVERVIEW' },
+                        { id: 'my_project', label: lang === 'zh' ? '我的项目' : 'MY PROJECT' },
+                        { id: 'participants', label: lang === 'zh' ? '参赛人员' : 'PARTICIPANTS' },
+                        { id: 'gallery', label: lang === 'zh' ? '项目展示' : 'GALLERY' },
+                        { id: 'results', label: lang === 'zh' ? '评审结果' : 'RESULTS' },
+                    ].map(tab => (
+                        <button
+                            key={tab.id}
+                            onClick={() => setActiveTab(tab.id)}
+                            className={`px-6 py-4 text-sm font-bold uppercase tracking-wider transition-colors relative whitespace-nowrap ${
+                                activeTab === tab.id ? 'text-brand bg-white/5' : 'text-gray-500 hover:text-gray-300'
+                            }`}
+                        >
+                            {tab.label}
+                            {activeTab === tab.id && <div className="absolute bottom-0 left-0 w-full h-0.5 bg-brand" />}
+                        </button>
+                    ))}
+                    {hackathon.organizer_id === currentUserId && (
+                        <div className="ml-auto flex items-center px-4 gap-2">
+                             <button onClick={() => onEdit && onEdit(hackathon)} className="text-xs text-gray-400 hover:text-white font-mono">[{lang === 'zh' ? '编辑' : 'EDIT'}]</button>
+                             <button onClick={() => setIsJudgingOpen(true)} className="text-xs text-gray-400 hover:text-white font-mono">[{lang === 'zh' ? '评审' : 'JUDGE'}]</button>
+                             <button onClick={() => setIsResultPublishOpen(true)} className="text-xs text-gray-400 hover:text-white font-mono">[{lang === 'zh' ? '发布' : 'PUBLISH'}]</button>
+                        </div>
+                    )}
+                </div>
 
-               {activeTab === 'projects' && (
-                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
-                   <div className="text-4xl mb-4">🚧</div>
-                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '项目展示区...' : 'PROTOTYPE SHOWCASE...'}</p>
-                 </div>
-               )}
+                {/* Tab Content */}
+                <div className="flex-1 overflow-hidden relative bg-surface">
+                    <div className="absolute inset-0 overflow-y-auto p-6 md:p-8 scrollbar-thin">
+                        
+                        {/* OVERVIEW */}
+                        {activeTab === 'overview' && (
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                                {/* Left Sidebar - TOC */}
+                                <div className="hidden md:block col-span-1">
+                                    <div className="sticky top-8 space-y-1 border-l-2 border-white/10 pl-4">
+                                        {sections.map(s => (
+                                            <button key={s.id} onClick={() => scrollToSection(s.id)} 
+                                                className="block text-sm text-gray-400 hover:text-brand hover:border-l-2 hover:border-brand -ml-[18px] pl-4 py-1.5 transition-all text-left w-full">
+                                                {s.label}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
 
-               {activeTab === 'results' && (
-                 <div className="flex flex-col items-center justify-center py-20 text-gray-500 border-2 border-dashed border-white/10 bg-white/5">
-                   <div className="text-4xl mb-4">🔒</div>
-                   <p className="font-mono uppercase tracking-widest">{lang === 'zh' ? '比赛结果将在活动结束后公布。' : 'RESULTS CLASSIFIED UNTIL EVENT END.'}</p>
-                 </div>
-               )}
+                                {/* Middle Content */}
+                                <div className="col-span-1 md:col-span-2 space-y-12">
+                                    <section id="intro">
+                                        <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '活动简介' : 'Introduction'}</h3>
+                                        <div className="prose prose-invert max-w-none text-gray-300">
+                                            <ReactMarkdown>{hackathon.description || ''}</ReactMarkdown>
+                                        </div>
+                                    </section>
+                                    
+                                    <section id="schedule">
+                                        <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '活动日程' : 'Schedule'}</h3>
+                                        <div className="bg-white/5 border border-white/10 p-6 rounded-sm space-y-4">
+                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                <span className="text-gray-400">{lang === 'zh' ? '报名开始' : 'Registration Start'}</span>
+                                                <span className="text-white font-mono">{new Date(hackathon.registration_start_date).toLocaleString()}</span>
+                                             </div>
+                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                <span className="text-gray-400">{lang === 'zh' ? '报名截止' : 'Registration End'}</span>
+                                                <span className="text-white font-mono">{new Date(hackathon.registration_end_date).toLocaleString()}</span>
+                                             </div>
+                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                                                <span className="text-gray-400">{lang === 'zh' ? '作品提交截止' : 'Submission Deadline'}</span>
+                                                <span className="text-white font-mono">{new Date(hackathon.submission_end_date).toLocaleString()}</span>
+                                             </div>
+                                        </div>
+                                    </section>
+
+                                    {hackathon.requirements && (
+                                        <section id="requirements">
+                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '参赛要求' : 'Requirements'}</h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.requirements}</ReactMarkdown></div>
+                                        </section>
+                                    )}
+
+                                    {hackathon.rules_detail && (
+                                        <section id="rules">
+                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '评审规则' : 'Rules'}</h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.rules_detail}</ReactMarkdown></div>
+                                        </section>
+                                    )}
+
+                                    {awards.length > 0 && (
+                                        <section id="awards">
+                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '奖项设置' : 'Awards'}</h3>
+                                            <div className="grid grid-cols-1 gap-4">
+                                                {awards.map((award, i) => (
+                                                    <div key={i} className="bg-gradient-to-r from-brand/10 to-transparent border border-brand/20 p-4 flex justify-between items-center">
+                                                        <div>
+                                                            <div className="text-brand font-bold text-lg">{award.name}</div>
+                                                            <div className="text-sm text-gray-400">{award.description}</div>
+                                                        </div>
+                                                        <div className="text-2xl font-black text-white">{award.prize}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+                                    
+                                    {hackathon.resource_detail && (
+                                        <section id="resources">
+                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '资源与支持' : 'Resources'}</h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.resource_detail}</ReactMarkdown></div>
+                                        </section>
+                                    )}
+                                </div>
+
+                                {/* Right Sidebar - Info Cards */}
+                                <div className="hidden md:block col-span-1 space-y-6">
+                                    <div className="bg-white/5 border border-white/10 p-6">
+                                        <div className="text-xs text-gray-500 uppercase tracking-widest mb-4">{lang === 'zh' ? '主办方' : 'ORGANIZER'}</div>
+                                        <div className="flex items-center gap-4 mb-4">
+                                            <div className="w-12 h-12 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-xl">
+                                                {hackathon.organizer_name ? hackathon.organizer_name[0].toUpperCase() : 'O'}
+                                            </div>
+                                            <div className="font-bold text-white">{hackathon.organizer_name || 'Unknown'}</div>
+                                        </div>
+                                        <button 
+                                            onClick={() => setShowContact(!showContact)} 
+                                            className={`w-full text-xs transition-colors ${showContact ? 'btn-primary' : 'btn-secondary'}`}
+                                        >
+                                            {showContact ? (lang === 'zh' ? '收起联系方式' : 'HIDE CONTACT') : (lang === 'zh' ? '联系主办方' : 'CONTACT')}
+                                        </button>
+                                        
+                                        {showContact && (
+                                            <div className="mt-4 pt-4 border-t border-white/10 space-y-3 animate-in fade-in slide-in-from-top-2">
+                                                {contact ? (
+                                                    <>
+                                                        {!Array.isArray(contact) ? (
+                                                            <>
+                                                                {contact.text && <div className="text-sm text-gray-300 whitespace-pre-wrap">{contact.text}</div>}
+                                                                {contact.image && (
+                                                                    <div className="mt-2">
+                                                                        <img src={contact.image} alt="Contact QR" className="w-full h-auto rounded border border-white/10" />
+                                                                    </div>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            contact.map((item: any, idx: number) => (
+                                                                <div key={idx} className="text-sm text-gray-300">
+                                                                    {item.type && <span className="text-brand font-mono text-xs mr-2 uppercase">{item.type}:</span>}
+                                                                    {item.type === 'image' || item.type === 'qr' ? (
+                                                                        <img src={item.value} alt="Contact" className="mt-1 w-full h-auto rounded border border-white/10" />
+                                                                    ) : (
+                                                                        <span>{item.value}</span>
+                                                                    )}
+                                                                </div>
+                                                            ))
+                                                        )}
+                                                    </>
+                                                ) : (
+                                                    <div className="text-xs text-gray-500 italic text-center">
+                                                        {lang === 'zh' ? '暂无联系方式' : 'No contact info provided'}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="bg-white/5 border border-white/10 p-6">
+                                        <div className="text-xs text-gray-500 uppercase tracking-widest mb-4">{lang === 'zh' ? '时间轴' : 'TIMELINE'}</div>
+                                        <div className="space-y-4 relative pl-4 border-l border-white/10">
+                                            <div className="relative">
+                                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand"></div>
+                                                <div className="text-xs text-brand font-mono mb-1">{new Date(hackathon.registration_start_date).toLocaleDateString()}</div>
+                                                <div className="text-sm text-white">{lang === 'zh' ? '报名开启' : 'Reg Start'}</div>
+                                            </div>
+                                            <div className="relative">
+                                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                                                <div className="text-xs text-gray-400 font-mono mb-1">{new Date(hackathon.registration_end_date).toLocaleDateString()}</div>
+                                                <div className="text-sm text-gray-300">{lang === 'zh' ? '报名截止' : 'Reg End'}</div>
+                                            </div>
+                                            <div className="relative">
+                                                <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gray-600"></div>
+                                                <div className="text-xs text-gray-400 font-mono mb-1">{new Date(hackathon.submission_end_date).toLocaleDateString()}</div>
+                                                <div className="text-sm text-gray-300">{lang === 'zh' ? '提交截止' : 'Submit End'}</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* MY PROJECT */}
+                        {activeTab === 'my_project' && (
+                            (!currentUserId || !enrollment) ? <LockedView /> : (
+                            <div className="max-w-3xl mx-auto">
+                                {!enrollment ? (
+                                    <div className="text-center py-20 border border-brand/20 bg-white/5">
+                                        <h3 className="text-2xl font-bold text-white mb-4">{lang === 'zh' ? '尚未报名' : 'NOT ENROLLED'}</h3>
+                                        <p className="text-gray-400 mb-8">{lang === 'zh' ? '请先报名参加活动，然后再创建项目。' : 'Please register for the hackathon first.'}</p>
+                                        <button onClick={handleRegister} className="btn-primary px-8 py-3">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>
+                                    </div>
+                                ) : !myTeam ? (
+                                    <div className="space-y-12">
+                                        {hackathon.registration_type === 'individual' ? (
+                                             <div className="text-center py-20 border border-brand/20 bg-white/5">
+                                                <h3 className="text-2xl font-bold text-white mb-4">{lang === 'zh' ? '开始个人项目' : 'START INDIVIDUAL PROJECT'}</h3>
+                                                <button onClick={handleStartIndividual} className="btn-primary px-8 py-3">{lang === 'zh' ? '创建项目空间' : 'CREATE WORKSPACE'}</button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid md:grid-cols-2 gap-8">
+                                                {/* Create Team */}
+                                                <div className="p-8 border border-brand/20 bg-white/5">
+                                                    <h3 className="text-xl font-bold text-white mb-6">{lang === 'zh' ? '创建战队' : 'CREATE TEAM'}</h3>
+                                                    <div className="space-y-4">
+                                                        <input 
+                                                            type="text" 
+                                                            placeholder={lang === 'zh' ? "战队名称" : "Team Name"}
+                                                            className="w-full bg-black border border-white/20 p-3 text-white focus:border-brand outline-none font-mono"
+                                                            value={newTeamName}
+                                                            onChange={e => setNewTeamName(e.target.value)}
+                                                        />
+                                                        <button 
+                                                            onClick={handleCreateTeam}
+                                                            disabled={creatingTeam || !newTeamName}
+                                                            className="w-full btn-primary py-3"
+                                                        >
+                                                            {lang === 'zh' ? '立即创建' : 'CREATE NOW'}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                                {/* Join Team */}
+                                                <div className="p-8 border border-white/10 bg-white/5">
+                                                    <h3 className="text-xl font-bold text-white mb-6">{lang === 'zh' ? '加入战队' : 'JOIN TEAM'}</h3>
+                                                    <p className="text-gray-400 text-sm mb-4">{lang === 'zh' ? '请在“参赛人员”页面找到想加入的战队，并联系队长。' : 'Please find a team in "Participants" tab and contact the leader.'}</p>
+                                                    <button onClick={() => setActiveTab('participants')} className="btn-secondary w-full py-3">{lang === 'zh' ? '浏览战队' : 'BROWSE TEAMS'}</button>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
+                                ) : (
+                                    <div className="space-y-8">
+                                        {/* Team Header */}
+                                        <div className="p-6 border border-brand/30 bg-brand/5 flex justify-between items-center">
+                                            <div>
+                                                <div className="text-xs text-brand font-mono uppercase tracking-widest mb-1">{lang === 'zh' ? '我的战队' : 'MY TEAM'}</div>
+                                                <h2 className="text-3xl font-black text-white">{myTeam.name}</h2>
+                                            </div>
+                                            <div className="text-right">
+                                                <div className="text-xs text-gray-500 font-mono mb-2">ID: {myTeam.id}</div>
+                                                <button onClick={handleLeaveTeam} className="text-xs text-red-500 hover:text-red-400 font-mono uppercase underline">
+                                                    {lang === 'zh' ? '退出战队' : 'LEAVE TEAM'}
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {/* Team Members */}
+                                        <div className="p-6 border border-white/10 bg-white/5">
+                                            <h3 className="text-sm font-bold text-gray-400 uppercase tracking-widest mb-4">{lang === 'zh' ? '战队成员' : 'TEAM MEMBERS'}</h3>
+                                            <div className="flex flex-wrap gap-4">
+                                                {myTeam.members?.map(member => (
+                                                    <div key={member.id} className="flex items-center gap-3 bg-black/40 border border-white/10 px-4 py-2 rounded-full">
+                                                        <div className="w-8 h-8 rounded-full bg-brand/20 flex items-center justify-center text-brand font-bold text-xs overflow-hidden">
+                                                            {member.user?.avatar_url ? (
+                                                                <img src={member.user.avatar_url} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                (member.user?.nickname || member.user?.full_name || 'U')[0].toUpperCase()
+                                                            )}
+                                                        </div>
+                                                        <div className="flex flex-col">
+                                                            <span className="text-sm text-white font-medium">{member.user?.nickname || member.user?.full_name || 'User'}</span>
+                                                            {member.user_id === myTeam.leader_id && <span className="text-[10px] text-brand uppercase">LEADER</span>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+
+                                        {/* Project Status */}
+                                        <div className="p-8 border border-white/10 bg-white/5">
+                                            <div className="flex justify-between items-start mb-6">
+                                                <h3 className="text-xl font-bold text-white">{lang === 'zh' ? '项目状态' : 'PROJECT STATUS'}</h3>
+                                                {myProject && (
+                                                    <span className={`px-3 py-1 text-xs font-mono uppercase border ${
+                                                        myProject.status === 'submitted' ? 'border-green-500 text-green-500' : 'border-yellow-500 text-yellow-500'
+                                                    }`}>
+                                                        {myProject.status}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            
+                                            {myProject ? (
+                                                <div className="space-y-6">
+                                                    {myProject.cover_image && (
+                                                        <div className="w-full h-48 bg-black/50 border border-white/10 overflow-hidden">
+                                                            <img src={myProject.cover_image} alt="Cover" className="w-full h-full object-cover" />
+                                                        </div>
+                                                    )}
+                                                    <div>
+                                                        <label className="text-xs text-gray-500 uppercase font-mono">{lang === 'zh' ? '项目名称' : 'PROJECT TITLE'}</label>
+                                                        <div className="text-xl font-bold text-white">{myProject.title}</div>
+                                                    </div>
+                                                    <div>
+                                                        <label className="text-xs text-gray-500 uppercase font-mono">{lang === 'zh' ? '简介' : 'DESCRIPTION'}</label>
+                                                        <div className="text-sm text-gray-300 line-clamp-3">{myProject.description}</div>
+                                                    </div>
+                                                    <div className="flex gap-4 pt-4">
+                                                        <button onClick={() => setIsSubmitOpen(true)} className="btn-secondary px-6">{lang === 'zh' ? '编辑项目' : 'EDIT PROJECT'}</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <div className="text-center py-10">
+                                                    <p className="text-gray-400 mb-6">{lang === 'zh' ? '尚未提交项目' : 'No project submitted yet'}</p>
+                                                    <button onClick={() => setIsSubmitOpen(true)} className="btn-primary px-8 py-3">{lang === 'zh' ? '立即提交' : 'SUBMIT PROJECT'}</button>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
+                            )
+                        )}
+
+                        {/* PARTICIPANTS */}
+                        {activeTab === 'participants' && (
+                            (!currentUserId || !enrollment) ? <LockedView /> : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {teams.map(team => (
+                                    <div key={team.id} className="p-6 border border-white/10 bg-white/5 hover:border-brand/50 transition-colors group flex flex-col h-full">
+                                        <div className="flex justify-between items-start mb-4">
+                                            <h4 className="font-bold text-white text-lg group-hover:text-brand">{team.name}</h4>
+                                            <span className="text-xs font-mono text-gray-500">#{team.id}</span>
+                                        </div>
+                                        <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-grow">{team.description || 'No description'}</p>
+                                        
+                                        {/* Members */}
+                                        <div className="mb-4">
+                                             <div className="text-xs text-gray-500 mb-2 uppercase font-mono">{lang === 'zh' ? '成员' : 'MEMBERS'} ({team.members?.length || 0})</div>
+                                             <div className="flex -space-x-2 overflow-hidden">
+                                                {team.members?.map(member => (
+                                                    <div key={member.id} className="w-8 h-8 rounded-full bg-gray-800 border border-black flex items-center justify-center text-xs text-white relative group/avatar" title={member.user?.nickname || member.user?.full_name || 'User'}>
+                                                        {member.user?.avatar_url ? (
+                                                            <img src={member.user.avatar_url} className="w-full h-full rounded-full object-cover" />
+                                                        ) : (
+                                                            <span>{(member.user?.nickname || member.user?.full_name || 'U')[0].toUpperCase()}</span>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                             </div>
+                                        </div>
+
+                                        <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
+                                            <span className="text-xs text-gray-500">{lang === 'zh' ? '队长 ID' : 'Leader'}: {team.leader_id}</span>
+                                            {!myTeam && enrollment && (
+                                                <button onClick={() => handleJoinTeam(team.id)} className="text-xs text-brand hover:underline uppercase font-mono">
+                                                    {lang === 'zh' ? '加入' : 'JOIN'}
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                                {teams.length === 0 && <div className="col-span-full text-center py-20 text-gray-500 font-mono">NO DATA</div>}
+                            </div>
+                            )
+                        )}
+
+                        {/* GALLERY */}
+                        {activeTab === 'gallery' && (
+                            (!currentUserId || !enrollment) ? <LockedView /> : (
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                {galleryProjects.map(proj => (
+                                    <div key={proj.id} className="border border-white/10 bg-white/5 hover:border-brand/50 transition-colors group overflow-hidden flex flex-col h-full">
+                                        <div className="h-48 bg-black/50 relative overflow-hidden">
+                                            {proj.cover_image ? (
+                                                <img src={proj.cover_image} className="w-full h-full object-cover grayscale group-hover:grayscale-0 transition duration-500" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-white/10 text-4xl font-black bg-noise">{proj.title[0]}</div>
+                                            )}
+                                        </div>
+                                        <div className="p-6 flex-1 flex flex-col">
+                                            <h4 className="font-bold text-white text-lg mb-2 group-hover:text-brand transition-colors">{proj.title}</h4>
+                                            <p className="text-sm text-gray-400 line-clamp-2 mb-4 flex-1">{proj.description}</p>
+                                            <div className="flex justify-between items-center text-xs font-mono text-gray-500 pt-4 border-t border-white/5">
+                                                <span>{proj.team?.name || `Team #${proj.team_id}`}</span>
+                                                {proj.total_score ? <span className="text-brand font-bold">{proj.total_score.toFixed(1)} PTS</span> : <span>PENDING</span>}
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                                {galleryProjects.length === 0 && <div className="col-span-full text-center py-20 text-gray-500 font-mono">NO PROJECTS YET</div>}
+                            </div>
+                            )
+                        )}
+
+                        {/* RESULTS */}
+                        {activeTab === 'results' && (
+                            (!currentUserId || !enrollment) ? <LockedView /> : (
+                            <div className="max-w-4xl mx-auto">
+                                {results.length > 0 ? (
+                                    <div className="space-y-6">
+                                        {results.map((result: any, idx: number) => (
+                                            <div key={idx} className="flex items-center gap-6 p-6 border border-brand/20 bg-brand/5 relative overflow-hidden">
+                                                <div className="text-6xl font-black text-white/10 absolute -left-4 -bottom-4 select-none">{idx + 1}</div>
+                                                <div className="relative z-10 w-16 h-16 flex items-center justify-center bg-brand text-black font-black text-2xl rounded-full">
+                                                    {idx + 1}
+                                                </div>
+                                                <div className="flex-1 relative z-10">
+                                                    <h4 className="text-2xl font-bold text-white mb-1">{result.project_title || result.name}</h4>
+                                                    <p className="text-brand font-mono text-sm">{result.award_name}</p>
+                                                </div>
+                                                <div className="text-right relative z-10">
+                                                    <div className="text-3xl font-black text-white">{result.score || ''}</div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-20 text-gray-500 font-mono">{lang === 'zh' ? '结果尚未公布' : 'RESULTS NOT PUBLISHED'}</div>
+                                )}
+                            </div>
+                            )
+                        )}
+
+                    </div>
+                </div>
             </div>
-          </>
         )}
       </div>
     </div>
   );
-}
-
-function TimelineItem({ label, date, active }: { label: string, date?: string, active?: boolean }) {
-    if (!date) return null;
-    return (
-        <div className="relative pl-8 pb-6 last:pb-0 group">
-            <div className={`absolute left-0 top-1.5 w-4 h-4 border-2 transition-colors ${active ? 'bg-brand border-brand shadow-[0_0_10px_rgba(212,163,115,0.5)]' : 'bg-black border-gray-600 group-hover:border-brand'}`}></div>
-            <div className="text-xs text-gray-500 font-mono mb-1">{new Date(date).toLocaleString()}</div>
-            <div className={`font-bold font-mono uppercase text-sm ${active ? 'text-brand' : 'text-gray-300 group-hover:text-white'}`}>{label}</div>
-        </div>
-    );
 }

@@ -50,6 +50,7 @@ class HackathonBase(SQLModel):
     requirements: Optional[str] = None # Work requirements
     resource_detail: Optional[str] = None # Resources and support
     scoring_dimensions: Optional[str] = None # JSON string for scoring
+    sponsors_detail: Optional[str] = None # JSON string for sponsors
     results_detail: Optional[str] = None  # JSON string for winners/results
     
     is_online: bool = True # Keep for backward compatibility, sync with format
@@ -88,6 +89,7 @@ class HackathonUpdate(SQLModel):
     awards_detail: Optional[str] = None
     rules_detail: Optional[str] = None
     scoring_dimensions: Optional[str] = None
+    sponsors_detail: Optional[str] = None
     resource_detail: Optional[str] = None
     status: Optional[HackathonStatus] = None
     is_online: Optional[bool] = None

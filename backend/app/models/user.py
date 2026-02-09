@@ -23,6 +23,8 @@ class UserBase(SQLModel):
     interests: Optional[str] = None # JSON string or comma-separated
     city: Optional[str] = None # Province + City
     phone: Optional[str] = None
+    personality: Optional[str] = None # MBTI or description
+    bio: Optional[str] = None # Personal introduction / philosophy
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -39,6 +41,8 @@ class UserUpdate(SQLModel):
     interests: Optional[str] = None
     city: Optional[str] = None
     phone: Optional[str] = None
+    personality: Optional[str] = None
+    bio: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None

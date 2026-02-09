@@ -106,3 +106,55 @@ def update_enrollment_status(*, session: Session = Depends(get_session), enrollm
     session.commit()
     session.refresh(enrollment)
     return enrollment
+
+from pydantic import BaseModel
+from typing import Optional
+import json
+
+class ParticipantRead(BaseModel):
+    user_id: int
+    nickname: Optional[str]
+    avatar_url: Optional[str]
+    bio: Optional[str]
+    skills: Optional[List[str]]
+    enrollment_status: str
+
+@router.get("/public/{hackathon_id}", response_model=List[ParticipantRead])
+def read_public_participants(
+    *, 
+    session: Session = Depends(get_session), 
+    hackathon_id: int
+):
+    """
+    Get public list of participants for a hackathon.
+    """
+    results = session.exec(
+        select(Enrollment, User)
+        .join(User, Enrollment.user_id == User.id)
+        .where(Enrollment.hackathon_id == hackathon_id)
+    ).all()
+    
+    participants = []
+    for enrollment, user in results:
+        skills_list = []
+        if user.skills:
+            try:
+                # Try JSON first
+                parsed = json.loads(user.skills)
+                if isinstance(parsed, list):
+                    skills_list = parsed
+                else:
+                    skills_list = [str(parsed)]
+            except:
+                # Fallback to comma-separated
+                skills_list = [s.strip() for s in user.skills.split(',') if s.strip()]
+
+        participants.append({
+            "user_id": user.id,
+            "nickname": user.nickname or user.full_name,
+            "avatar_url": user.avatar_url,
+            "bio": user.bio,
+            "skills": skills_list,
+            "enrollment_status": enrollment.status
+        })
+    return participants

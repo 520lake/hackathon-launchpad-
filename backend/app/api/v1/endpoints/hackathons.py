@@ -4,7 +4,7 @@ from typing import List, Optional
 from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate, HackathonStatus, HackathonFormat
 from app.db.session import get_session
 from app.api.deps import get_current_user
-from app.models.user import User
+from app.models.user import User, UserRead
 from app.models.judge import Judge, JudgeCreate, JudgeRead
 from app.models.enrollment import Enrollment
 from app.models.team_project import Team, TeamMember, Project
@@ -167,7 +167,9 @@ def add_judge(*, session: Session = Depends(get_session), hackathon_id: int, use
     session.refresh(judge)
     return judge
 
-@router.get("/{hackathon_id}/judges", response_model=List[JudgeRead])
+@router.get("/{hackathon_id}/judges", response_model=List[UserRead])
 def read_judges(*, session: Session = Depends(get_session), hackathon_id: int):
-    judges = session.exec(select(Judge).where(Judge.hackathon_id == hackathon_id)).all()
+    # Join Judge and User to return full user details
+    query = select(User).join(Judge, User.id == Judge.user_id).where(Judge.hackathon_id == hackathon_id)
+    judges = session.exec(query).all()
     return judges

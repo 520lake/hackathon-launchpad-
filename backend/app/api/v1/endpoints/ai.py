@@ -6,6 +6,7 @@ import random
 import json
 import os
 from openai import OpenAI
+from sqlmodel import Session, select
 from app.api import deps
 from app.models.user import User
 from app.core.config import settings
@@ -25,6 +26,324 @@ client = OpenAI(
     api_key=settings.MODELSCOPE_API_KEY,
     base_url=settings.MODELSCOPE_BASE_URL,
 )
+
+class TeamMatchRequest(BaseModel):
+    hackathon_id: int
+    requirements: str # User's input about what they are looking for
+
+class TeamMatchResponse(BaseModel):
+    matches: List[dict] # [{user_id, name, skills, personality, bio, match_reason, match_score}]
+
+from app.models.enrollment import Enrollment
+
+@router.post("/team-match", response_model=TeamMatchResponse)
+async def team_match(
+    req: TeamMatchRequest,
+    session: Session = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        # 1. Fetch potential candidates (enrolled in the same hackathon, excluding self)
+        query = select(User).join(Enrollment).where(
+            Enrollment.hackathon_id == req.hackathon_id,
+            User.id != current_user.id,
+            # Allow both approved and pending users to be matched
+            # Enrollment.status.in_(["approved", "pending"]) 
+            # For now, let's just allow anyone enrolled to maximize matches for demo
+        )
+        candidates = session.exec(query).all()
+        
+        # If no candidates found in the hackathon, fallback to global search (optional, but good for demo if empty)
+        if not candidates:
+             candidates = session.exec(select(User).where(User.id != current_user.id)).all()
+
+        # Limit to 20 candidates for prompt size limits
+        candidates_data = []
+        for c in candidates[:20]:
+            candidates_data.append({
+                "id": c.id,
+                "name": c.nickname or c.full_name,
+                "skills": c.skills,
+                "interests": c.interests,
+                "personality": c.personality,
+                "bio": c.bio
+            })
+            
+        user_profile = {
+            "name": current_user.nickname or current_user.full_name,
+            "skills": current_user.skills,
+            "interests": current_user.interests,
+            "personality": current_user.personality,
+            "bio": current_user.bio,
+            "looking_for": req.requirements
+        }
+
+        # 2. Construct Prompt
+        system_prompt = """You are an expert AI Team Builder and Psychologist.
+Your goal is to find the best teammates for the current user based on complementary skills, personality compatibility, and shared interests.
+
+You will receive:
+1. The Current User's Profile and what they are looking for.
+2. A list of Candidate Users.
+
+Task:
+Select top 3-5 best matches from the Candidate Users.
+For each match, provide a detailed "match_reason" explaining WHY they are a good fit (e.g., "Their backend skills complement your frontend focus", "Both are INTJ personalities").
+
+Return ONLY a valid JSON object with the following structure:
+{
+  "matches": [
+    {
+      "user_id": 123, // Must match the candidate's actual ID
+      "match_score": 95, // 0-100
+      "match_reason": "Explanation..."
+    }
+  ]
+}
+Do not include any markdown formatting.
+"""
+        user_prompt = f"""
+Current User Profile:
+{json.dumps(user_profile, ensure_ascii=False)}
+
+Candidate Users:
+{json.dumps(candidates_data, ensure_ascii=False)}
+"""
+
+        # 3. Call AI Model
+        # TODO: Integrate DeepSeek model here when API key is available
+        # if settings.USE_DEEPSEEK:
+        #     completion = deepseek_client.chat.completions.create(...)
+        # else:
+        
+        # Fallback to ModelScope (Qwen)
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+             response_format={"type": "json_object"}
+        )
+        
+        content_str = completion.choices[0].message.content
+        content = json.loads(content_str)
+        
+        # 4. Enrich response with full user details
+        final_matches = []
+        for m in content.get("matches", []):
+            candidate = next((c for c in candidates if c.id == m["user_id"]), None)
+            if candidate:
+                final_matches.append({
+                    "user_id": candidate.id,
+                    "name": candidate.nickname or candidate.full_name,
+                    "avatar_url": candidate.avatar_url,
+                    "skills": candidate.skills,
+                    "personality": candidate.personality,
+                    "bio": candidate.bio,
+                    "match_score": m["match_score"],
+                    "match_reason": m["match_reason"]
+                })
+        
+        # Sort by score
+        final_matches.sort(key=lambda x: x["match_score"], reverse=True)
+        
+        return {"matches": final_matches}
+
+    except Exception as e:
+        print(f"AI Team Match Error: {e}")
+        # Fallback mock response if AI fails
+        return {"matches": []}
+
+class AIReviewRequest(BaseModel):
+    project_name: str
+    project_description: str
+    scoring_dimensions: List[dict]
+
+class AIReviewResponse(BaseModel):
+    scores: dict[str, int]
+    comment: str
+
+class SearchHackathonRequest(BaseModel):
+    query: str
+
+class SearchHackathonResponse(BaseModel):
+    matches: List[dict] # {id, reason}
+    summary: str
+
+class GenerateResumeRequest(BaseModel):
+    keywords: str
+    role: str
+    lang: str
+
+class GenerateResumeResponse(BaseModel):
+    bio: str
+    skills: List[str]
+
+@router.post("/generate-resume", response_model=GenerateResumeResponse)
+async def generate_resume(
+    req: GenerateResumeRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        system_prompt = """You are an expert Career Coach and AI Resume Writer.
+Your goal is to generate a professional, engaging bio and a list of technical skills based on the user's raw input.
+
+Input:
+1. Target Role (e.g., Frontend Developer)
+2. Keywords/Experience (unstructured text)
+3. Language (zh/en)
+
+Task:
+1. Write a professional "Bio" (max 150 words) that highlights their strengths and fits the target role. Use the specified language.
+2. Extract or infer 5-10 relevant "Skills" (technical or soft skills) from the keywords.
+
+Return ONLY a valid JSON object:
+{
+  "bio": "Passionate Frontend Developer with 5 years of experience...",
+  "skills": ["React", "TypeScript", "Node.js"]
+}
+"""
+        user_prompt = f"""
+Target Role: {req.role}
+Keywords: {req.keywords}
+Language: {req.lang}
+"""
+
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return content
+
+    except Exception as e:
+        print(f"AI Resume Error: {e}")
+        return {"bio": "Failed to generate bio.", "skills": []}
+
+from app.models.hackathon import Hackathon
+
+@router.post("/search-hackathons", response_model=SearchHackathonResponse)
+async def search_hackathons(
+    req: SearchHackathonRequest,
+    session: Session = Depends(deps.get_session)
+):
+    try:
+        # 1. Fetch active hackathons
+        hackathons = session.exec(select(Hackathon).where(Hackathon.status.in_(['published', 'ongoing']))).all()
+        
+        hackathons_data = []
+        for h in hackathons:
+            hackathons_data.append({
+                "id": h.id,
+                "title": h.title,
+                "description": h.description[:300] if h.description else "", # Truncate for token limit
+                "tags": h.theme_tags,
+                "format": h.format,
+                "location": h.location,
+                "start_date": h.start_date.isoformat() if h.start_date else ""
+            })
+
+        # 2. Construct Prompt
+        system_prompt = """You are an intelligent Hackathon Guide named 'Aura'.
+Your goal is to help users find the most relevant hackathons from the provided list based on their natural language query.
+
+Input:
+1. User Query
+2. List of Active Hackathons
+
+Task:
+1. Analyze the user's intent (e.g., looking for AI events, online only, specific location, beginners).
+2. Select the top 1-3 hackathons that best match the criteria.
+3. Generate a friendly, conversational summary explaining why these events are good matches.
+4. If no good matches are found, suggest the most popular or upcoming one.
+
+Return ONLY a valid JSON object:
+{
+  "matches": [
+    {
+      "id": 123,
+      "reason": "Focuses on Generative AI which matches your interest..."
+    }
+  ],
+  "summary": "I found 2 hackathons that match your interest in AI. The 'Shanghai AI Challenge' is particularly relevant..."
+}
+Do not include any markdown formatting.
+"""
+        user_prompt = f"""
+User Query: {req.query}
+
+Active Hackathons:
+{json.dumps(hackathons_data, ensure_ascii=False)}
+"""
+
+        # 3. Call AI
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return content
+
+    except Exception as e:
+        print(f"AI Search Error: {e}")
+        return {"matches": [], "summary": "Sorry, I encountered an error while searching. Please try again."}
+
+@router.post("/review", response_model=AIReviewResponse)
+async def review_project(
+    req: AIReviewRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        system_prompt = """You are an expert hackathon judge.
+Evaluate the project based on the provided scoring dimensions.
+For each dimension, provide a score (0-100) based on the project description.
+Also provide a constructive comment summarizing the evaluation.
+
+Return ONLY a valid JSON object with the following structure:
+{
+  "scores": {
+    "Dimension Name 1": 85,
+    "Dimension Name 2": 70
+  },
+  "comment": "Your overall assessment..."
+}
+Do not include any markdown formatting.
+"""
+        user_prompt = f"""
+Project Name: {req.project_name}
+Project Description: {req.project_description}
+
+Scoring Dimensions:
+{json.dumps(req.scoring_dimensions, ensure_ascii=False)}
+"""
+
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+             response_format={"type": "json_object"}
+        )
+        
+        content_str = completion.choices[0].message.content
+        content = json.loads(content_str)
+        return content
+        
+    except Exception as e:
+        print(f"AI Error: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/generate", response_model=AIResponse)
 async def generate_content(

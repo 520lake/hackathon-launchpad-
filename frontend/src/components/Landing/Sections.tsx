@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
-import FluidCursor from '../ui/FluidCursor';
+import EcosystemWall from './EcosystemWall';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -98,9 +98,9 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
     }, []);
 
     return (
-        <section className="py-32 bg-void relative overflow-hidden">
-            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 items-center">
-                <div className="md:col-span-7" ref={textRef}>
+        <section className="py-32 bg-void relative overflow-hidden flex flex-col gap-16">
+            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-12 gap-12 items-center relative z-10">
+                <div className="md:col-span-8" ref={textRef}>
                     <h2 className="text-5xl font-black mb-8 text-ink leading-tight">
                         {lang === 'zh' ? '智能' : 'INTELLIGENT'} <br />
                         <span className="text-brand">{lang === 'zh' ? '创新' : 'INNOVATION'}</span>
@@ -116,17 +116,13 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
                         &gt; 03. {lang === 'zh' ? '自动化评审' : 'Auto Evaluation'}
                     </p>
                 </div>
-                <div className="md:col-span-5 relative">
-                    {/* Abstract Graphic */}
-                    <div className="w-full aspect-square border border-brand/20 relative rotate-3 bg-black overflow-hidden group">
-                        <FluidCursor />
-                        <div className="absolute inset-0 border border-brand/20 -rotate-6 scale-90 pointer-events-none" />
-                        <div className="absolute inset-0 border border-brand/20 rotate-6 scale-95 pointer-events-none" />
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none mix-blend-overlay">
-                            <span className="font-mono text-brand text-9xl font-black tracking-tighter opacity-80">AI</span>
-                        </div>
-                    </div>
-                </div>
+            </div>
+            
+            {/* Full-width Ecosystem Wall - Replacing the static box */}
+            <div className="w-full relative">
+                <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent"></div>
+                <EcosystemWall />
+                <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent"></div>
             </div>
         </section>
     );

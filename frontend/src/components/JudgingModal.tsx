@@ -195,9 +195,25 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                         </div>
 
                         <div className="border-t-2 border-brand/20 pt-8">
-                            <h4 className="font-mono font-bold text-brand uppercase mb-6 tracking-widest text-lg">
-                                {lang === 'zh' ? '评分系统' : 'SCORING SYSTEM'}
-                            </h4>
+                            <div className="flex justify-between items-center mb-6">
+                                <h4 className="font-mono font-bold text-brand uppercase tracking-widest text-lg">
+                                    {lang === 'zh' ? '评分系统' : 'SCORING SYSTEM'}
+                                </h4>
+                                <button
+                                    onClick={handleAIReview}
+                                    disabled={loading}
+                                    className="bg-brand/10 hover:bg-brand/20 text-brand border border-brand px-4 py-2 text-sm font-mono uppercase transition-colors flex items-center gap-2"
+                                >
+                                    {loading ? (
+                                        <span className="animate-pulse">Analyzing...</span>
+                                    ) : (
+                                        <>
+                                            <span>⚡</span>
+                                            {lang === 'zh' ? 'AI 辅助评审' : 'AI ASSISTANT'}
+                                        </>
+                                    )}
+                                </button>
+                            </div>
                             
                             {dimensions.length > 0 ? (
                                 <div className="space-y-6">

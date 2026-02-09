@@ -15,6 +15,7 @@ import UserDashboardModal from './components/UserDashboardModal'
 import HackathonDetailModal from './components/HackathonDetailModal'
 import VerificationModal from './components/VerificationModal'
 import AdminDashboardModal from './components/AdminDashboardModal'
+import AITeamMatchModal from './components/AITeamMatchModal'
 
 interface Hackathon {
   id: number;
@@ -39,8 +40,10 @@ function App() {
   const [isHackathonListOpen, setIsHackathonListOpen] = useState(false);
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState<number | null>(null);
+  const [hackathonListInitialMode, setHackathonListInitialMode] = useState<'list' | 'ai'>('list');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
   const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([]);
@@ -204,7 +207,14 @@ function App() {
       <main>
         <Hero 
             onCreateClick={handleCreateHackathonClick}
-            onExploreClick={() => setIsHackathonListOpen(true)}
+            onExploreClick={() => {
+                setHackathonListInitialMode('list');
+                setIsHackathonListOpen(true);
+            }}
+            onAIGuideClick={() => {
+                setHackathonListInitialMode('ai');
+                setIsHackathonListOpen(true);
+            }}
             lang={lang}
         />
         
@@ -232,14 +242,19 @@ function App() {
         isOpen={isHackathonListOpen} 
         onClose={() => setIsHackathonListOpen(false)} 
         onHackathonSelect={openHackathonDetail}
+        initialMode={hackathonListInitialMode}
         lang={lang}
       />
       <UserDashboardModal 
         isOpen={isDashboardOpen} 
         onClose={() => setIsDashboardOpen(false)}
         onHackathonSelect={openHackathonDetail}
-        onVerifyClick={() => setIsVerificationOpen(true)}
+        onVerifyClick={() => {
+            setIsDashboardOpen(false);
+            setIsVerificationOpen(true);
+        }}
         onUserUpdate={fetchCurrentUser}
+        onTeamMatchClick={() => setIsTeamMatchOpen(true)}
         lang={lang}
       />
       <HackathonDetailModal 
@@ -251,6 +266,7 @@ function App() {
             setEditingHackathon(hackathon);
             setIsCreateHackathonOpen(true);
         }}
+        onTeamMatch={() => setIsTeamMatchOpen(true)}
         lang={lang}
       />
       <VerificationModal 
@@ -263,6 +279,12 @@ function App() {
         isOpen={isAdminDashboardOpen} 
         onClose={() => setIsAdminDashboardOpen(false)} 
         lang={lang}
+      />
+      <AITeamMatchModal
+        isOpen={isTeamMatchOpen}
+        onClose={() => setIsTeamMatchOpen(false)}
+        lang={lang}
+        hackathonId={selectedHackathonId}
       />
       <CreateHackathonModal 
         isOpen={isCreateHackathonOpen} 

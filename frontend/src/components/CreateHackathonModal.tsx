@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import axios from 'axios';
+import gsap from 'gsap';
 
 interface CreateHackathonModalProps {
   isOpen: boolean;
@@ -9,6 +10,9 @@ interface CreateHackathonModalProps {
 }
 
 export default function CreateHackathonModal({ isOpen, onClose, initialData, lang }: CreateHackathonModalProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [coverImage, setCoverImage] = useState('');
@@ -58,6 +62,15 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
   const [awards, setAwards] = useState<AwardItem[]>([]);
   const [newAward, setNewAward] = useState<AwardItem>({ type: 'cash', name: '', count: 1, amount: 0, prize: '' });
 
+  // Sponsors
+  interface SponsorItem {
+      name: string;
+      logo: string;
+      url: string;
+  }
+  const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
+  const [newSponsor, setNewSponsor] = useState<SponsorItem>({ name: '', logo: '', url: '' });
+
   // Step Control
   const [currentStep, setCurrentStep] = useState<1 | 2>(1);
 
@@ -68,6 +81,44 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
   const [aiLoading, setAiLoading] = useState(false);
   const [aiChatHistory, setAiChatHistory] = useState<{role: 'user' | 'ai', content: string}[]>([]);
   const [showAiChat, setShowAiChat] = useState(true);
+
+  // Animation on Open
+  useLayoutEffect(() => {
+    if (isOpen && containerRef.current) {
+        gsap.killTweensOf(containerRef.current);
+        gsap.set(containerRef.current, { x: '100%' });
+        gsap.to(containerRef.current, {
+            x: '0%',
+            duration: 0.8,
+            ease: "power4.out",
+        });
+
+        if (contentRef.current) {
+            gsap.killTweensOf(contentRef.current.children);
+            gsap.from(contentRef.current.children, {
+                y: 50,
+                opacity: 0,
+                stagger: 0.1,
+                duration: 0.6,
+                delay: 0.3,
+                ease: "power2.out"
+            });
+        }
+    }
+  }, [isOpen]);
+
+  const handleClose = () => {
+    if (containerRef.current) {
+        gsap.to(containerRef.current, {
+            x: '100%',
+            duration: 0.5,
+            ease: "power3.in",
+            onComplete: onClose
+        });
+    } else {
+        onClose();
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -139,6 +190,14 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                     console.error("Failed to parse scoring dimensions", e);
                 }
             }
+
+            if (initialData.sponsors_detail) {
+                try {
+                    setSponsors(JSON.parse(initialData.sponsors_detail));
+                } catch (e) {
+                    console.error("Failed to parse sponsors", e);
+                }
+            }
         } else {
             // Reset fields for new creation
             setTitle('');
@@ -167,6 +226,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
             setRulesDetail('');
             setScoringDimensions([]);
             setJudges([]);
+            setSponsors([]);
         }
     }
   }, [isOpen, initialData]);
@@ -350,6 +410,29 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
       setAwards(awards.filter((_, i) => i !== index));
   };
 
+  const addSponsor = () => {
+      if (newSponsor.name) {
+          setSponsors([...sponsors, newSponsor]);
+          setNewSponsor({ name: '', logo: '', url: '' });
+      }
+  };
+
+  const removeSponsor = (index: number) => {
+      setSponsors(sponsors.filter((_, i) => i !== index));
+  };
+
+  const handleSponsorLogoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+        try {
+            const url = await uploadImage(e.target.files[0]);
+            setNewSponsor(prev => ({...prev, logo: url}));
+        } catch (err) {
+            console.error(err);
+            alert('Upload failed');
+        }
+    }
+  };
+
   const validateStep1 = () => {
       if (!title) { setError('请填写活动名称'); return false; }
       if (!coverImage) { setError('请上传缩略图'); return false; }
@@ -456,6 +539,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
         awards_detail: JSON.stringify(awards),
         rules_detail: rulesDetail, // Kept for backward compatibility or extra rules
         scoring_dimensions: JSON.stringify(scoringDimensions),
+        sponsors_detail: JSON.stringify(sponsors),
         status: status
       };
 
@@ -489,7 +573,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
       }
       
       alert(initialData ? '活动修改成功！' : (status === 'draft' ? '草稿保存成功！' : '活动发布成功！'));
-      onClose();
+      handleClose();
     } catch (err: any) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.detail) {
@@ -506,23 +590,29 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   return (
     <div className="fixed inset-0 z-[210] flex items-center justify-center bg-black/80 backdrop-blur-md">
-      <div className="bg-surface border border-brand/20 card-brutal w-full max-w-5xl p-0 relative transform transition-all max-h-[90vh] flex flex-col">
+      <div 
+        ref={containerRef}
+        className="bg-surface border border-brand/20 card-brutal w-full max-w-5xl p-0 relative transform transition-all max-h-[90vh] flex flex-col"
+      >
         {/* Header */}
-        <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface/50">
-          <h2 className="text-2xl font-black text-ink uppercase tracking-tight flex items-center">
+        <div className="p-4 md:p-6 border-b border-brand/20 flex justify-between items-center bg-surface/50">
+          <h2 className="text-lg md:text-2xl font-black text-ink uppercase tracking-tight flex items-center">
             <span className="text-brand mr-2">//</span>
             {initialData ? (lang === 'zh' ? '编辑协议' : 'EDIT PROTOCOL') : (lang === 'zh' ? '发起行动' : 'INITIATE ACTION')}
-            <div className="ml-8 flex items-center space-x-2 text-sm font-mono">
+            <div className="ml-4 md:ml-8 flex items-center space-x-2 text-xs md:text-sm font-mono">
                 <span className={`px-2 py-1 ${currentStep === 1 ? 'bg-brand text-black' : 'text-gray-500'}`}>01 INFO</span>
                 <span className="text-gray-600">--</span>
                 <span className={`px-2 py-1 ${currentStep === 2 ? 'bg-brand text-black' : 'text-gray-500'}`}>02 DETAILS</span>
             </div>
           </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-brand text-xl">✕</button>
+          <button onClick={handleClose} className="text-gray-500 hover:text-brand text-xl">✕</button>
         </div>
 
         {/* Content */}
-        <div className="p-8 overflow-y-auto flex-1 bg-surface/50 scrollbar-thin scrollbar-thumb-brand/20 scrollbar-track-transparent">
+        <div 
+            ref={contentRef}
+            className="p-4 md:p-8 overflow-y-auto flex-1 bg-surface/50 scrollbar-thin scrollbar-thumb-brand/20 scrollbar-track-transparent"
+        >
             
             {/* AI Assistant Card - Prominent Entry */}
             <div className="mb-8 relative group overflow-hidden">
@@ -936,6 +1026,57 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                                     onChange={(e) => setNewDimension({...newDimension, description: e.target.value})}
                                 />
                                 <button onClick={addDimension} className="col-span-1 bg-brand text-black font-bold hover:bg-white">+</button>
+                            </div>
+                        </div>
+
+                        {/* Sponsors */}
+                        <div className="mt-8 pt-6 border-t border-brand/20">
+                            <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '赞助商 & 合作伙伴' : 'SPONSORS & PARTNERS'}</label>
+                            
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                                {sponsors.map((sponsor, idx) => (
+                                    <div key={idx} className="relative bg-white/5 border border-brand/10 p-3 group">
+                                        <div className="h-16 mb-2 flex items-center justify-center bg-black/30">
+                                            {sponsor.logo ? (
+                                                <img src={sponsor.logo} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
+                                            ) : (
+                                                <span className="text-gray-600 text-xs">NO LOGO</span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs font-bold text-ink truncate">{sponsor.name}</div>
+                                        <div className="text-[10px] text-gray-500 truncate">{sponsor.url}</div>
+                                        <button 
+                                            onClick={() => removeSponsor(idx)}
+                                            className="absolute top-1 right-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >✕</button>
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white/5 p-3 border border-brand/10">
+                                <div className="col-span-1 md:col-span-2">
+                                    <div className="relative border border-dashed border-brand/30 h-10 w-full bg-black/30 flex items-center justify-center hover:border-brand/60 cursor-pointer">
+                                        {newSponsor.logo ? (
+                                            <img src={newSponsor.logo} alt="Preview" className="h-full object-contain" />
+                                        ) : (
+                                            <span className="text-[10px] text-gray-500">LOGO</span>
+                                        )}
+                                        <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleSponsorLogoUpload} accept="image/*" />
+                                    </div>
+                                </div>
+                                <input 
+                                    className="col-span-1 md:col-span-4 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    placeholder={lang === 'zh' ? "赞助商名称" : "Sponsor Name"}
+                                    value={newSponsor.name}
+                                    onChange={(e) => setNewSponsor({...newSponsor, name: e.target.value})}
+                                />
+                                <input 
+                                    className="col-span-1 md:col-span-5 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    placeholder={lang === 'zh' ? "官网链接" : "Website URL"}
+                                    value={newSponsor.url}
+                                    onChange={(e) => setNewSponsor({...newSponsor, url: e.target.value})}
+                                />
+                                <button onClick={addSponsor} className="col-span-1 md:col-span-1 bg-brand text-black font-bold hover:bg-white">+</button>
                             </div>
                         </div>
                     </div>

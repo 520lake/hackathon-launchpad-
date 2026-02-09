@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import gsap from 'gsap';
 
 interface User {
   id: number;
@@ -21,10 +22,15 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchUsers();
+      if (containerRef.current) {
+        gsap.set(containerRef.current, { opacity: 0, scale: 0.95 });
+        gsap.to(containerRef.current, { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" });
+      }
     }
   }, [isOpen]);
 
@@ -75,14 +81,28 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-      <div className="w-full h-full p-8 flex flex-col bg-void">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm p-4">
+      <div 
+        ref={containerRef}
+        className="w-full max-w-7xl h-[85vh] flex flex-col bg-surface border border-brand/30 relative overflow-hidden shadow-[0_0_50px_rgba(212,163,115,0.15)]"
+      >
+        {/* Decorational Corner Accents */}
+        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-brand z-20 pointer-events-none"></div>
+
+        {/* Background Grid */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(212,163,115,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(212,163,115,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+
         {/* Header */}
-        <div className="flex justify-between items-center mb-8 bg-surface p-6 border border-brand shadow-[0_0_20px_rgba(212,163,115,0.1)]">
+        <div className="flex justify-between items-center bg-black/40 p-6 border-b border-brand/20 relative z-10">
           <div>
             <h1 className="text-3xl font-black text-white uppercase tracking-tighter flex items-center gap-3">
                 <span className="text-brand text-4xl">☠</span>
-                {lang === 'zh' ? '后台管理系统' : 'ADMIN CONSOLE'}
+                <span className="text-glitch" data-text={lang === 'zh' ? '后台管理系统' : 'ADMIN CONSOLE'}>
+                    {lang === 'zh' ? '后台管理系统' : 'ADMIN CONSOLE'}
+                </span>
             </h1>
             <p className="text-gray-500 mt-2 font-mono text-sm">
                 {lang === 'zh' ? '用户总数' : 'TOTAL USERS'}: <span className="text-brand font-bold">{users.length}</span>
@@ -90,18 +110,17 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
           </div>
           <button 
             onClick={onClose}
-            className="px-6 py-3 bg-white/10 hover:bg-red-600 hover:text-white text-gray-300 font-mono text-sm uppercase transition-colors border border-white/10"
+            className="px-6 py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500 transition-all font-mono text-sm uppercase tracking-wider"
           >
             {lang === 'zh' ? '退出管理' : 'EXIT CONSOLE'}
           </button>
         </div>
 
         {/* Content */}
-        <div className="flex-1 bg-surface border border-brand/20 shadow-lg overflow-hidden flex flex-col relative">
-          <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-brand to-transparent opacity-50"></div>
+        <div className="flex-1 overflow-hidden relative z-10 flex flex-col">
           {error && <div className="p-4 bg-red-900/20 text-red-500 border-b border-red-500/30 font-mono">{error}</div>}
           
-          <div className="overflow-x-auto flex-1 p-0">
+          <div className="overflow-x-auto flex-1 p-0 custom-scrollbar">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="border-b border-brand/20 bg-black/40">

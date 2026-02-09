@@ -20,15 +20,16 @@ license: Apache-2.0
 
 ## 🚀 最新更新 (What's New)
 
-**Version 2.7.0 (Visuals + Stability)**
+**Version 2.7.0 (AI Judging + Smart Dimensions)**
 
-1.  **🎨 视觉动效升级 (Visual Effects Upgrade)**:
-    -   **Fluid Gradient Cursor**: 落地页新增 "液态渐变跟随" 效果，AI 模块具备光流交互体验 (Canvas/WebGL)。
-    -   **Enhanced Glitch**: 修复并增强了主标题的 Cyberpunk 故障艺术效果，动态感更强。
-2.  **🐛 逻辑修复 (Bug Fixes)**:
-    -   **Registration Status**: 修复了活动报名状态显示异常的问题（如“报名截止”误显为“即将开始”），实现了更细粒度的时间轴比对逻辑。
-3.  **Stability**:
-    -   优化了 `HackathonDetailModal` 的边界条件判断，提升了未登录/未实名状态下的交互体验。
+1.  **⚡ AI 辅助评审 (AI-Assisted Judging)**:
+    -   **智能评分**: 评委终端集成 ModelScope AI Agent，可根据项目详情与自定义评分维度，自动生成建议分数与评语。
+    -   **多维考核**: 支持在创建活动时自定义复杂的评分维度（权重、细则），AI 能够理解并针对性打分。
+2.  **模拟实名认证 (Mock Verification)**:
+    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
+    -   一键绕过实名限制，快速测试“发起活动”全流程。
+3.  **UI/UX 优化**:
+    -   评审终端 (Judging Terminal) 升级，支持详细维度打分展示与 AI 交互。
 
 **Version 2.6.0 (Secure + Mock Auth)**
 
@@ -47,7 +48,7 @@ license: Apache-2.0
 ## ✨ 核心特性 (Key Features)
 
 *   **🤖 AI-Native**: 
-    -   基于 ModelScope (Qwen-Plus) 的活动一键策划、智能组队匹配与项目润色。
+    -   基于 ModelScope (Qwen-Plus) 的活动一键策划、智能组队匹配、项目润色与**AI 辅助评审**。
 *   **🎨 Brutalist Design**: 
     -   独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
 *   **🔄 Full Lifecycle**: 

@@ -1,5 +1,22 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import gsap from 'gsap';
+import AIResumeModal from './AIResumeModal';
+
+// Constants
+const CITY_OPTIONS = ['New York', 'London', 'Tokyo', 'San Francisco', 'Berlin', 'Singapore', 'Remote', 'Shanghai', 'Beijing', 'Hangzhou', 'Shenzhen'];
+const SKILL_OPTIONS = [
+  { value: 'frontend', label: 'Frontend' },
+  { value: 'backend', label: 'Backend' },
+  { value: 'fullstack', label: 'Full Stack' },
+  { value: 'design', label: 'UI/UX Design' },
+  { value: 'product', label: 'Product Mgmt' },
+  { value: 'ai', label: 'AI/LLM' },
+  { value: 'blockchain', label: 'Web3/Blockchain' },
+  { value: 'mobile', label: 'Mobile Dev' },
+  { value: 'data', label: 'Data Science' },
+  { value: 'devops', label: 'DevOps' },
+];
 
 interface Hackathon {
   id: number;
@@ -28,6 +45,8 @@ interface User {
   interests?: string;
   city?: string;
   phone?: string;
+  personality?: string;
+  bio?: string;
 }
 
 interface Project {
@@ -44,16 +63,19 @@ interface UserDashboardModalProps {
   onHackathonSelect: (id: number) => void;
   onVerifyClick: () => void;
   onUserUpdate?: () => void;
+  onTeamMatchClick?: () => void;
   lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, lang }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick, lang }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
   const [myProjects, setMyProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'projects' | 'profile'>('created');
+  const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
+  const [resume, setResume] = useState('');
   
   // Profile form
   const [nickname, setNickname] = useState('');
@@ -62,35 +84,48 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const [interests, setInterests] = useState('');
   const [city, setCity] = useState('');
   const [phone, setPhone] = useState('');
+  const [personality, setPersonality] = useState('');
+  const [bio, setBio] = useState('');
   const [savingProfile, setSavingProfile] = useState(false);
 
-  // Constants
-  const CITY_OPTIONS = [
-    '北京', '上海', '广州', '深圳', '杭州', '成都', '武汉', '南京', '西安', '重庆',
-    '天津', '苏州', '长沙', '郑州', '沈阳', '青岛', '大连', '厦门', '合肥', '福州',
-    '济南', '哈尔滨', '长春', '石家庄', '太原', '昆明', '贵阳', '南宁', '南昌', '海口',
-    '乌鲁木齐', '兰州', '银川', '西宁', '呼和浩特', '拉萨', '香港', '澳门', '台北', 'Overseas/海外'
-  ];
-
-  const SKILL_OPTIONS = [
-    { value: 'Full Stack', label: '全栈开发' },
-    { value: 'Frontend', label: '前端开发' },
-    { value: 'Backend', label: '后端开发' },
-    { value: 'Mobile', label: '移动端开发' },
-    { value: 'Data Analysis', label: '数据分析' },
-    { value: 'UI/UX', label: 'UI/UX' },
-    { value: 'Product Design', label: '产品设计' },
-    { value: 'Business Analysis', label: '商业分析' },
-    { value: 'Marketing', label: '市场营销' },
-    { value: 'Product Ops', label: '产品运营' },
-    { value: 'Other', label: '其他' }
-  ];
+  // Animation refs
+  const containerRef = useRef<HTMLDivElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
+  const sidebarRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isOpen) {
       fetchMyData();
+      
+      // Reset animations
+      if (containerRef.current) {
+        gsap.set(containerRef.current, { opacity: 0, scale: 0.95 });
+        gsap.to(containerRef.current, { 
+          opacity: 1, 
+          scale: 1, 
+          duration: 0.4, 
+          ease: "power3.out" 
+        });
+      }
+
+      if (sidebarRef.current) {
+        gsap.fromTo(sidebarRef.current.children,
+          { x: -20, opacity: 0 },
+          { x: 0, opacity: 1, duration: 0.4, stagger: 0.05, delay: 0.2, ease: "power2.out" }
+        );
+      }
     }
   }, [isOpen]);
+
+  // Tab change animation
+  useEffect(() => {
+    if (contentRef.current) {
+      gsap.fromTo(contentRef.current,
+        { opacity: 0, y: 10 },
+        { opacity: 1, y: 0, duration: 0.3, ease: "power2.out" }
+      );
+    }
+  }, [activeTab]);
 
   const fetchMyData = async () => {
     setLoading(true);
@@ -110,6 +145,8 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       setInterests(resUser.data.interests || '');
       setCity(resUser.data.city || '');
       setPhone(resUser.data.phone || '');
+      setPersonality(resUser.data.personality || '');
+      setBio(resUser.data.bio || '');
 
       // 1. 获取我创建的活动
       const resCreated = await axios.get('api/v1/hackathons/my', {
@@ -136,6 +173,37 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSaveResume = async (newBio: string, newSkills: string[]) => {
+    const skillsString = newSkills.join(',');
+    setBio(newBio);
+    setSkills(skillsString);
+    
+    setSavingProfile(true);
+    try {
+        const token = localStorage.getItem('token');
+        await axios.put('api/v1/users/me', {
+            nickname,
+            avatar_url: avatarUrl,
+            skills: skillsString,
+            interests,
+            city,
+            phone,
+            personality,
+            bio: newBio
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        alert(lang === 'zh' ? 'AI 简历已保存至个人资料！' : 'AI Resume saved to profile!');
+        setIsAIResumeOpen(false);
+        fetchMyData();
+    } catch (e) {
+        console.error(e);
+        alert(lang === 'zh' ? '保存失败' : 'Failed to save');
+    } finally {
+        setSavingProfile(false);
     }
   };
 
@@ -192,7 +260,9 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             skills,
             interests,
             city,
-            phone
+            phone,
+            personality,
+            bio
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -218,371 +288,378 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-      <div className="bg-void border border-brand shadow-[0_0_50px_rgba(0,0,0,0.5)] w-full max-w-4xl p-0 relative transform transition-all max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-surface">
-          <h2 className="text-2xl font-black text-white tracking-tight uppercase flex items-center gap-2">
-             <span className="text-brand">◈</span> {lang === 'zh' ? '个人中心' : 'USER DASHBOARD'}
-          </h2>
-          <button onClick={onClose} className="text-gray-500 hover:text-brand transition-colors text-xl">✕</button>
-        </div>
+    <div className="fixed inset-0 z-[150] bg-void/95 backdrop-blur-xl flex items-center justify-center p-4">
+      <div 
+        ref={containerRef} 
+        className="w-full max-w-6xl h-[85vh] bg-surface border border-brand/30 flex flex-col md:flex-row relative overflow-hidden shadow-[0_0_50px_rgba(212,163,115,0.15)]"
+      >
+        {/* Decorational Corner Accents */}
+        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-brand z-20 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-brand z-20 pointer-events-none"></div>
 
-        {/* User Info & Verification */}
-        {!loading && !user && (
-            <div className="px-6 py-6 bg-void border-b border-brand/20 text-center">
-                <p className="text-red-500 font-mono mb-2">
-                    {lang === 'zh' ? '无法加载用户信息' : 'FAILED TO LOAD USER INFO'}
-                </p>
-                <button 
-                    onClick={fetchMyData}
-                    className="text-brand hover:underline font-mono text-sm"
-                >
-                    {lang === 'zh' ? '点击重试' : 'RETRY'}
-                </button>
-            </div>
-        )}
-        
-        {user && user.is_verified && (
-            <div className="px-4 py-1 bg-green-900/30 text-green-400 text-xs font-bold border border-green-700 uppercase tracking-wider">
-                {lang === 'zh' ? '已实名认证' : 'VERIFIED ACCOUNT'}
-            </div>
-        )}
-        
-        {user && (
-            <div className="px-6 py-6 bg-void border-b border-brand/20 flex justify-between items-center">
+        {/* Sidebar */}
+        <div className="w-full md:w-72 bg-void/30 border-b md:border-b-0 md:border-r border-brand/20 flex flex-col relative z-10">
+          <div className="p-6 border-b border-brand/20">
+            <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic flex items-center gap-3 select-none">
+               <span className="text-brand text-3xl">◈</span> 
+               <span className="text-glitch" data-text={lang === 'zh' ? '个人中心' : 'DASHBOARD'}>
+                 {lang === 'zh' ? '个人中心' : 'DASHBOARD'}
+               </span>
+            </h2>
+            {user && (
+              <div className="mt-6 flex items-center gap-3">
+                <div className="w-12 h-12 border-2 border-brand/50 p-0.5">
+                   {user.avatar_url ? (
+                     <img src={user.avatar_url} alt="Avatar" className="w-full h-full object-cover grayscale hover:grayscale-0 transition-all" />
+                   ) : (
+                     <div className="w-full h-full bg-brand/20 flex items-center justify-center text-brand font-bold text-xl">
+                       {user.nickname ? user.nickname[0].toUpperCase() : 'U'}
+                     </div>
+                   )}
+                </div>
                 <div>
-                    <div className="font-bold text-lg text-white font-mono">{user.email}</div>
-                    <div className="text-xs text-brand/60 font-mono mt-1">ID: {user.id}</div>
+                   <div className="text-white font-bold font-mono text-sm truncate max-w-[140px]">{user.nickname || user.email.split('@')[0]}</div>
+                   <div className="text-xs text-brand/80 font-mono flex items-center gap-1 mt-1">
+                      {user.is_verified ? (
+                        <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> VERIFIED</>
+                      ) : (
+                        <><span className="w-2 h-2 bg-red-500 rounded-full"></span> UNVERIFIED</>
+                      )}
+                   </div>
                 </div>
-                <div className="flex items-center gap-3">
-                    <span className={`px-3 py-1 text-xs font-mono font-bold uppercase tracking-wider border ${
-                        user.is_verified 
-                        ? 'bg-brand/20 text-brand border-brand' 
-                        : 'bg-red-500/10 text-red-500 border-red-500/30'
-                    }`}>
-                        {user.is_verified 
-                            ? (lang === 'zh' ? '已实名认证' : 'VERIFIED') 
-                            : (lang === 'zh' ? '未认证' : 'UNVERIFIED')
-                        }
-                    </span>
-                    {!user.is_verified && (
-                        <div className="flex gap-2">
-                            <button 
-                                onClick={handleMockVerify}
-                                className="px-4 py-1 bg-green-600 text-white text-xs font-bold hover:bg-green-500 transition uppercase tracking-wider border border-green-400 animate-pulse"
-                                title="Click to instantly verify (Demo)"
-                            >
-                                {lang === 'zh' ? '👉 点此模拟认证' : '👉 CLICK TO MOCK VERIFY'}
-                            </button>
-                            <button 
-                                onClick={handleVerify}
-                                className="px-4 py-1 bg-brand text-black text-xs font-bold hover:bg-white transition uppercase tracking-wider"
-                            >
-                                {lang === 'zh' ? '立即认证' : 'VERIFY NOW'}
-                            </button>
-                        </div>
-                    )}
-                </div>
-            </div>
-        )}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar" ref={sidebarRef}>
+            {[
+              { id: 'created', label: lang === 'zh' ? '我发起的' : 'CREATED' },
+              { id: 'joined', label: lang === 'zh' ? '我参与的' : 'JOINED' },
+              { id: 'projects', label: lang === 'zh' ? '我的项目' : 'PROJECTS' },
+              { id: 'profile', label: lang === 'zh' ? '资料设置' : 'PROFILE' },
+            ].map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
+                className={`w-full text-left px-4 py-3 font-mono text-sm tracking-wider transition-all duration-300 border-l-2 relative overflow-hidden group ${
+                  activeTab === tab.id 
+                    ? 'border-brand bg-brand/10 text-white pl-6' 
+                    : 'border-transparent text-gray-500 hover:text-white hover:pl-6 hover:border-brand/50'
+                }`}
+              >
+                <span className="relative z-10 group-hover:tracking-widest transition-all duration-300 font-bold">
+                  {activeTab === tab.id && '> '} {tab.label}
+                </span>
+                {activeTab === tab.id && <div className="absolute inset-0 bg-brand/5 z-0 animate-pulse"></div>}
+              </button>
+            ))}
+          </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-brand/20 bg-surface">
-          <button
-            onClick={() => setActiveTab('created')}
-            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
-              activeTab === 'created' 
-                ? 'text-brand border-b-2 border-brand bg-brand/5' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {lang === 'zh' ? '我发起的' : 'INITIATED'}
-          </button>
-          <button
-            onClick={() => setActiveTab('joined')}
-            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
-              activeTab === 'joined' 
-                ? 'text-brand border-b-2 border-brand bg-brand/5' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {lang === 'zh' ? '我参与的' : 'JOINED'}
-          </button>
-          <button
-            onClick={() => setActiveTab('projects')}
-            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
-              activeTab === 'projects' 
-                ? 'text-brand border-b-2 border-brand bg-brand/5' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {lang === 'zh' ? '我的项目' : 'PROJECTS'}
-          </button>
-          <button
-            onClick={() => setActiveTab('profile')}
-            className={`flex-1 py-4 text-center font-bold font-mono text-sm uppercase tracking-wider transition-all ${
-              activeTab === 'profile' 
-                ? 'text-brand border-b-2 border-brand bg-brand/5' 
-                : 'text-gray-500 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            {lang === 'zh' ? '个人资料' : 'PROFILE'}
-          </button>
+          <div className="p-4 border-t border-brand/20">
+             <button onClick={onClose} className="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500 transition-all font-mono text-sm uppercase tracking-wider">
+                {lang === 'zh' ? '关闭系统' : 'CLOSE SYSTEM'}
+             </button>
+          </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto flex-1 bg-void custom-scrollbar">
-          {loading ? (
-            <div className="text-center py-10">
-              <div className="inline-block animate-spin w-8 h-8 border-4 border-brand border-t-transparent rounded-full"></div>
-            </div>
-          ) : (
-            <>
-          {activeTab === 'profile' && (
-            <div className="space-y-8 max-w-2xl mx-auto py-4">
-                <div className="flex items-center gap-6 mb-8">
-                    <div className="w-20 h-20 bg-black/50 border border-brand/30 rounded-full flex items-center justify-center overflow-hidden">
-                        {avatarUrl ? (
-                            <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
-                        ) : (
-                            <span className="text-4xl">👤</span>
-                        )}
-                    </div>
-                    <div className="flex-1 space-y-4">
-                        <div className="group">
-                            <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                                {lang === 'zh' ? '昵称' : 'NICKNAME'}
-                            </label>
-                            <input
-                                type="text"
-                                value={nickname}
-                                onChange={(e) => setNickname(e.target.value)}
-                                placeholder={lang === 'zh' ? "输入昵称" : "Enter nickname"}
-                                className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
-                            />
-                        </div>
-                        <div className="group">
-                             <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                                {lang === 'zh' ? '头像链接' : 'AVATAR URL'}
-                            </label>
-                            <input
-                                type="text"
-                                value={avatarUrl}
-                                onChange={(e) => setAvatarUrl(e.target.value)}
-                                placeholder="https://..."
-                                className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
-                            />
-                        </div>
-                    </div>
-                </div>
+        {/* Main Content */}
+        <div className="flex-1 bg-surface relative overflow-hidden flex flex-col">
+          {/* Background Grid */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(212,163,115,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(212,163,115,0.03)_1px,transparent_1px)] bg-[size:20px_20px] pointer-events-none"></div>
+          
+          <div className="flex-1 overflow-y-auto p-6 md:p-10 relative z-10 custom-scrollbar" ref={contentRef}>
+            
+            {/* PROFILE TAB */}
+            {activeTab === 'profile' && (
+               <div className="space-y-8 max-w-3xl mx-auto pb-10">
+                  <div className="flex justify-between items-center border-b border-brand/20 pb-4">
+                     <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">
+                       {lang === 'zh' ? '个人资料' : 'PROFILE SETTINGS'}
+                     </h3>
+                     <button 
+                       onClick={() => setIsAIResumeOpen(true)}
+                       className="px-4 py-2 bg-brand text-void font-bold hover:bg-white hover:text-black transition-all uppercase text-sm flex items-center gap-2 clip-path-polygon"
+                     >
+                       <span>✨</span> {lang === 'zh' ? 'AI 简历生成' : 'AI RESUME BUILDER'}
+                     </button>
+                  </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div className="group">
-                        <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                            {lang === 'zh' ? '城市' : 'CITY'}
-                        </label>
-                        <select
-                            value={city}
-                            onChange={(e) => setCity(e.target.value)}
-                            className="w-full bg-black/50 border border-gray-700 text-white px-4 py-3 focus:outline-none focus:border-brand font-mono transition-colors appearance-none"
-                        >
-                            <option value="">{lang === 'zh' ? '选择城市...' : 'Select City...'}</option>
-                            {CITY_OPTIONS.map(c => (
-                                <option key={c} value={c}>{c}</option>
-                            ))}
-                        </select>
-                    </div>
-                    <div className="group">
-                        <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                            {lang === 'zh' ? '手机号' : 'PHONE'}
-                        </label>
-                        <input
-                            type="text"
-                            value={phone}
-                            onChange={(e) => setPhone(e.target.value)}
-                            placeholder={lang === 'zh' ? "输入手机号" : "Enter phone number"}
-                            className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
-                        />
-                    </div>
-                </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div className="group">
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '昵称' : 'NICKNAME'}</label>
+                          <input
+                              type="text"
+                              value={nickname}
+                              onChange={(e) => setNickname(e.target.value)}
+                              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
+                          />
+                      </div>
+                      <div className="group">
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '头像链接' : 'AVATAR URL'}</label>
+                          <input
+                              type="text"
+                              value={avatarUrl}
+                              onChange={(e) => setAvatarUrl(e.target.value)}
+                              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
+                          />
+                      </div>
+                      <div className="group">
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '城市' : 'CITY'}</label>
+                          <select
+                              value={city}
+                              onChange={(e) => setCity(e.target.value)}
+                              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none appearance-none"
+                          >
+                              <option value="">{lang === 'zh' ? '选择城市...' : 'Select City...'}</option>
+                              {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                          </select>
+                      </div>
+                      <div className="group">
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '手机号' : 'PHONE'}</label>
+                          <input
+                              type="text"
+                              value={phone}
+                              onChange={(e) => setPhone(e.target.value)}
+                              className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
+                          />
+                      </div>
+                  </div>
 
-                <div className="group">
-                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                        {lang === 'zh' ? '专业能力 (多选)' : 'PROFESSIONAL SKILLS (MULTI-SELECT)'}
-                    </label>
-                    <div className="flex flex-wrap gap-2">
-                        {SKILL_OPTIONS.map((opt) => {
-                            const isSelected = skills.split(',').map(s => s.trim()).includes(opt.value);
-                            return (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => toggleSkill(opt.value)}
-                                    className={`px-3 py-1 text-xs font-mono font-bold uppercase border transition-all ${
-                                        isSelected 
-                                            ? 'bg-brand text-black border-brand' 
-                                            : 'bg-black/50 text-gray-400 border-gray-700 hover:border-brand hover:text-brand'
-                                    }`}
-                                >
-                                    {lang === 'zh' ? opt.label : opt.value}
-                                </button>
-                            );
-                        })}
-                    </div>
-                    <input
-                        type="hidden"
-                        value={skills}
-                    />
-                </div>
-                <div className="group">
-                    <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                        {lang === 'zh' ? '兴趣领域 (自定义标签)' : 'INTEREST AREAS (CUSTOM TAGS)'}
-                    </label>
-                    <input
-                        type="text"
-                        value={interests}
-                        onChange={(e) => setInterests(e.target.value)}
-                        placeholder={lang === 'zh' ? "例如: Web3, AI, DeFi (用逗号分隔)" : "e.g., Web3, AI, DeFi (comma separated)"}
-                        className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors placeholder-gray-700"
-                    />
-                    <p className="text-xs text-gray-500 mt-2 font-mono">
-                        {lang === 'zh' ? '用于活动推荐和组队匹配' : 'Used for event recommendation and team matching'}
-                    </p>
-                </div>
-                
-                <button
-                    onClick={handleSaveProfile}
-                    disabled={savingProfile}
-                    className="w-full px-6 py-4 bg-brand hover:bg-white text-black font-black uppercase tracking-widest text-sm transition-all disabled:opacity-50 mt-8 clip-path-polygon"
-                >
-                    {savingProfile ? (lang === 'zh' ? '保存中...' : 'SAVING...') : (lang === 'zh' ? '保存资料' : 'SAVE PROFILE')}
-                </button>
-            </div>
-          )}
+                  <div className="group">
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '性格 (MBTI)' : 'PERSONALITY (MBTI)'}</label>
+                      <input
+                          type="text"
+                          value={personality}
+                          onChange={(e) => setPersonality(e.target.value)}
+                          placeholder="INTJ, ENFP..."
+                          className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
+                      />
+                  </div>
 
-              {activeTab === 'created' && (
-                <div className="space-y-4">
-                  {myCreated.length === 0 ? (
-                    <div className="text-center py-20 border border-dashed border-gray-800">
-                        <p className="text-gray-600 font-mono text-sm uppercase">
-                            {lang === 'zh' ? '你还没有发起过任何活动' : 'NO HACKATHONS INITIATED'}
-                        </p>
-                    </div>
-                  ) : (
-                    myCreated.map(h => (
-                      <div 
-                        key={h.id} 
-                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
-                        onClick={() => {
-                          onHackathonSelect(h.id);
-                          onClose();
-                        }}
-                      >
-                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <div className="text-4xl font-black text-brand">INIT</div>
-                        </div>
-                        <div className="flex justify-between items-start relative z-10">
-                          <div>
-                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{h.title}</h3>
-                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
-                                {lang === 'zh' ? '开始时间' : 'START'}: <span className="text-gray-300">{new Date(h.start_date).toLocaleDateString()}</span>
-                            </p>
+                  <div className="group">
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '个人简介' : 'BIO / MANIFESTO'}</label>
+                      <textarea
+                          value={bio}
+                          onChange={(e) => setBio(e.target.value)}
+                          rows={4}
+                          className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none resize-none"
+                      />
+                  </div>
+
+                  <div className="group">
+                      <label className="block text-xs font-bold text-brand mb-3 uppercase tracking-wider font-mono">{lang === 'zh' ? '专业技能' : 'SKILL MATRIX'}</label>
+                      <div className="flex flex-wrap gap-2">
+                          {SKILL_OPTIONS.map((opt) => {
+                              const isSelected = skills.split(',').map(s => s.trim()).includes(opt.value);
+                              return (
+                                  <button
+                                      key={opt.value}
+                                      onClick={() => toggleSkill(opt.value)}
+                                      className={`px-3 py-1.5 text-xs font-mono font-bold uppercase border transition-all ${
+                                          isSelected 
+                                              ? 'bg-brand text-black border-brand shadow-[2px_2px_0px_0px_rgba(255,255,255,0.2)]' 
+                                              : 'bg-black/50 text-gray-500 border-gray-800 hover:border-brand hover:text-brand'
+                                      }`}
+                                  >
+                                      {lang === 'zh' ? opt.label : opt.label}
+                                  </button>
+                              );
+                          })}
+                      </div>
+                  </div>
+
+                  <div className="group">
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '兴趣标签' : 'INTEREST TAGS'}</label>
+                      <input
+                          type="text"
+                          value={interests}
+                          onChange={(e) => setInterests(e.target.value)}
+                          placeholder="Web3, AI, DeFi..."
+                          className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
+                      />
+                  </div>
+
+                  <button
+                      onClick={handleSaveProfile}
+                      disabled={savingProfile}
+                      className="w-full py-4 bg-brand hover:bg-white text-black font-black uppercase tracking-[0.2em] text-sm transition-all disabled:opacity-50 mt-4 border border-brand relative overflow-hidden group"
+                  >
+                      <span className="relative z-10">{savingProfile ? (lang === 'zh' ? '保存中...' : 'SAVING...') : (lang === 'zh' ? '保存资料' : 'SAVE PROFILE')}</span>
+                      <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0"></div>
+                  </button>
+
+                   {/* AI Team Match Entry */}
+                  <div className="mt-8 p-6 border border-brand/30 bg-brand/5 relative overflow-hidden group hover:bg-brand/10 transition-colors cursor-pointer" onClick={() => {
+                        if (onTeamMatchClick) {
+                            // Keep dashboard open
+                            onTeamMatchClick();
+                        }
+                    }}>
+                      <div className="absolute top-0 right-0 p-2 opacity-50 text-4xl group-hover:scale-110 transition-transform">⚡</div>
+                      <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-tight flex items-center gap-2">
+                          {lang === 'zh' ? '寻找神队友？' : 'LOOKING FOR TEAMMATES?'}
+                          <span className="text-xs bg-brand text-black px-2 py-0.5 rounded-sm">AI POWERED</span>
+                      </h3>
+                      <p className="text-sm text-gray-400 font-mono">
+                          {lang === 'zh' 
+                              ? '使用 AI 根据你的性格和技能匹配最佳队友。' 
+                              : 'Use AI to match the best teammates based on your personality and skills.'}
+                      </p>
+                  </div>
+               </div>
+            )}
+
+            {/* CREATED TAB */}
+            {activeTab === 'created' && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
+                  {lang === 'zh' ? '我发起的活动' : 'INITIATED HACKATHONS'}
+                </h3>
+                {myCreated.length === 0 ? (
+                  <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
+                      <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
+                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                      </p>
+                  </div>
+                ) : (
+                  myCreated.map(h => (
+                    <div 
+                      key={h.id} 
+                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
+                      onClick={() => {
+                        onHackathonSelect(h.id);
+                        onClose();
+                      }}
+                    >
+                      <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                          <div className="text-6xl font-black text-brand tracking-tighter">INIT</div>
+                      </div>
+                      <div className="flex justify-between items-start relative z-10">
+                        <div>
+                          <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{h.title}</h3>
+                          <div className="flex items-center gap-4 mt-3">
+                             <p className="text-xs text-gray-500 font-mono uppercase">
+                                {lang === 'zh' ? '开始时间' : 'START'}: <span className="text-brand">{new Date(h.start_date).toLocaleDateString()}</span>
+                             </p>
+                             <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                             <p className="text-xs text-gray-500 font-mono uppercase">
+                                {lang === 'zh' ? '状态' : 'STATUS'}: <span className="text-white">{h.status}</span>
+                             </p>
                           </div>
-                          <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">
-                            {h.status}
-                          </span>
+                        </div>
+                        <div className="w-10 h-10 border border-brand/30 flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-black transition-all">
+                           ➜
                         </div>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'joined' && (
-                <div className="space-y-4">
-                  {myJoined.length === 0 ? (
-                    <div className="text-center py-20 border border-dashed border-gray-800">
-                        <p className="text-gray-600 font-mono text-sm uppercase">
-                            {lang === 'zh' ? '你还没有参与任何活动' : 'NO HACKATHONS JOINED'}
-                        </p>
                     </div>
-                  ) : (
-                    myJoined.map(e => (
-                      <div 
-                        key={e.id} 
-                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
-                        onClick={() => {
-                          onHackathonSelect(e.hackathon.id);
-                          onClose();
-                        }}
-                      >
-                         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <div className="text-4xl font-black text-white">JOIN</div>
-                        </div>
-                        <div className="flex justify-between items-start relative z-10">
-                          <div>
-                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
-                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
-                                {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-gray-300">{new Date(e.joined_at).toLocaleDateString()}</span>
-                            </p>
-                          </div>
-                          <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border ${
-                            e.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
-                            e.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
-                            'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
-                          }`}>
-                            {e.status === 'pending' 
-                                ? (lang === 'zh' ? '审核中' : 'PENDING') 
-                                : e.status === 'approved' 
-                                    ? (lang === 'zh' ? '已通过' : 'APPROVED') 
-                                    : (lang === 'zh' ? '已拒绝' : 'REJECTED')
-                            }
-                          </span>
-                        </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* JOINED TAB */}
+            {activeTab === 'joined' && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
+                  {lang === 'zh' ? '我参与的活动' : 'JOINED HACKATHONS'}
+                </h3>
+                {myJoined.length === 0 ? (
+                  <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
+                      <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
+                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                      </p>
+                  </div>
+                ) : (
+                  myJoined.map(e => (
+                    <div 
+                      key={e.id} 
+                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
+                      onClick={() => {
+                        onHackathonSelect(e.hackathon.id);
+                        onClose();
+                      }}
+                    >
+                       <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                          <div className="text-6xl font-black text-white tracking-tighter">JOIN</div>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-
-              {activeTab === 'projects' && (
-                <div className="space-y-4">
-                  {myProjects.length === 0 ? (
-                    <div className="text-center py-20 border border-dashed border-gray-800">
-                        <p className="text-gray-600 font-mono text-sm uppercase">
-                            {lang === 'zh' ? '你还没有提交任何项目' : 'NO PROJECTS SUBMITTED'}
-                        </p>
-                    </div>
-                  ) : (
-                    myProjects.map(p => (
-                      <div 
-                        key={p.id} 
-                        className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden"
-                      >
-                         <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
-                            <div className="text-4xl font-black text-brand">PROJ</div>
+                      <div className="flex justify-between items-start relative z-10">
+                        <div>
+                          <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
+                          <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
+                              {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-gray-300">{new Date(e.joined_at).toLocaleDateString()}</span>
+                          </p>
                         </div>
-                        <div className="flex justify-between items-start relative z-10">
-                          <div>
-                            <h3 className="font-bold text-lg text-white font-mono group-hover:text-brand transition-colors">{p.title}</h3>
-                            <p className="text-sm text-gray-400 mt-1 line-clamp-2">{p.description}</p>
-                            <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
+                        <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border ${
+                          e.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
+                          e.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
+                          'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
+                        }`}>
+                          {e.status === 'pending' 
+                              ? (lang === 'zh' ? '审核中' : 'PENDING') 
+                              : e.status === 'approved' 
+                                  ? (lang === 'zh' ? '已通过' : 'APPROVED') 
+                                  : (lang === 'zh' ? '已拒绝' : 'REJECTED')
+                          }
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+
+            {/* PROJECTS TAB */}
+            {activeTab === 'projects' && (
+              <div className="space-y-4">
+                <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
+                  {lang === 'zh' ? '我的项目' : 'MY PROJECTS'}
+                </h3>
+                {myProjects.length === 0 ? (
+                  <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
+                      <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
+                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                      </p>
+                  </div>
+                ) : (
+                  myProjects.map(p => (
+                    <div 
+                      key={p.id} 
+                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden"
+                    >
+                       <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                          <div className="text-6xl font-black text-brand tracking-tighter">PROJ</div>
+                      </div>
+                      <div className="flex justify-between items-start relative z-10">
+                        <div>
+                          <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{p.title}</h3>
+                          <p className="text-sm text-gray-400 mt-2 line-clamp-2 max-w-xl">{p.description}</p>
+                          <div className="flex items-center gap-4 mt-4">
+                            <p className="text-xs text-gray-500 font-mono uppercase">
                                 {lang === 'zh' ? '提交时间' : 'CREATED'}: <span className="text-gray-300">{new Date(p.created_at).toLocaleDateString()}</span>
                             </p>
                           </div>
-                          <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">
-                            {p.status}
-                          </span>
                         </div>
+                        <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">
+                          {p.status}
+                        </span>
                       </div>
-                    ))
-                  )}
-                </div>
-              )}
-            </>
-          )}
+                    </div>
+                  ))
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
+
+      <AIResumeModal
+        isOpen={isAIResumeOpen}
+        onClose={() => setIsAIResumeOpen(false)}
+        lang={lang}
+        onSave={handleSaveResume}
+      />
     </div>
   );
 }

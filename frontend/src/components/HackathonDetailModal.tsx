@@ -1,8 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
+import gsap from 'gsap';
 import SubmitProjectModal from './SubmitProjectModal';
 import JudgingModal from './JudgingModal';
 import ResultPublishModal from './ResultPublishModal';
+import AIResumeModal from './AIResumeModal';
 import ReactMarkdown from 'react-markdown';
 
 interface Hackathon {
@@ -32,6 +34,7 @@ interface Hackathon {
   scoring_dimensions?: string; // JSON
   resource_detail?: string;
   results_detail?: string; // JSON
+  sponsors_detail?: string; // JSON
   status: string;
   organizer_id: number;
 }
@@ -46,6 +49,20 @@ interface User {
   full_name?: string;
   nickname?: string;
   avatar_url?: string;
+}
+
+interface JudgeUser {
+  id: number;
+  full_name?: string;
+  nickname?: string;
+  avatar_url?: string;
+  bio?: string;
+}
+
+interface SponsorItem {
+  name: string;
+  logo: string;
+  url: string;
 }
 
 interface TeamMember {
@@ -82,10 +99,11 @@ interface HackathonDetailModalProps {
   onClose: () => void;
   hackathonId: number | null;
   onEdit?: (hackathon: Hackathon) => void;
+  onTeamMatch?: () => void;
   lang: 'zh' | 'en';
 }
 
-export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit, lang }: HackathonDetailModalProps) {
+export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit, onTeamMatch, lang }: HackathonDetailModalProps) {
   const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [myProject, setMyProject] = useState<Project | null>(null);
@@ -95,22 +113,29 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   
+  const containerRef = useRef<HTMLDivElement>(null);
+
   // Data for tabs
   const [teams, setTeams] = useState<Team[]>([]);
+  const [participants, setParticipants] = useState<any[]>([]);
   const [galleryProjects, setGalleryProjects] = useState<Project[]>([]);
   
   // Modals
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [isJudgingOpen, setIsJudgingOpen] = useState(false);
   const [isResultPublishOpen, setIsResultPublishOpen] = useState(false);
+  const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
   const [isJudge, setIsJudge] = useState(false);
   const [showContact, setShowContact] = useState(false);
+  const [registerLoading, setRegisterLoading] = useState(false);
 
   // Parsed Data
   const [awards, setAwards] = useState<any[]>([]);
   const [contact, setContact] = useState<{text?: string, image?: string} | any[] | null>(null);
   const [scoring, setScoring] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
+  const [judges, setJudges] = useState<JudgeUser[]>([]);
+  const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
 
   // Action Button State
   const [btnState, setBtnState] = useState<{text: string, action: () => void, disabled: boolean, hint?: string}>({ text: '', action: () => {}, disabled: false });
@@ -120,7 +145,9 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     { id: 'schedule', label: lang === 'zh' ? '活动日程' : 'Schedule' },
     { id: 'requirements', label: lang === 'zh' ? '参赛要求' : 'Requirements' },
     { id: 'rules', label: lang === 'zh' ? '评审规则' : 'Rules' },
+    { id: 'judges', label: lang === 'zh' ? '评委阵容' : 'Judges' },
     { id: 'awards', label: lang === 'zh' ? '奖项设置' : 'Awards' },
+    { id: 'sponsors', label: lang === 'zh' ? '合作伙伴' : 'Sponsors' },
     { id: 'resources', label: lang === 'zh' ? '资源与支持' : 'Resources' },
   ];
 
@@ -147,13 +174,24 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       checkUser();
       fetchHackathon();
       setActiveTab('overview');
+
+      // Animation
+      if (containerRef.current) {
+        gsap.fromTo(containerRef.current, 
+          { opacity: 0, scale: 0.95 },
+          { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }
+        );
+      }
     }
   }, [isOpen, hackathonId]);
 
   // Fetch Tab Data
   useEffect(() => {
       if (!isOpen || !hackathonId) return;
-      if (activeTab === 'participants') fetchTeams();
+      if (activeTab === 'participants') {
+          fetchTeams();
+          fetchGallery(); // Fetch for stats
+      }
       if (activeTab === 'gallery') fetchGallery();
   }, [activeTab, isOpen, hackathonId]);
 
@@ -187,6 +225,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         try { if (h.contact_info) setContact(typeof h.contact_info === 'string' ? JSON.parse(h.contact_info) : h.contact_info); } catch(e) { setContact(null); }
         try { if (h.scoring_dimensions) setScoring(typeof h.scoring_dimensions === 'string' ? JSON.parse(h.scoring_dimensions) : h.scoring_dimensions); } catch(e) { setScoring([]); }
         try { if (h.results_detail) setResults(typeof h.results_detail === 'string' ? JSON.parse(h.results_detail) : h.results_detail); } catch(e) { setResults([]); }
+        try { if (h.sponsors_detail) setSponsors(typeof h.sponsors_detail === 'string' ? JSON.parse(h.sponsors_detail) : h.sponsors_detail); } catch(e) { setSponsors([]); }
+
+        // Fetch Judges
+        try {
+            const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`);
+            setJudges(resJudges.data);
+        } catch(e) { setJudges([]); }
 
         // Fetch User Data if logged in
         const token = localStorage.getItem('token');
@@ -233,6 +278,10 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       try {
           const res = await axios.get(`api/v1/teams?hackathon_id=${hackathonId}`);
           setTeams(res.data);
+          
+          // Fetch Individual Participants
+          const resPart = await axios.get(`api/v1/enrollments/public/${hackathonId}`);
+          setParticipants(resPart.data);
       } catch (e) { console.error(e); }
   };
 
@@ -247,14 +296,31 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const handleRegister = async () => {
     if (!currentUserId) { alert(lang === 'zh' ? '请先登录' : 'Please login first'); return; }
     if (!isVerified) { alert(lang === 'zh' ? '请先完成实名认证' : 'Please verify your identity first'); return; }
+    
+    setRegisterLoading(true);
     try {
         await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
-        alert(lang === 'zh' ? '报名成功！' : 'Registration successful!');
-        fetchHackathon();
+        
+        // Success Logic
+        await fetchHackathon();
+        
+        // Ask user next steps
+        if (confirm(lang === 'zh' 
+            ? '🎉 报名成功！\n\n您想要现在生成一份 AI 简历，以便更好地寻找队友吗？' 
+            : '🎉 Registration Successful!\n\nDo you want to generate an AI Resume to find teammates easier?')) {
+            setIsAIResumeOpen(true);
+        } else if (confirm(lang === 'zh'
+            ? '那您想要现在尝试 AI 组队匹配吗？'
+            : 'Do you want to try AI Team Match now?')) {
+            onTeamMatch && onTeamMatch();
+        }
+        
     } catch (e: any) {
         alert(e.response?.data?.detail || (lang === 'zh' ? '报名失败' : 'Registration failed'));
+    } finally {
+        setRegisterLoading(false);
     }
   };
 
@@ -338,7 +404,10 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         if (!isVerified) {
              return <button onClick={() => alert(lang === 'zh' ? '请前往个人中心完成实名认证' : 'Please Verify Identity')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
         }
-        return <button onClick={handleRegister} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
+        return <button onClick={handleRegister} disabled={registerLoading} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50 flex items-center justify-center gap-2">
+            {registerLoading && <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />}
+            {lang === 'zh' ? '立即报名' : 'REGISTER NOW'}
+        </button>;
     }
 
     // Enrolled
@@ -375,12 +444,39 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       return null;
   };
 
+  const handleSaveResume = async (bio: string, skills: string[]) => {
+      try {
+          const token = localStorage.getItem('token');
+          if (!token) {
+              alert(lang === 'zh' ? '请先登录' : 'Please login first');
+              return;
+          }
+          
+          await axios.put('/api/v1/users/me', {
+              bio,
+              skills: JSON.stringify(skills)
+          }, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          alert(lang === 'zh' ? '个人资料已更新！' : 'Profile Updated!');
+          setIsAIResumeOpen(false);
+          // Refresh participants list if we are in that tab
+          if (activeTab === 'participants') {
+              fetchHackathon();
+          }
+      } catch (e) {
+          console.error(e);
+          alert(lang === 'zh' ? '保存失败' : 'Failed to save profile');
+      }
+  };
+
   if (!isOpen || !hackathonId) return null;
 
   const prizeInfo = hackathon ? getPrizeInfo(hackathon.awards_detail) : null;
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-black/90 backdrop-blur-md p-0 md:p-8">
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md p-0">
       {/* Sub Modals */}
       <SubmitProjectModal 
         isOpen={isSubmitOpen} 
@@ -403,8 +499,20 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         hackathonId={hackathonId}
         lang={lang}
       />
+      <AIResumeModal
+        isOpen={isAIResumeOpen}
+        onClose={() => setIsAIResumeOpen(false)}
+        lang={lang}
+        onSave={handleSaveResume}
+      />
 
-      <div className="bg-surface w-full max-w-7xl h-[95vh] flex flex-col relative border border-brand/30 shadow-2xl overflow-hidden">
+      <div ref={containerRef} className="bg-surface w-full h-full flex flex-col relative border-none shadow-none overflow-hidden">
+        {/* Navigation Bar */}
+        <div className="absolute top-0 left-0 z-50 flex">
+            <button onClick={onClose} className="p-3 flex items-center gap-2 text-white bg-black/50 hover:bg-brand hover:text-black transition-colors font-mono text-sm uppercase tracking-wider font-bold shadow-lg backdrop-blur-sm border-r border-b border-brand/20">
+                <span>←</span> {lang === 'zh' ? '全部活动' : 'ALL HACKATHONS'}
+            </button>
+        </div>
         {/* Close Button */}
         <button onClick={onClose} className="absolute top-0 right-0 z-50 p-3 bg-brand text-black hover:bg-white transition-colors font-mono font-bold">✕</button>
 
@@ -483,7 +591,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                     {[
                         { id: 'overview', label: lang === 'zh' ? '活动详情' : 'OVERVIEW' },
                         { id: 'my_project', label: lang === 'zh' ? '我的项目' : 'MY PROJECT' },
-                        { id: 'participants', label: lang === 'zh' ? '参赛人员' : 'PARTICIPANTS' },
+                        { id: 'participants', label: lang === 'zh' ? '社区 & 组队' : 'COMMUNITY' },
                         { id: 'gallery', label: lang === 'zh' ? '项目展示' : 'GALLERY' },
                         { id: 'results', label: lang === 'zh' ? '评审结果' : 'RESULTS' },
                     ].map(tab => (
@@ -509,17 +617,18 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                 {/* Tab Content */}
                 <div className="flex-1 overflow-hidden relative bg-surface">
-                    <div className="absolute inset-0 overflow-y-auto p-6 md:p-8 scrollbar-thin">
+                    <div className="absolute inset-0 overflow-y-auto p-6 md:p-12 pb-32 scrollbar-thin">
                         
                         {/* OVERVIEW */}
                         {activeTab === 'overview' && (
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-8 max-w-7xl mx-auto">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
                                 {/* Left Sidebar - TOC */}
                                 <div className="hidden md:block col-span-1">
-                                    <div className="sticky top-8 space-y-1 border-l-2 border-white/10 pl-4">
+                                    <div className="sticky top-8 space-y-2 border-l border-white/10 pl-6">
+                                        <div className="text-xs font-mono text-gray-500 mb-4 uppercase tracking-widest">Navigation</div>
                                         {sections.map(s => (
                                             <button key={s.id} onClick={() => scrollToSection(s.id)} 
-                                                className="block text-sm text-gray-400 hover:text-brand hover:border-l-2 hover:border-brand -ml-[18px] pl-4 py-1.5 transition-all text-left w-full">
+                                                className="block text-sm text-gray-400 hover:text-brand hover:translate-x-1 transition-all text-left w-full py-1">
                                                 {s.label}
                                             </button>
                                         ))}
@@ -527,58 +636,131 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                 </div>
 
                                 {/* Middle Content */}
-                                <div className="col-span-1 md:col-span-2 space-y-12">
+                                <div className="col-span-1 md:col-span-2 space-y-16">
                                     <section id="intro">
-                                        <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '活动简介' : 'Introduction'}</h3>
-                                        <div className="prose prose-invert max-w-none text-gray-300">
+                                        <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                            <span className="w-8 h-1 bg-brand"></span>
+                                            {lang === 'zh' ? '活动简介' : 'INTRODUCTION'}
+                                        </h3>
+                                        <div className="prose prose-invert prose-lg max-w-none text-gray-300 leading-relaxed">
                                             <ReactMarkdown>{hackathon.description || ''}</ReactMarkdown>
                                         </div>
                                     </section>
                                     
                                     <section id="schedule">
-                                        <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '活动日程' : 'Schedule'}</h3>
-                                        <div className="bg-white/5 border border-white/10 p-6 rounded-sm space-y-4">
-                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                <span className="text-gray-400">{lang === 'zh' ? '报名开始' : 'Registration Start'}</span>
-                                                <span className="text-white font-mono">{new Date(hackathon.registration_start_date).toLocaleString()}</span>
+                                        <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                            <span className="w-8 h-1 bg-brand"></span>
+                                            {lang === 'zh' ? '活动日程' : 'SCHEDULE'}
+                                        </h3>
+                                        <div className="bg-white/5 border border-white/10 p-8 rounded-sm space-y-6 hover:border-brand/30 transition-colors">
+                                             <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                                <span className="text-gray-400 font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '报名开始' : 'REGISTRATION START'}</span>
+                                                <span className="text-white font-mono text-lg">{new Date(hackathon.registration_start_date).toLocaleString()}</span>
                                              </div>
-                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                <span className="text-gray-400">{lang === 'zh' ? '报名截止' : 'Registration End'}</span>
-                                                <span className="text-white font-mono">{new Date(hackathon.registration_end_date).toLocaleString()}</span>
+                                             <div className="flex justify-between items-center border-b border-white/10 pb-4">
+                                                <span className="text-gray-400 font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '报名截止' : 'REGISTRATION END'}</span>
+                                                <span className="text-white font-mono text-lg">{new Date(hackathon.registration_end_date).toLocaleString()}</span>
                                              </div>
-                                             <div className="flex justify-between items-center border-b border-white/10 pb-2">
-                                                <span className="text-gray-400">{lang === 'zh' ? '作品提交截止' : 'Submission Deadline'}</span>
-                                                <span className="text-white font-mono">{new Date(hackathon.submission_end_date).toLocaleString()}</span>
+                                             <div className="flex justify-between items-center pb-2">
+                                                <span className="text-brand font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '作品提交截止' : 'SUBMISSION DEADLINE'}</span>
+                                                <span className="text-brand font-mono text-xl font-bold">{new Date(hackathon.submission_end_date).toLocaleString()}</span>
                                              </div>
                                         </div>
                                     </section>
 
                                     {hackathon.requirements && (
                                         <section id="requirements">
-                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '参赛要求' : 'Requirements'}</h3>
-                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.requirements}</ReactMarkdown></div>
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '参赛要求' : 'REQUIREMENTS'}
+                                            </h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300 bg-black/20 p-6 border-l-2 border-brand/20">
+                                                <ReactMarkdown>{hackathon.requirements}</ReactMarkdown>
+                                            </div>
                                         </section>
                                     )}
 
                                     {hackathon.rules_detail && (
                                         <section id="rules">
-                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '评审规则' : 'Rules'}</h3>
-                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.rules_detail}</ReactMarkdown></div>
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '评审规则' : 'RULES'}
+                                            </h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300">
+                                                <ReactMarkdown>{hackathon.rules_detail}</ReactMarkdown>
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {judges.length > 0 && (
+                                        <section id="judges">
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '评委阵容' : 'JUDGES'}
+                                            </h3>
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {judges.map((judge) => (
+                                                    <div key={judge.id} className="bg-white/5 border border-white/10 p-6 flex items-start gap-4 hover:border-brand/30 transition-colors">
+                                                        <div className="w-16 h-16 shrink-0 bg-brand/20 rounded-full overflow-hidden border border-brand/20">
+                                                            {judge.avatar_url ? (
+                                                                <img src={judge.avatar_url} alt={judge.nickname || judge.full_name} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <div className="w-full h-full flex items-center justify-center text-brand font-bold text-xl">
+                                                                    {(judge.nickname || judge.full_name || '?')[0].toUpperCase()}
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                        <div>
+                                                            <div className="text-white font-bold text-lg mb-1">{judge.nickname || judge.full_name}</div>
+                                                            {judge.bio && <div className="text-sm text-gray-400 line-clamp-2">{judge.bio}</div>}
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
                                         </section>
                                     )}
 
                                     {awards.length > 0 && (
                                         <section id="awards">
-                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '奖项设置' : 'Awards'}</h3>
-                                            <div className="grid grid-cols-1 gap-4">
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '奖项设置' : 'AWARDS'}
+                                            </h3>
+                                            <div className="grid grid-cols-1 gap-6">
                                                 {awards.map((award, i) => (
-                                                    <div key={i} className="bg-gradient-to-r from-brand/10 to-transparent border border-brand/20 p-4 flex justify-between items-center">
-                                                        <div>
-                                                            <div className="text-brand font-bold text-lg">{award.name}</div>
-                                                            <div className="text-sm text-gray-400">{award.description}</div>
+                                                    <div key={i} className="relative overflow-hidden bg-gradient-to-r from-brand/5 to-transparent border border-brand/20 p-6 flex flex-col md:flex-row justify-between items-center group hover:border-brand/50 transition-all">
+                                                        <div className="absolute top-0 left-0 w-1 h-full bg-brand opacity-50 group-hover:opacity-100 transition-opacity"></div>
+                                                        <div className="mb-4 md:mb-0 text-center md:text-left">
+                                                            <div className="text-brand font-black text-xl uppercase tracking-wider mb-1">{award.name}</div>
+                                                            <div className="text-sm text-gray-400 font-mono">{award.description}</div>
                                                         </div>
-                                                        <div className="text-2xl font-black text-white">{award.prize}</div>
+                                                        <div className="text-3xl font-black text-white tracking-tighter text-shadow-brand">{award.prize}</div>
                                                     </div>
+                                                ))}
+                                            </div>
+                                        </section>
+                                    )}
+
+                                    {sponsors.length > 0 && (
+                                        <section id="sponsors">
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '合作伙伴' : 'SPONSORS'}
+                                            </h3>
+                                            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                                {sponsors.map((sponsor, idx) => (
+                                                    <a key={idx} href={sponsor.url} target="_blank" rel="noopener noreferrer" className="block bg-white/5 border border-white/10 p-4 hover:border-brand/50 transition-all group">
+                                                        <div className="h-16 mb-3 flex items-center justify-center bg-black/20 p-2">
+                                                            {sponsor.logo ? (
+                                                                <img src={sponsor.logo} alt={sponsor.name} className="max-h-full max-w-full object-contain grayscale group-hover:grayscale-0 transition-all" />
+                                                            ) : (
+                                                                <span className="text-gray-600 text-xs">NO LOGO</span>
+                                                            )}
+                                                        </div>
+                                                        <div className="text-center">
+                                                            <div className="text-sm font-bold text-gray-300 group-hover:text-brand truncate">{sponsor.name}</div>
+                                                        </div>
+                                                    </a>
                                                 ))}
                                             </div>
                                         </section>
@@ -586,8 +768,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                     
                                     {hackathon.resource_detail && (
                                         <section id="resources">
-                                            <h3 className="text-xl font-bold text-white mb-4 border-l-4 border-brand pl-3 uppercase">{lang === 'zh' ? '资源与支持' : 'Resources'}</h3>
-                                            <div className="prose prose-invert max-w-none text-gray-300"><ReactMarkdown>{hackathon.resource_detail}</ReactMarkdown></div>
+                                            <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
+                                                <span className="w-8 h-1 bg-brand"></span>
+                                                {lang === 'zh' ? '资源与支持' : 'RESOURCES'}
+                                            </h3>
+                                            <div className="prose prose-invert max-w-none text-gray-300">
+                                                <ReactMarkdown>{hackathon.resource_detail}</ReactMarkdown>
+                                            </div>
                                         </section>
                                     )}
                                 </div>
@@ -685,9 +872,29 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                 <button onClick={handleStartIndividual} className="btn-primary px-8 py-3">{lang === 'zh' ? '创建项目空间' : 'CREATE WORKSPACE'}</button>
                                             </div>
                                         ) : (
-                                            <div className="grid md:grid-cols-2 gap-8">
+                                            <div className="grid md:grid-cols-3 gap-6">
+                                                {/* AI Team Match */}
+                                                <div className="p-6 border-2 border-brand bg-brand/10 relative overflow-hidden group">
+                                                    <div className="absolute top-0 right-0 p-2 bg-brand text-black font-bold text-xs">HOT</div>
+                                                    <h3 className="text-xl font-black text-white mb-4 italic uppercase">
+                                                        <span className="text-brand mr-2">⚡</span>
+                                                        {lang === 'zh' ? 'AI 灵感组队' : 'AI TEAM MATCH'}
+                                                    </h3>
+                                                    <p className="text-gray-300 text-sm mb-6 h-20">
+                                                        {lang === 'zh' 
+                                                            ? '没有队友？让 AI 根据你的技能和性格推荐最完美的搭档。' 
+                                                            : 'No team? Let AI match you with the perfect partners based on skills & personality.'}
+                                                    </p>
+                                                    <button 
+                                                        onClick={onTeamMatch}
+                                                        className="w-full py-3 bg-brand text-black font-bold hover:bg-white transition-colors uppercase tracking-wider"
+                                                    >
+                                                        {lang === 'zh' ? '立即匹配' : 'MATCH NOW'}
+                                                    </button>
+                                                </div>
+
                                                 {/* Create Team */}
-                                                <div className="p-8 border border-brand/20 bg-white/5">
+                                                <div className="p-6 border border-brand/20 bg-white/5">
                                                     <h3 className="text-xl font-bold text-white mb-6">{lang === 'zh' ? '创建战队' : 'CREATE TEAM'}</h3>
                                                     <div className="space-y-4">
                                                         <input 
@@ -707,9 +914,9 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                     </div>
                                                 </div>
                                                 {/* Join Team */}
-                                                <div className="p-8 border border-white/10 bg-white/5">
+                                                <div className="p-6 border border-white/10 bg-white/5">
                                                     <h3 className="text-xl font-bold text-white mb-6">{lang === 'zh' ? '加入战队' : 'JOIN TEAM'}</h3>
-                                                    <p className="text-gray-400 text-sm mb-4">{lang === 'zh' ? '请在“参赛人员”页面找到想加入的战队，并联系队长。' : 'Please find a team in "Participants" tab and contact the leader.'}</p>
+                                                    <p className="text-gray-400 text-sm mb-4 h-20">{lang === 'zh' ? '请在“参赛人员”页面找到想加入的战队，并联系队长。' : 'Please find a team in "Participants" tab and contact the leader.'}</p>
                                                     <button onClick={() => setActiveTab('participants')} className="btn-secondary w-full py-3">{lang === 'zh' ? '浏览战队' : 'BROWSE TEAMS'}</button>
                                                 </div>
                                             </div>
@@ -800,50 +1007,133 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                         {/* PARTICIPANTS */}
                         {activeTab === 'participants' && (
-                            (!currentUserId || !enrollment) ? <LockedView /> : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                                {teams.map(team => (
-                                    <div key={team.id} className="p-6 border border-white/10 bg-white/5 hover:border-brand/50 transition-colors group flex flex-col h-full">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <h4 className="font-bold text-white text-lg group-hover:text-brand">{team.name}</h4>
-                                            <span className="text-xs font-mono text-gray-500">#{team.id}</span>
-                                        </div>
-                                        <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-grow">{team.description || 'No description'}</p>
-                                        
-                                        {/* Members */}
-                                        <div className="mb-4">
-                                             <div className="text-xs text-gray-500 mb-2 uppercase font-mono">{lang === 'zh' ? '成员' : 'MEMBERS'} ({team.members?.length || 0})</div>
-                                             <div className="flex -space-x-2 overflow-hidden">
-                                                {team.members?.map(member => (
-                                                    <div key={member.id} className="w-8 h-8 rounded-full bg-gray-800 border border-black flex items-center justify-center text-xs text-white relative group/avatar" title={member.user?.nickname || member.user?.full_name || 'User'}>
-                                                        {member.user?.avatar_url ? (
-                                                            <img src={member.user.avatar_url} className="w-full h-full rounded-full object-cover" />
-                                                        ) : (
-                                                            <span>{(member.user?.nickname || member.user?.full_name || 'U')[0].toUpperCase()}</span>
-                                                        )}
-                                                    </div>
-                                                ))}
-                                             </div>
-                                        </div>
-
-                                        <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
-                                            <span className="text-xs text-gray-500">{lang === 'zh' ? '队长 ID' : 'Leader'}: {team.leader_id}</span>
-                                            {!myTeam && enrollment && (
-                                                <button onClick={() => handleJoinTeam(team.id)} className="text-xs text-brand hover:underline uppercase font-mono">
-                                                    {lang === 'zh' ? '加入' : 'JOIN'}
-                                                </button>
-                                            )}
-                                        </div>
+                            <div className="space-y-12">
+                                {/* Community Stats Banner */}
+                                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+                                    <div className="p-4 bg-white/5 border border-white/10 text-center">
+                                        <div className="text-3xl font-black text-brand mb-1">{participants.length}</div>
+                                        <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">{lang === 'zh' ? '参赛者' : 'PARTICIPANTS'}</div>
                                     </div>
-                                ))}
-                                {teams.length === 0 && <div className="col-span-full text-center py-20 text-gray-500 font-mono">NO DATA</div>}
+                                    <div className="p-4 bg-white/5 border border-white/10 text-center">
+                                        <div className="text-3xl font-black text-white mb-1">{teams.length}</div>
+                                        <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">{lang === 'zh' ? '战队' : 'TEAMS'}</div>
+                                    </div>
+                                    <div className="p-4 bg-white/5 border border-white/10 text-center">
+                                        <div className="text-3xl font-black text-white mb-1">{galleryProjects.length}</div>
+                                        <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">{lang === 'zh' ? '项目' : 'PROJECTS'}</div>
+                                    </div>
+                                    <div className="p-4 bg-white/5 border border-white/10 text-center">
+                                        <div className="text-3xl font-black text-green-500 mb-1">
+                                            {teams.reduce((acc, t) => acc + (t.members?.length || 0), 0)}
+                                        </div>
+                                        <div className="text-xs text-gray-500 font-mono uppercase tracking-widest">{lang === 'zh' ? '已组队' : 'MATCHED'}</div>
+                                    </div>
+                                </div>
+
+                                {/* AI Match Banner - Only show if enrolled */}
+                                {enrollment && (
+                                <div className="p-6 border-2 border-brand bg-brand/10 flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
+                                    <div className="absolute top-0 right-0 p-4 opacity-10 text-9xl">⚡</div>
+                                    <div className="relative z-10">
+                                        <h3 className="text-2xl font-black text-white italic uppercase mb-2">
+                                            {lang === 'zh' ? '寻找你的梦之队？' : 'LOOKING FOR TEAMMATES?'}
+                                        </h3>
+                                        <p className="text-gray-300 max-w-xl">
+                                            {lang === 'zh' 
+                                                ? '使用 AI 智能匹配，根据您的技能和性格特质，找到最契合的伙伴。' 
+                                                : 'Use AI Matching to find the perfect partners based on skills and personality.'}
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-4 relative z-10">
+                                        <button onClick={onTeamMatch} className="btn-primary px-8 py-3 whitespace-nowrap shadow-[0_0_20px_rgba(212,163,115,0.4)] animate-pulse-slow">
+                                            {lang === 'zh' ? '开始 AI 匹配' : 'START AI MATCH'}
+                                        </button>
+                                    </div>
+                                </div>
+                                )}
+
+                                {/* Teams Section */}
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                        <span className="w-2 h-8 bg-brand"></span>
+                                        {lang === 'zh' ? '活跃战队' : 'ACTIVE TEAMS'}
+                                    </h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {teams.map(team => (
+                                            <div key={team.id} className="p-6 border border-white/10 bg-white/5 hover:border-brand/50 transition-colors group flex flex-col h-full">
+                                                <div className="flex justify-between items-start mb-4">
+                                                    <h4 className="font-bold text-white text-lg group-hover:text-brand">{team.name}</h4>
+                                                    <span className="text-xs font-mono text-gray-500">#{team.id}</span>
+                                                </div>
+                                                <p className="text-sm text-gray-400 mb-4 line-clamp-2 flex-grow">{team.description || 'No description'}</p>
+                                                
+                                                {/* Members */}
+                                                <div className="mb-4">
+                                                     <div className="text-xs text-gray-500 mb-2 uppercase font-mono">{lang === 'zh' ? '成员' : 'MEMBERS'} ({team.members?.length || 0})</div>
+                                                     <div className="flex -space-x-2 overflow-hidden">
+                                                        {team.members?.map(member => (
+                                                            <div key={member.id} className="w-8 h-8 rounded-full bg-gray-800 border border-black flex items-center justify-center text-xs text-white relative group/avatar" title={member.user?.nickname || member.user?.full_name || 'User'}>
+                                                                {member.user?.avatar_url ? (
+                                                                    <img src={member.user.avatar_url} className="w-full h-full rounded-full object-cover" />
+                                                                ) : (
+                                                                    <span>{(member.user?.nickname || member.user?.full_name || 'U')[0].toUpperCase()}</span>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                     </div>
+                                                </div>
+
+                                                <div className="flex justify-between items-center pt-4 border-t border-white/5 mt-auto">
+                                                    <span className="text-xs text-gray-500">{lang === 'zh' ? '队长 ID' : 'Leader'}: {team.leader_id}</span>
+                                                    {!myTeam && enrollment && (
+                                                        <button onClick={() => handleJoinTeam(team.id)} className="text-xs text-brand hover:underline uppercase font-mono">
+                                                            {lang === 'zh' ? '加入' : 'JOIN'}
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        ))}
+                                        {teams.length === 0 && <div className="col-span-full text-center py-10 text-gray-500 font-mono text-sm">NO TEAMS YET</div>}
+                                    </div>
+                                </div>
+
+                                {/* Individual Participants Section */}
+                                <div>
+                                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                        <span className="w-2 h-8 bg-gray-600"></span>
+                                        {lang === 'zh' ? '参赛成员' : 'PARTICIPANTS'} ({participants.length})
+                                    </h3>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                        {participants.map(p => (
+                                            <div key={p.user_id} className="p-4 border border-white/5 bg-white/5 flex flex-col items-center text-center hover:bg-white/10 transition-colors relative group">
+                                                <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/20 mb-3 flex items-center justify-center text-xl text-brand font-bold overflow-hidden">
+                                                     {p.avatar_url ? (
+                                                        <img src={p.avatar_url} className="w-full h-full object-cover" />
+                                                     ) : (
+                                                        (p.nickname || 'U')[0].toUpperCase()
+                                                     )}
+                                                </div>
+                                                <div className="text-white font-bold text-sm truncate w-full mb-1">{p.nickname}</div>
+                                                <div className="text-xs text-gray-500 font-mono mb-2">{p.enrollment_status}</div>
+                                                {/* Hover Info */}
+                                                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+                                                    <div className="text-xs text-gray-300 line-clamp-3 mb-2">{p.bio || 'No bio'}</div>
+                                                    <div className="flex flex-wrap justify-center gap-1">
+                                                        {p.skills?.slice(0, 3).map((s: string, i: number) => (
+                                                            <span key={i} className="text-[10px] text-brand border border-brand/30 px-1">{s}</span>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        ))}
+                                         {participants.length === 0 && <div className="col-span-full text-center py-10 text-gray-500 font-mono text-sm">NO PARTICIPANTS YET</div>}
+                                    </div>
+                                </div>
                             </div>
-                            )
                         )}
 
                         {/* GALLERY */}
                         {activeTab === 'gallery' && (
-                            (!currentUserId || !enrollment) ? <LockedView /> : (
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                 {galleryProjects.map(proj => (
                                     <div key={proj.id} className="border border-white/10 bg-white/5 hover:border-brand/50 transition-colors group overflow-hidden flex flex-col h-full">
@@ -866,12 +1156,10 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                 ))}
                                 {galleryProjects.length === 0 && <div className="col-span-full text-center py-20 text-gray-500 font-mono">NO PROJECTS YET</div>}
                             </div>
-                            )
                         )}
 
                         {/* RESULTS */}
                         {activeTab === 'results' && (
-                            (!currentUserId || !enrollment) ? <LockedView /> : (
                             <div className="max-w-4xl mx-auto">
                                 {results.length > 0 ? (
                                     <div className="space-y-6">
@@ -895,7 +1183,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                     <div className="text-center py-20 text-gray-500 font-mono">{lang === 'zh' ? '结果尚未公布' : 'RESULTS NOT PUBLISHED'}</div>
                                 )}
                             </div>
-                            )
                         )}
 
                     </div>

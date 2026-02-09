@@ -4,14 +4,16 @@ import gsap from 'gsap';
 interface HeroProps {
     onCreateClick: () => void;
     onExploreClick: () => void;
+    onAIGuideClick: () => void;
     lang: 'zh' | 'en';
 }
 
-export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps) {
+export default function Hero({ onCreateClick, onExploreClick, onAIGuideClick, lang }: HeroProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLHeadingElement>(null);
     const subTextRef = useRef<HTMLParagraphElement>(null);
     const btnRef = useRef<HTMLDivElement>(null);
+    const cardsRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const ctx = gsap.context(() => {
@@ -35,7 +37,14 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                 opacity: 0,
                 duration: 0.8,
                 ease: "power2.out",
-            }, "-=0.6");
+            }, "-=0.6")
+            .from((cardsRef.current as HTMLDivElement)?.children || [], {
+                y: 20,
+                opacity: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: "power2.out",
+            }, "-=0.4");
 
             // Mouse Parallax
             const handleMouseMove = (e: MouseEvent) => {
@@ -76,57 +85,80 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                         System Online // v2.0.4
                     </div>
                     
-          <h1 className="text-6xl md:text-8xl font-black mb-6 tracking-tighter text-glitch" data-text="BUILD THE FUTURE">
-            BUILD THE FUTURE
+          <h1 ref={textRef} className="text-5xl md:text-7xl font-black mb-6 tracking-tighter text-white italic">
+             AI <span className="text-brand">EMPOWERED</span> HACKATHONS
           </h1>
 
-                    <p ref={subTextRef} className="max-w-2xl text-xl md:text-2xl text-gray-400 font-light mb-12 leading-relaxed">
-                        {lang === 'zh' ? (
-                            <>
-                                在 <span className="text-brand font-mono">噪音</span> 中寻找信号。<br/>
-                                打造中国最大的开发者黑客松中心平台。
-                            </>
-                        ) : (
-                            <>
-                                Find the signal in the <span className="text-brand font-mono">NOISE</span>.<br/>
-                                China's premier AI-driven hackathon platform.
-                            </>
-                        )}
-                    </p>
+          <p ref={subTextRef} className="max-w-2xl text-lg text-gray-400 font-mono mb-8 leading-relaxed">
+               {lang === 'zh' 
+                   ? '为组织者、参与者、评委及赞助商打造的一站式全链路智能黑客松平台。' 
+                   : 'The one-stop intelligent platform for Organizers, Participants, Judges, and Sponsors.'}
+          </p>
 
-                    <div ref={btnRef} className="flex flex-col sm:flex-row gap-6">
-                        <button 
-                            onClick={onCreateClick}
-                            className="group relative px-8 py-4 bg-brand text-void font-bold text-lg overflow-hidden transition-all hover:bg-white clip-path-slant"
-                        >
-                            <span className="relative z-10 flex items-center gap-2">
-                                [ {lang === 'zh' ? '发起行动' : 'INITIATE'} ]
-                                <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="square" strokeLinejoin="miter" strokeWidth="2" d="M14 5l7 7m0 0l-7 7m7-7H3" /></svg>
-                            </span>
-                        </button>
-                        
-                        <button 
-                            onClick={onExploreClick}
-                            className="group px-8 py-4 border border-white/20 text-ink font-mono text-lg hover:border-brand hover:text-brand transition-all"
-                        >
-                            {lang === 'zh' ? '探索网络' : 'EXPLORE_NETWORK'}
-                        </button>
-                    </div>
+          <div ref={btnRef} className="flex flex-col sm:flex-row gap-6 mb-12">
+              <button 
+                  onClick={onCreateClick}
+                  className="group relative px-8 py-4 bg-brand text-void font-bold text-lg overflow-hidden transition-all hover:bg-white clip-path-slant"
+              >
+                  <span className="relative z-10 flex items-center gap-2">
+                      {lang === 'zh' ? '发起活动' : 'INITIATE HACKATHON'}
+                  </span>
+              </button>
+              
+              <button 
+                  onClick={onExploreClick}
+                  className="group px-8 py-4 border border-white/20 text-ink font-mono text-lg hover:border-brand hover:text-brand transition-all"
+              >
+                  {lang === 'zh' ? '探索活动' : 'EXPLORE EVENTS'}
+              </button>
+          </div>
 
-                    {/* Status Block (New Element) */}
-                    <div className="mt-16 p-4 border-l-2 border-brand/30 bg-white/5 font-mono text-xs text-gray-500 max-w-md">
-                        <div className="flex justify-between mb-2">
-                            <span>NET_STATUS:</span>
-                            <span className="text-green-500">ONLINE</span>
-                        </div>
-                        <div className="flex justify-between mb-2">
-                            <span>ACTIVE_NODES:</span>
-                            <span>{Math.floor(Math.random() * 1000) + 400}</span>
-                        </div>
-                        <div className="text-brand/50 text-[10px]">
-                            0x1f4a...8b2c &gt;&gt; NEW_BLOCK_FOUND
-                        </div>
-                    </div>
+          {/* Role Cards */}
+          <div ref={cardsRef} className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-2xl">
+               {/* Organizer */}
+               <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">🏗️</div>
+                   <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
+                       {lang === 'zh' ? '组织者' : 'ORGANIZER'}
+                   </h3>
+                   <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
+                       {lang === 'zh' ? 'AI 辅助策划、一键发布' : 'AI planning, one-click publish'}
+                   </p>
+               </div>
+
+               {/* Participant */}
+               <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">🚀</div>
+                   <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
+                       {lang === 'zh' ? '参与者' : 'PARTICIPANT'}
+                   </h3>
+                   <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
+                       {lang === 'zh' ? 'AI 简历、智能组队' : 'AI resume, smart match'}
+                   </p>
+               </div>
+
+               {/* Judge */}
+               <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">⚖️</div>
+                   <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
+                       {lang === 'zh' ? '评委' : 'JUDGE'}
+                   </h3>
+                   <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
+                       {lang === 'zh' ? '智能评分、公平公正' : 'Smart scoring, fairness'}
+                   </p>
+               </div>
+
+               {/* Sponsor */}
+               <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">💎</div>
+                   <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
+                       {lang === 'zh' ? '赞助商' : 'SPONSOR'}
+                   </h3>
+                   <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
+                       {lang === 'zh' ? '品牌曝光、人才发掘' : 'Brand exposure, talent discovery'}
+                   </p>
+               </div>
+          </div>
                 </div>
 
                 {/* Right Column: Visuals */}

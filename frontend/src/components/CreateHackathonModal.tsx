@@ -30,7 +30,6 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
   const [judgingEndDate, setJudgingEndDate] = useState('');
 
   // Details
-  const [awardsDetail, setAwardsDetail] = useState(''); // Kept for backward compat or raw text fallback
   const [rulesDetail, setRulesDetail] = useState('');
   
   // Judging
@@ -377,14 +376,14 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   if (!isOpen) return null;
 
-  const addJudge = () => {
-      if (newJudgeEmail && !judges.includes(newJudgeEmail)) {
-          setJudges([...judges, newJudgeEmail]);
-          setNewJudgeEmail('');
-      }
+  const handleAddJudge = () => {
+     if (newJudgeEmail && !judges.includes(newJudgeEmail)) {
+         setJudges([...judges, newJudgeEmail]);
+         setNewJudgeEmail('');
+     }
   };
 
-  const removeJudge = (email: string) => {
+  const handleRemoveJudge = (email: string) => {
       setJudges(judges.filter(j => j !== email));
   };
 

@@ -136,14 +136,11 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   // Parsed Data
   const [awards, setAwards] = useState<any[]>([]);
   const [contact, setContact] = useState<{text?: string, image?: string} | any[] | null>(null);
-  const [scoring, setScoring] = useState<any[]>([]);
   const [results, setResults] = useState<any[]>([]);
   const [judges, setJudges] = useState<JudgeUser[]>([]);
   const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
 
   // Action Button State
-  const [btnState, setBtnState] = useState<{text: string, action: () => void, disabled: boolean, hint?: string}>({ text: '', action: () => {}, disabled: false });
-
   const sections = [
     { id: 'intro', label: lang === 'zh' ? '活动简介' : 'Introduction' },
     { id: 'schedule', label: lang === 'zh' ? '活动日程' : 'Schedule' },
@@ -471,8 +468,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   if (!isOpen || !hackathonId) return null;
 
-  const prizeInfo = hackathon ? getPrizeInfo(hackathon.awards_detail) : null;
-
   return (
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-black/90 backdrop-blur-md p-0">
       {/* Sub Modals */}
@@ -668,15 +663,15 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                         <div className="bg-white/5 border border-white/10 p-8 rounded-sm space-y-6 hover:border-brand/30 transition-colors">
                                              <div className="flex justify-between items-center border-b border-white/10 pb-4">
                                                 <span className="text-gray-400 font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '报名开始' : 'REGISTRATION START'}</span>
-                                                <span className="text-white font-mono text-lg">{new Date(hackathon.registration_start_date).toLocaleString()}</span>
+                                                <span className="text-white font-mono text-lg">{hackathon.registration_start_date ? new Date(hackathon.registration_start_date).toLocaleString() : 'TBD'}</span>
                                              </div>
                                              <div className="flex justify-between items-center border-b border-white/10 pb-4">
                                                 <span className="text-gray-400 font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '报名截止' : 'REGISTRATION END'}</span>
-                                                <span className="text-white font-mono text-lg">{new Date(hackathon.registration_end_date).toLocaleString()}</span>
+                                                <span className="text-white font-mono text-lg">{hackathon.registration_end_date ? new Date(hackathon.registration_end_date).toLocaleString() : 'TBD'}</span>
                                              </div>
                                              <div className="flex justify-between items-center pb-2">
                                                 <span className="text-brand font-mono text-sm uppercase tracking-wider">{lang === 'zh' ? '作品提交截止' : 'SUBMISSION DEADLINE'}</span>
-                                                <span className="text-brand font-mono text-xl font-bold">{new Date(hackathon.submission_end_date).toLocaleString()}</span>
+                                                <span className="text-brand font-mono text-xl font-bold">{hackathon.submission_end_date ? new Date(hackathon.submission_end_date).toLocaleString() : 'TBD'}</span>
                                              </div>
                                         </div>
                                     </section>
@@ -848,17 +843,17 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                         <div className="space-y-4 relative pl-4 border-l border-white/10">
                                             <div className="relative">
                                                 <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-brand"></div>
-                                                <div className="text-xs text-brand font-mono mb-1">{new Date(hackathon.registration_start_date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-brand font-mono mb-1">{hackathon.registration_start_date ? new Date(hackathon.registration_start_date).toLocaleDateString() : 'TBD'}</div>
                                                 <div className="text-sm text-white">{lang === 'zh' ? '报名开启' : 'Reg Start'}</div>
                                             </div>
                                             <div className="relative">
                                                 <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gray-600"></div>
-                                                <div className="text-xs text-gray-400 font-mono mb-1">{new Date(hackathon.registration_end_date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-400 font-mono mb-1">{hackathon.registration_end_date ? new Date(hackathon.registration_end_date).toLocaleDateString() : 'TBD'}</div>
                                                 <div className="text-sm text-gray-300">{lang === 'zh' ? '报名截止' : 'Reg End'}</div>
                                             </div>
                                             <div className="relative">
                                                 <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-gray-600"></div>
-                                                <div className="text-xs text-gray-400 font-mono mb-1">{new Date(hackathon.submission_end_date).toLocaleDateString()}</div>
+                                                <div className="text-xs text-gray-400 font-mono mb-1">{hackathon.submission_end_date ? new Date(hackathon.submission_end_date).toLocaleDateString() : 'TBD'}</div>
                                                 <div className="text-sm text-gray-300">{lang === 'zh' ? '提交截止' : 'Submit End'}</div>
                                             </div>
                                         </div>

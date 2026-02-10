@@ -10,7 +10,7 @@ interface SubmitProjectModalProps {
   lang: 'zh' | 'en';
 }
 
-export default function SubmitProjectModal({ isOpen, onClose, hackathonId, teamId, existingProject, lang }: SubmitProjectModalProps) {
+export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, lang }: SubmitProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [repoUrl, setRepoUrl] = useState('');

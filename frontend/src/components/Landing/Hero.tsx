@@ -8,7 +8,7 @@ interface HeroProps {
     lang: 'zh' | 'en';
 }
 
-export default function Hero({ onCreateClick, onExploreClick, onAIGuideClick, lang }: HeroProps) {
+export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLHeadingElement>(null);
     const subTextRef = useRef<HTMLParagraphElement>(null);

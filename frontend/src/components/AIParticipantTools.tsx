@@ -36,7 +36,7 @@ interface Slide {
 }
 
 const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon }) => {
-  const [activeTool, setActiveTool] = useState<'idea' | 'pitch'>('idea');
+  const [activeTool, setActiveTool] = useState<'idea' | 'pitch' | 'roadmap'>('idea');
   const [loading, setLoading] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   

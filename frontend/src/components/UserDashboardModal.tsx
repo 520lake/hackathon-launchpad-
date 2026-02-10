@@ -481,6 +481,46 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       />
                   </div>
 
+                  <div className="group">
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '上传简历 (PDF/Image)' : 'UPLOAD RESUME'}</label>
+                      <div className="flex items-center gap-4">
+                        <input
+                            type="file"
+                            onChange={handleResumeUpload}
+                            className="block w-full text-sm text-gray-500
+                                file:mr-4 file:py-2 file:px-4
+                                file:rounded-none file:border-0
+                                file:text-sm file:font-semibold
+                                file:bg-brand file:text-black
+                                hover:file:bg-white transition-colors"
+                        />
+                        {resume && <a href={resume} target="_blank" className="text-brand underline text-xs font-mono">View</a>}
+                      </div>
+                  </div>
+
+                  <div className="group pt-4 border-t border-brand/20">
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '认证状态' : 'VERIFICATION STATUS'}</label>
+                      <div className="flex items-center justify-between bg-black/50 p-4 border border-brand/30">
+                          <div className="flex items-center gap-2">
+                              {user?.is_verified ? (
+                                  <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> <span className="text-green-500 font-mono font-bold">VERIFIED USER</span></>
+                              ) : (
+                                  <><span className="w-2 h-2 bg-red-500 rounded-full"></span> <span className="text-red-500 font-mono font-bold">UNVERIFIED</span></>
+                              )}
+                          </div>
+                          {!user?.is_verified && (
+                              <div className="flex gap-2">
+                                  <button onClick={handleVerify} className="px-3 py-1 bg-brand/20 text-brand text-xs font-bold border border-brand/50 hover:bg-brand hover:text-black transition-colors">
+                                      {lang === 'zh' ? '真实认证' : 'REAL VERIFY'}
+                                  </button>
+                                  <button onClick={handleMockVerify} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs font-bold border border-gray-600 hover:bg-white hover:text-black transition-colors">
+                                      {lang === 'zh' ? '模拟认证' : 'MOCK VERIFY'}
+                                  </button>
+                              </div>
+                          )}
+                      </div>
+                  </div>
+
                   <button
                       onClick={handleSaveProfile}
                       disabled={savingProfile}

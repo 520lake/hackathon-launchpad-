@@ -38,4 +38,5 @@ ENV PYTHONPATH=/app/backend
 
 # Run
 WORKDIR /app/backend
+RUN chmod +x start_modelscope.sh
 CMD ["bash", "start_modelscope.sh"]

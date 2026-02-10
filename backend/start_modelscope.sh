@@ -26,6 +26,9 @@ ls -l $DB_FILE || echo "File not found (yet)"
 echo "Running migrations..."
 alembic upgrade head || echo "WARNING: Alembic upgrade failed. Proceeding to manual fix..."
 
+# 确保 Python 路径包含后端代码
+export PYTHONPATH=/app/backend
+
 # 强制修复数据库Schema (防止Alembic失效)
 echo "Force fixing DB schema..."
 python ../scripts/fix_db_schema.py

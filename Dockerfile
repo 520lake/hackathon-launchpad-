@@ -39,4 +39,4 @@ ENV PYTHONPATH=/app/backend
 # Run
 WORKDIR /app/backend
 RUN chmod +x start_modelscope.sh
-CMD ["bash", "start_modelscope.sh"]
+CMD ["/bin/bash", "-lc", "bash start_modelscope.sh || true; exec gunicorn -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:7860 -w 1"]

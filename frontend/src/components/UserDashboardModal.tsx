@@ -72,7 +72,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
   const [myProjects, setMyProjects] = useState<Project[]>([]);
-  const [loading, setLoading] = useState(false);
+  // const [loading, setLoading] = useState(false); // Removed unused loading
   const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'projects' | 'profile'>('created');
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
   const [resume, setResume] = useState('');
@@ -128,7 +128,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   }, [activeTab]);
 
   const fetchMyData = async () => {
-    setLoading(true);
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
@@ -171,8 +170,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       }
     } catch (err) {
       console.error(err);
-    } finally {
-      setLoading(false);
     }
   };
 

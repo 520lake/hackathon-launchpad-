@@ -137,6 +137,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [awards, setAwards] = useState<any[]>([]);
   const [contact, setContact] = useState<{text?: string, image?: string} | any[] | null>(null);
   const [results, setResults] = useState<any[]>([]);
+  const [scoring, setScoring] = useState<any[]>([]); // Added missing state
   const [judges, setJudges] = useState<JudgeUser[]>([]);
   const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
 
@@ -382,9 +383,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (!hackathon) return null;
     const now = new Date().getTime();
     const regStart = hackathon.registration_start_date ? new Date(hackathon.registration_start_date).getTime() : 0;
-    const regEnd = hackathon.registration_end_date ? new Date(hackathon.registration_end_date).getTime() : Infinity;
-    const isRegOpen = now >= regStart && now <= regEnd;
-
     if (hackathon.status === 'ended') return <button disabled className="btn-disabled w-full md:w-auto">{lang === 'zh' ? '已结束' : 'ENDED'}</button>;
 
     // Priority Check: If deadline passed, show closed (handles invalid dates where End < Start)
@@ -418,25 +416,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             </span>
         </div>
     );
-  };
-
-  const getPrizeInfo = (detailStr?: string) => {
-      if (!detailStr) return null;
-      try {
-          const awards = JSON.parse(detailStr);
-          if (Array.isArray(awards) && awards.length > 0) {
-              const cashAwards = awards.filter((a: any) => a.type === 'cash' || (a.amount && a.amount > 0));
-              if (cashAwards.length > 0) {
-                  const total = cashAwards.reduce((sum: number, a: any) => sum + (Number(a.amount) * Number(a.count)), 0);
-                  if (total > 0) return `¥${total.toLocaleString()}`;
-              }
-              if (awards[0]?.name) return awards[0].name;
-              return `${awards.length} Awards`;
-          }
-      } catch (e) {
-          return detailStr.length > 20 ? detailStr.substring(0, 20) + '...' : detailStr;
-      }
-      return null;
   };
 
   const handleSaveResume = async (bio: string, skills: string[]) => {

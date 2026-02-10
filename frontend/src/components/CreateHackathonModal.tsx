@@ -31,6 +31,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   // Details
   const [rulesDetail, setRulesDetail] = useState('');
+  const [awardsDetail, setAwardsDetail] = useState(''); // Restore for legacy/AI string support
   
   // Judging
   const [judges, setJudges] = useState<string[]>([]);
@@ -376,16 +377,16 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   if (!isOpen) return null;
 
-  const handleAddJudge = () => {
-     if (newJudgeEmail && !judges.includes(newJudgeEmail)) {
-         setJudges([...judges, newJudgeEmail]);
-         setNewJudgeEmail('');
-     }
-  };
+  // const handleAddJudge = () => {
+  //    if (newJudgeEmail && !judges.includes(newJudgeEmail)) {
+  //        setJudges([...judges, newJudgeEmail]);
+  //        setNewJudgeEmail('');
+  //    }
+  // };
 
-  const handleRemoveJudge = (email: string) => {
-      setJudges(judges.filter(j => j !== email));
-  };
+  // const handleRemoveJudge = (email: string) => {
+  //    setJudges(judges.filter(j => j !== email));
+  // };
 
   const addDimension = () => {
       if (newDimension.name) {

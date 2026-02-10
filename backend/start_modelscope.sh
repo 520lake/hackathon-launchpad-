@@ -25,6 +25,14 @@ alembic upgrade head
 echo "Creating initial data..."
 python -m app.initial_data
 
+# 创建Mock Hackathons (如果不存在)
+echo "Seeding Hackathons..."
+python ../scripts/seed_hackathons.py
+
+# 创建Mock Teams/Projects (如果不存在)
+echo "Populating Mock Data..."
+python ../scripts/populate_mock_data.py
+
 # 启动应用
 echo "Starting application on port 7860..."
 python -m uvicorn app.main:app --host 0.0.0.0 --port 7860

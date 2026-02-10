@@ -17,8 +17,9 @@ import logging
 logger = logging.getLogger("uvicorn")
 @app.on_event("startup")
 async def startup_event():
-    logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.1-FIX-DB ---")
-    logger.info(f"DEBUG: SECRET_KEY first 5 chars: {settings.SECRET_KEY[:5]}")
+    logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.2-DATA-SEEDING ---")
+    # 确保数据库表已创建 (通常由 alembic 处理，这里作为双重检查或本地开发用)
+    # SQLModel.metadata.create_all(engine)
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):

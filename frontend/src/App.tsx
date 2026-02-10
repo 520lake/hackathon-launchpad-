@@ -34,6 +34,11 @@ function getCookie(name: string) {
 }
 
 function App() {
+  // Debug version log
+  useEffect(() => {
+    console.log("Aura Frontend Version: 2026-02-10-v1.0-ForceRefresh");
+  }, []);
+
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [isLoginOpen, setIsLoginOpen] = useState(false);
   const [isCreateHackathonOpen, setIsCreateHackathonOpen] = useState(false);

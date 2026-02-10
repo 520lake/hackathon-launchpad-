@@ -45,7 +45,7 @@ class Settings(BaseSettings):
     WECHAT_TOKEN: str = "vibebuild_token"
 
     # ModelScope AI
-    MODELSCOPE_API_KEY: str = ""
+    MODELSCOPE_API_KEY: str = "ms-0767c073-e36b-4ad9-af59-eeb9e4889c16"
     MODELSCOPE_BASE_URL: str = "https://api-inference.modelscope.cn/v1"
     MODELSCOPE_MODEL_NAME: str = "Qwen/Qwen2.5-72B-Instruct"
 

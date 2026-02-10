@@ -32,3 +32,4 @@ backend/uploads/
 # OS
 .DS_Store
 Thumbs.db
+ms_deploy.json

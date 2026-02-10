@@ -123,7 +123,16 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           const res = await axios.post('api/v1/login/email', { email, code });
           handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
-          setError(err.response?.data?.detail || '登录失败');
+          console.error('Login error:', err);
+          let msg = '登录失败';
+          if (err.response) {
+              msg = `Error ${err.response.status}: ${err.response.data?.detail || err.message}`;
+          } else if (err.request) {
+              msg = 'Network Error: No response received';
+          } else {
+              msg = err.message;
+          }
+          setError(msg);
       }
   };
 
@@ -136,7 +145,16 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           const res = await axios.post('api/v1/login/access-token', params);
           handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
-          setError(err.response?.data?.detail || '登录失败');
+          console.error('Password login error:', err);
+          let msg = '登录失败';
+          if (err.response) {
+              msg = `Error ${err.response.status}: ${err.response.data?.detail || err.message}`;
+          } else if (err.request) {
+              msg = 'Network Error: No response received';
+          } else {
+              msg = err.message;
+          }
+          setError(msg);
       }
   };
 

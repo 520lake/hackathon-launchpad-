@@ -172,6 +172,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [creatingTeam, setCreatingTeam] = useState(false);
 
   useEffect(() => {
+    let ctx: gsap.Context;
     if (isOpen && hackathonId) {
       checkUser();
       fetchHackathon();
@@ -179,12 +180,15 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
       // Animation
       if (containerRef.current) {
-        gsap.fromTo(containerRef.current, 
-          { opacity: 0, scale: 0.95 },
-          { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }
-        );
+        ctx = gsap.context(() => {
+          gsap.fromTo(containerRef.current, 
+            { opacity: 0, scale: 0.95 },
+            { opacity: 1, scale: 1, duration: 0.4, ease: "power3.out" }
+          );
+        }, containerRef);
       }
     }
+    return () => ctx?.revert();
   }, [isOpen, hackathonId]);
 
   // Fetch Tab Data
@@ -383,6 +387,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (!hackathon) return null;
     const now = new Date().getTime();
     const regStart = hackathon.registration_start_date ? new Date(hackathon.registration_start_date).getTime() : 0;
+    const regEnd = hackathon.registration_end_date ? new Date(hackathon.registration_end_date).getTime() : 0;
     if (hackathon.status === 'ended') return <button disabled className="btn-disabled w-full md:w-auto">{lang === 'zh' ? '已结束' : 'ENDED'}</button>;
 
     // Priority Check: If deadline passed, show closed (handles invalid dates where End < Start)

@@ -60,12 +60,14 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
       
       // Global Modal Slide-In
       if (modalRef.current) {
-        gsap.set(modalRef.current, { x: '100%' });
-        gsap.to(modalRef.current, {
-            x: '0%',
-            duration: 0.8,
-            ease: "power4.out",
-        });
+        gsap.context(() => {
+          gsap.set(modalRef.current, { x: '100%' });
+          gsap.to(modalRef.current, {
+              x: '0%',
+              duration: 0.8,
+              ease: "power4.out",
+          });
+        }, modalRef);
       }
     }
   }, [isOpen, initialMode]);

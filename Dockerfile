@@ -6,21 +6,16 @@ WORKDIR /app
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. 复制代码
-COPY backend/ ./backend/
-COPY frontend/ ./frontend/
+# 2. 关键：直接把 backend 目录下的所有内容，复制到 /app 根目录
+# 这样 /app 下面就有 app/ 文件夹，也有 app.py 文件
+COPY backend/ ./
 
-# 3. 关键步骤：
-# (a) 把入口文件复制到根目录改名 run.py
-RUN cp backend/app.py ./run.py
-# (b) 【重要】删除 backend/app.py，防止它干扰 "import app"
-RUN rm backend/app.py
+# 3. 再把前端也复制进来（如果有的话）
+COPY frontend/ ./frontend/
 
 # 4. 端口
 EXPOSE 7860
 
-# 5. 设置 PYTHONPATH，让 "import app.core" 能找到 backend/app/core
-ENV PYTHONPATH=/app/backend
-
-# 6. 启动 run.py
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "run:app"]
+# 5. 不需要 PYTHONPATH 了，因为当前目录就是根目录
+# 6. 启动：直接运行 app.py 里的 app 对象
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "app:app"]

@@ -21,11 +21,38 @@ class AIRequest(BaseModel):
 class AIResponse(BaseModel):
     content: dict
 
-# Initialize OpenAI client for ModelScope
-client = OpenAI(
-    api_key=settings.MODELSCOPE_API_KEY,
-    base_url=settings.MODELSCOPE_BASE_URL,
-)
+# Load prompts from JSON
+PROMPTS = {}
+try:
+    with open("prompt.json", "r", encoding="utf-8") as f:
+        PROMPTS = json.load(f)
+except Exception as e:
+    print(f"Warning: Could not load prompt.json: {e}")
+
+def get_system_prompt(key: str, default: str = "") -> str:
+    # 1. Env Var
+    env_val = os.getenv(f"SYSTEM_PROMPT_{key.upper()}")
+    if env_val: return env_val
+    # 2. prompt.json
+    if key in PROMPTS: return PROMPTS[key]
+    # 3. Fallback (should be provided in the call if not using hardcoded strings)
+    return default
+
+# Initialize AI client (DeepSeek or ModelScope)
+if settings.USE_DEEPSEEK:
+    print(f"Using DeepSeek AI: {settings.DEEPSEEK_MODEL_NAME}")
+    client = OpenAI(
+        api_key=settings.DEEPSEEK_API_KEY,
+        base_url=settings.DEEPSEEK_BASE_URL,
+    )
+    MODEL_NAME = settings.DEEPSEEK_MODEL_NAME
+else:
+    print(f"Using ModelScope AI: {settings.MODELSCOPE_MODEL_NAME}")
+    client = OpenAI(
+        api_key=settings.MODELSCOPE_API_KEY,
+        base_url=settings.MODELSCOPE_BASE_URL,
+    )
+    MODEL_NAME = settings.MODELSCOPE_MODEL_NAME
 
 class TeamMatchRequest(BaseModel):
     hackathon_id: int
@@ -79,29 +106,7 @@ async def team_match(
         }
 
         # 2. Construct Prompt
-        system_prompt = """You are an expert AI Team Builder and Psychologist.
-Your goal is to find the best teammates for the current user based on complementary skills, personality compatibility, and shared interests.
-
-You will receive:
-1. The Current User's Profile and what they are looking for.
-2. A list of Candidate Users.
-
-Task:
-Select top 3-5 best matches from the Candidate Users.
-For each match, provide a detailed "match_reason" explaining WHY they are a good fit (e.g., "Their backend skills complement your frontend focus", "Both are INTJ personalities").
-
-Return ONLY a valid JSON object with the following structure:
-{
-  "matches": [
-    {
-      "user_id": 123, // Must match the candidate's actual ID
-      "match_score": 95, // 0-100
-      "match_reason": "Explanation..."
-    }
-  ]
-}
-Do not include any markdown formatting.
-"""
+        system_prompt = get_system_prompt("team_match_system")
         user_prompt = f"""
 Current User Profile:
 {json.dumps(user_profile, ensure_ascii=False)}
@@ -111,19 +116,13 @@ Candidate Users:
 """
 
         # 3. Call AI Model
-        # TODO: Integrate DeepSeek model here when API key is available
-        # if settings.USE_DEEPSEEK:
-        #     completion = deepseek_client.chat.completions.create(...)
-        # else:
-        
-        # Fallback to ModelScope (Qwen)
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
             ],
-             response_format={"type": "json_object"}
+            response_format={"type": "json_object"}
         )
         
         content_str = completion.choices[0].message.content
@@ -192,33 +191,7 @@ async def brainstorm_ideas(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
-        system_prompt = """You are a creative Hackathon Idea Generator.
-Your goal is to suggest 3-5 unique, feasible, and impressive hackathon project ideas based on the user's skills and the event theme.
-
-Input:
-1. Hackathon Theme
-2. User Skills
-3. User Interests
-
-Task:
-Generate a list of project ideas. For each idea provide:
-- Title: Catchy name
-- Description: 2-3 sentences explaining the problem and solution
-- Tech Stack: Recommended technologies based on user skills
-- Complexity: Easy/Medium/Hard
-
-Return ONLY a valid JSON object:
-{
-  "ideas": [
-    {
-      "title": "EcoTrack AI",
-      "description": "An AI-powered app that scans trash to tell you how to recycle it...",
-      "tech_stack": "Flutter, TensorFlow Lite, Firebase",
-      "complexity": "Medium"
-    }
-  ]
-}
-"""
+        system_prompt = get_system_prompt("brainstorm_system")
         user_prompt = f"""
 Theme: {req.theme}
 User Skills: {req.skills}
@@ -226,7 +199,7 @@ User Interests: {req.interests}
 """
 
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
@@ -247,38 +220,14 @@ async def generate_pitch_deck(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
-        system_prompt = """You are a Startup Pitch Coach.
-Your goal is to generate a structured 5-7 slide pitch deck outline for a hackathon project.
-
-Input:
-1. Project Name
-2. Project Description
-
-Task:
-Generate slides including: Problem, Solution, Demo/Features, Tech Stack, and Future Value.
-For each slide provide:
-- Title
-- Content (Bullet points)
-- Speaker Notes (What to say)
-
-Return ONLY a valid JSON object:
-{
-  "slides": [
-    {
-      "title": "The Problem",
-      "content": "- Recycling is confusing\n- 90% of plastic isn't recycled",
-      "speaker_notes": "Start with a personal story about..."
-    }
-  ]
-}
-"""
+        system_prompt = get_system_prompt("pitch_deck_system")
         user_prompt = f"""
 Project Name: {req.project_name}
 Description: {req.project_description}
 """
 
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
@@ -308,24 +257,7 @@ async def generate_resume(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
-        system_prompt = """You are an expert Career Coach and AI Resume Writer.
-Your goal is to generate a professional, engaging bio and a list of technical skills based on the user's raw input.
-
-Input:
-1. Target Role (e.g., Frontend Developer)
-2. Keywords/Experience (unstructured text)
-3. Language (zh/en)
-
-Task:
-1. Write a professional "Bio" (max 150 words) that highlights their strengths and fits the target role. Use the specified language.
-2. Extract or infer 5-10 relevant "Skills" (technical or soft skills) from the keywords.
-
-Return ONLY a valid JSON object:
-{
-  "bio": "Passionate Frontend Developer with 5 years of experience...",
-  "skills": ["React", "TypeScript", "Node.js"]
-}
-"""
+        system_prompt = get_system_prompt("resume_system")
         user_prompt = f"""
 Target Role: {req.role}
 Keywords: {req.keywords}
@@ -333,7 +265,7 @@ Language: {req.lang}
 """
 
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
@@ -372,31 +304,7 @@ async def search_hackathons(
             })
 
         # 2. Construct Prompt
-        system_prompt = """You are an intelligent Hackathon Guide named 'Aura'.
-Your goal is to help users find the most relevant hackathons from the provided list based on their natural language query.
-
-Input:
-1. User Query
-2. List of Active Hackathons
-
-Task:
-1. Analyze the user's intent (e.g., looking for AI events, online only, specific location, beginners).
-2. Select the top 1-3 hackathons that best match the criteria.
-3. Generate a friendly, conversational summary explaining why these events are good matches.
-4. If no good matches are found, suggest the most popular or upcoming one.
-
-Return ONLY a valid JSON object:
-{
-  "matches": [
-    {
-      "id": 123,
-      "reason": "Focuses on Generative AI which matches your interest..."
-    }
-  ],
-  "summary": "I found 2 hackathons that match your interest in AI. The 'Shanghai AI Challenge' is particularly relevant..."
-}
-Do not include any markdown formatting.
-"""
+        system_prompt = get_system_prompt("search_hackathon_system")
         user_prompt = f"""
 User Query: {req.query}
 
@@ -406,7 +314,7 @@ Active Hackathons:
 
         # 3. Call AI
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
@@ -427,21 +335,7 @@ async def review_project(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
-        system_prompt = """You are an expert hackathon judge.
-Evaluate the project based on the provided scoring dimensions.
-For each dimension, provide a score (0-100) based on the project description.
-Also provide a constructive comment summarizing the evaluation.
-
-Return ONLY a valid JSON object with the following structure:
-{
-  "scores": {
-    "Dimension Name 1": 85,
-    "Dimension Name 2": 70
-  },
-  "comment": "Your overall assessment..."
-}
-Do not include any markdown formatting.
-"""
+        system_prompt = get_system_prompt("review_system")
         user_prompt = f"""
 Project Name: {req.project_name}
 Project Description: {req.project_description}
@@ -451,7 +345,7 @@ Scoring Dimensions:
 """
 
         completion = client.chat.completions.create(
-            model=settings.MODELSCOPE_MODEL_NAME,
+            model=MODEL_NAME,
             messages=[
                 {'role': 'system', 'content': system_prompt},
                 {'role': 'user', 'content': user_prompt}
@@ -476,55 +370,15 @@ async def generate_content(
         if req.type == 'hackathon':
             if req.context_data:
                 # Refinement Mode
-                system_prompt = """You are an expert hackathon organizer assisting a user in refining their event plan.
-You will receive the CURRENT event data and a user instruction.
-Update the event data based on the user's instruction.
-Return ONLY a valid JSON object with the updated fields (keep existing fields if not changed).
-Ensure the JSON structure matches the original format:
-- title, subtitle, description, requirements, theme_tags, professionalism_tags, rules_detail
-- resource_detail (resources, APIs, mentors, support)
-- organizer_name, location, registration_type ("individual" or "team"), format ("online" or "offline"), contact_info_text
-- awards_detail (list of objects)
-- scoring_dimensions (list of objects)
-
-Do not include any markdown formatting (like ```json).
-"""
+                system_prompt = get_system_prompt("hackathon_refinement_system")
                 user_prompt = f"Current Data: {json.dumps(req.context_data, ensure_ascii=False)}\nUser Instruction: {req.prompt}"
             else:
                 # Creation Mode
-                system_prompt = """You are an expert hackathon organizer. 
-Generate a detailed hackathon event plan based on the user's topic.
-Return ONLY a valid JSON object with the following fields:
-- title: A creative title for the hackathon
-- subtitle: A catchy short subtitle (max 50 chars)
-- description: A compelling description including an agenda/schedule overview (markdown supported)
-- requirements: Specific submission requirements for participants (markdown supported)
-- theme_tags: A string of comma-separated tags (e.g. "Web3, DeFi")
-- professionalism_tags: A string of comma-separated tags (e.g. "Beginner Friendly, Hardcore")
-- rules_detail: Detailed rules and code of conduct
-- resource_detail: Resources provided, API access, mentor support, etc. (markdown supported)
-- organizer_name: Suggested organizer name
-- location: Suggested location (if offline) or "Online"
-- registration_type: "individual" or "team"
-- format: "online" or "offline"
-- contact_info_text: Suggested contact email or info
-- awards_detail: A list of objects, each with:
-  - 'type': 'cash' | 'other' | 'mixed'
-  - 'name': Award name (e.g. "First Prize")
-  - 'count': Number of winners (integer)
-  - 'amount': Cash amount (integer, 0 if none)
-  - 'prize': Prize description (string, empty if none)
-- scoring_dimensions: A list of objects, each with:
-  - 'name': Dimension name (e.g. "Innovation")
-  - 'description': Brief explanation
-  - 'weight': Integer percentage (must sum to 100 across all items)
-
-Do not include any markdown formatting (like ```json) in the response, just the raw JSON string.
-"""
+                system_prompt = get_system_prompt("hackathon_creation_system")
                 user_prompt = f"Topic: {req.prompt}"
             
             completion = client.chat.completions.create(
-                model=settings.MODELSCOPE_MODEL_NAME,
+                model=MODEL_NAME,
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
@@ -537,18 +391,11 @@ Do not include any markdown formatting (like ```json) in the response, just the 
             return {"content": content}
 
         elif req.type == 'project':
-            system_prompt = """You are a startup mentor and technical consultant.
-Refine the user's project idea into a professional project proposal.
-Return ONLY a valid JSON object with the following fields:
-- description: A detailed, polished project description including key features and tech stack recommendations.
-- business_plan: A structured business plan including Executive Summary, Market Analysis, and Revenue Model.
-
-Do not include any markdown formatting (like ```json) in the response, just the raw JSON string.
-"""
+            system_prompt = get_system_prompt("project_refinement_system")
             user_prompt = f"Project Idea: {req.prompt}"
             
             completion = client.chat.completions.create(
-                model=settings.MODELSCOPE_MODEL_NAME,
+                model=MODEL_NAME,
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}
@@ -565,15 +412,7 @@ Do not include any markdown formatting (like ```json) in the response, just the 
             user_skills = current_user.skills or "General"
             user_interests = current_user.interests or "General"
             
-            system_prompt = """You are a team building expert.
-Based on the user's profile (skills and interests) and the project context, suggest 3 ideal teammate personas that would complement them.
-Return ONLY a valid JSON object with a 'matches' field, which is a list of objects.
-Each object should have:
-- user_id: Use random integers 1-100
-- name: A creative persona name (e.g. "Frontend Wizard")
-- skills: Required skills for this role that complement the user
-- match_score: A number between 80-99
-"""
+            system_prompt = get_system_prompt("matching_system")
             if req.prompt and len(req.prompt) > 10 and req.prompt != 'match':
                 context_prompt = f"Project Context: {req.prompt}. "
             else:
@@ -582,7 +421,7 @@ Each object should have:
             user_prompt = f"{context_prompt}User Skills: {user_skills}. User Interests: {user_interests}. Suggest complementary teammates."
             
             completion = client.chat.completions.create(
-                model=settings.MODELSCOPE_MODEL_NAME,
+                model=MODEL_NAME,
                 messages=[
                     {'role': 'system', 'content': system_prompt},
                     {'role': 'user', 'content': user_prompt}

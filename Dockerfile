@@ -10,17 +10,17 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/ ./backend/
 COPY frontend/ ./frontend/
 
-# 3. 端口
+# 3. 关键步骤：
+# (a) 把入口文件复制到根目录改名 run.py
+RUN cp backend/app.py ./run.py
+# (b) 【重要】删除 backend/app.py，防止它干扰 "import app"
+RUN rm backend/app.py
+
+# 4. 端口
 EXPOSE 7860
 
-# 4. 关键：设置 PYTHONPATH，让 Python 能从 backend 目录加载包
+# 5. 设置 PYTHONPATH，让 "import app.core" 能找到 backend/app/core
 ENV PYTHONPATH=/app/backend
 
-# 5. 启动：直接指向 backend.app.main 模块里的 app 对象
-# 注意：这里我们绕过那个有问题的 app.py，直接用原本的 main.py 启动！
-# 然后通过挂载 Gradio 的方式来补救。
-# 但为了不改代码，我们还是用你的 app.py，但要换个名字复制过去。
-RUN cp backend/app.py ./run.py
-
-# 6. 启动 run.py（避免和 app 包重名）
+# 6. 启动 run.py
 CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "run:app"]

@@ -27,6 +27,9 @@ COPY scripts /app/scripts
 # Copy backend code
 COPY backend /app/backend
 
+# Remove conflicting module file to force package import resolution
+RUN rm -f /app/backend/app.py || true
+
 # Copy frontend artifacts from Stage 1
 COPY --from=frontend-build /app/frontend/dist /app/backend/static_dist
 

@@ -1,20 +1,42 @@
+# Stage 1: Build Frontend
+FROM node:18-alpine as frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend ./
+RUN npm run build
+
+# Stage 2: Backend Runtime
 FROM python:3.10-slim
 
 WORKDIR /app
 
-# 1. 依赖
-COPY backend/requirements.txt ./
+# Install system dependencies (Minimal for SQLite)
+# Removed heavy build-essential/libpq-dev to prevent OOM
+RUN apt-get update && apt-get install -y \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy backend requirements
+COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. 复制代码（backend 目录下是 app 包）
-COPY backend/ ./backend/
-COPY frontend/ ./frontend/
+# Copy scripts
+COPY scripts /app/scripts
 
-# 3. 关键：把 backend 目录设为 PYTHONPATH
-ENV PYTHONPATH=/app/backend
+# Copy backend code
+COPY backend /app/backend
 
-# 4. 端口
+# Copy frontend artifacts from Stage 1
+COPY --from=frontend-build /app/frontend/dist /app/backend/static_dist
+
+# Expose port
 EXPOSE 7860
 
-# 5. 启动：直接运行 backend 目录下的 app.py
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "backend.app:app"]
+# Environment variables
+ENV PYTHONPATH=/app/backend
+
+# Run
+WORKDIR /app/backend
+RUN chmod +x start_modelscope.sh
+CMD ["bash", "start_modelscope.sh"]

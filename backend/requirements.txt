@@ -1,9 +1,6 @@
-Flask==3.0.2
-gunicorn==22.0.0
-flask-cors==4.0.0
 fastapi
 uvicorn[standard]
-pydantic
+pydantic[email]
 pydantic-settings
 sqlmodel
 alembic
@@ -16,5 +13,3 @@ python-multipart
 httpx
 email-validator
 openai
-gradio
-gunicorn

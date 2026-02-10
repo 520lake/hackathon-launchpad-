@@ -7,12 +7,19 @@ interface SubmitProjectModalProps {
   hackathonId: number;
   teamId?: number; // Added teamId
   existingProject?: any; // If editing
+  initialDescription?: string;
+  initialData?: {
+    title?: string;
+    description?: string;
+    tech_stack?: string;
+  };
   lang: 'zh' | 'en';
 }
 
-export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, lang }: SubmitProjectModalProps) {
+export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, initialDescription, initialData, lang }: SubmitProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [techStack, setTechStack] = useState(''); // New field
   const [repoUrl, setRepoUrl] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -29,23 +36,34 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
   useEffect(() => {
     if (existingProject) {
       setTitle(existingProject.title);
-      setDescription(existingProject.description);
+      setDescription(initialDescription || existingProject.description);
+      setTechStack(existingProject.tech_stack || ''); // New field
       setRepoUrl(existingProject.repo_url || '');
       setDemoUrl(existingProject.demo_url || '');
       setVideoUrl(existingProject.video_url || '');
       setAttachmentUrl(existingProject.attachment_url || '');
       setCoverImage(existingProject.cover_image || '');
+    } else if (initialData) {
+      setTitle(initialData.title || '');
+      setDescription(initialDescription || initialData.description || '');
+      setTechStack(initialData.tech_stack || '');
+      setRepoUrl('');
+      setDemoUrl('');
+      setVideoUrl('');
+      setAttachmentUrl('');
+      setCoverImage('');
     } else {
       // Reset if new
       setTitle('');
-      setDescription('');
+      setDescription(initialDescription || '');
+      setTechStack(''); // New field
       setRepoUrl('');
       setDemoUrl('');
       setVideoUrl('');
       setAttachmentUrl('');
       setCoverImage('');
     }
-  }, [existingProject, isOpen]);
+  }, [existingProject, isOpen, initialDescription, initialData]);
 
   const uploadImage = async (file: File) => {
     const formData = new FormData();
@@ -117,15 +135,16 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       const payload = {
-        title,
-        description,
-        repo_url: repoUrl,
-        demo_url: demoUrl,
-        video_url: videoUrl,
-        attachment_url: attachmentUrl,
-        cover_image: coverImage,
-        // hackathon_id removed as it's not in ProjectCreate and linked via team
-      };
+                    title,
+                    description,
+                    tech_stack: techStack,
+                    repo_url: repoUrl,
+                    demo_url: demoUrl,
+                    video_url: videoUrl,
+                    attachment_url: attachmentUrl,
+                    cover_image: coverImage,
+                    // hackathon_id removed as it's not in ProjectCreate and linked via team
+                };
 
       if (existingProject) {
         await axios.patch(`api/v1/projects/${existingProject.id}`, payload, { headers }); // Changed put to patch
@@ -246,6 +265,19 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                 className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700 h-40"
                 placeholder={lang === 'zh' ? "描述你的项目解决了什么问题，使用了什么技术..." : "Describe the problem solved and tech stack used..."}
                 required
+                />
+            </div>
+
+            <div>
+                <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
+                    {lang === 'zh' ? '技术栈 (以逗号分隔)' : 'TECH STACK (COMMA SEPARATED)'}
+                </label>
+                <input 
+                  type="text" 
+                  value={techStack} 
+                  onChange={e => setTechStack(e.target.value)}
+                  placeholder="React, TypeScript, FastAPI, etc."
+                  className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
                 />
             </div>
 

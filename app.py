@@ -8,11 +8,10 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("vibebuild")
 
 # Add backend directory to python path
-# backend/app -> import app
 sys.path.append(os.path.join(os.path.dirname(__file__), "backend"))
 
-from app.main import app
-from app.db.session import init_db
+from aura_server.main import app
+from aura_server.db.session import init_db
 
 if __name__ == "__main__":
     try:

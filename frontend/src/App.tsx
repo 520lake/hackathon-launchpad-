@@ -48,6 +48,7 @@ function App() {
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState<number | null>(null);
+  const [detailInitialTab, setDetailInitialTab] = useState<string>('overview');
   const [hackathonListInitialMode, setHackathonListInitialMode] = useState<'list' | 'ai'>('list');
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isVerificationOpen, setIsVerificationOpen] = useState(false);
@@ -185,8 +186,9 @@ function App() {
     }
   };
 
-  const openHackathonDetail = (id: number) => {
+  const openHackathonDetail = (id: number, tab: string = 'overview') => {
     setSelectedHackathonId(id);
+    setDetailInitialTab(tab);
     setIsDetailOpen(true);
   };
 
@@ -266,6 +268,7 @@ function App() {
         isOpen={isDetailOpen} 
         onClose={() => setIsDetailOpen(false)} 
         hackathonId={selectedHackathonId}
+        initialTab={detailInitialTab}
         onEdit={(hackathon) => {
             setIsDetailOpen(false);
             setEditingHackathon(hackathon);

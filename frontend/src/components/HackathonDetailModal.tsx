@@ -6,7 +6,21 @@ import JudgingModal from './JudgingModal';
 import ResultPublishModal from './ResultPublishModal';
 import AIResumeModal from './AIResumeModal';
 import AIParticipantTools from './AIParticipantTools';
+import AIProjectAssistant from './AIProjectAssistant';
 import ReactMarkdown from 'react-markdown';
+
+interface Recruitment {
+  id: number;
+  team_id: number;
+  role: string;
+  skills: string;
+  count: number;
+  description?: string;
+  status: string;
+  created_at: string;
+  team?: Team;
+}
+
 
 interface Hackathon {
   id: number;
@@ -81,12 +95,14 @@ interface Team {
   hackathon_id: number;
   leader_id: number;
   members?: TeamMember[];
+  recruitments?: Recruitment[];
 }
 
 interface Project {
   id: number;
   title: string;
   description: string;
+  tech_stack?: string;
   repo_url?: string;
   demo_url?: string;
   hackathon_id: number;
@@ -104,9 +120,10 @@ interface HackathonDetailModalProps {
   onEdit?: (hackathon: Hackathon) => void;
   onTeamMatch?: () => void;
   lang: 'zh' | 'en';
+  initialTab?: string;
 }
 
-export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit, onTeamMatch, lang }: HackathonDetailModalProps) {
+export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onEdit, onTeamMatch, lang, initialTab }: HackathonDetailModalProps) {
   const [hackathon, setHackathon] = useState<Hackathon | null>(null);
   const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
   const [myProject, setMyProject] = useState<Project | null>(null);
@@ -126,9 +143,14 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   
   // Modals
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
+  const [initialProjectData, setInitialProjectData] = useState<any>(null);
   const [isJudgingOpen, setIsJudgingOpen] = useState(false);
   const [isResultPublishOpen, setIsResultPublishOpen] = useState(false);
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
+  const [isRecruitOpen, setIsRecruitOpen] = useState(false);
+  const [recruitForm, setRecruitForm] = useState({ role: '', skills: '', count: 1, description: '', contact_info: '' });
+  const [refinedDescription, setRefinedDescription] = useState<string>('');
+  const [recruitLoading, setRecruitLoading] = useState(false);
   const [isJudge, setIsJudge] = useState(false);
   const [showContact, setShowContact] = useState(false);
   const [registerLoading, setRegisterLoading] = useState(false);
@@ -159,6 +181,26 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [commentContent, setCommentContent] = useState('');
   const [loadingComments, setLoadingComments] = useState(false);
 
+  // Recruitment List
+  const [recruitments, setRecruitments] = useState<Recruitment[]>([]);
+  const [loadingRecruitments, setLoadingRecruitments] = useState(false);
+  const [recruitmentSearch, setRecruitmentSearch] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
+  const [skillFilter, setSkillFilter] = useState('');
+
+  const fetchRecruitments = async () => {
+      try {
+          const token = localStorage.getItem('token');
+          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+          const res = await axios.get(`${API_BASE_URL}/api/v1/teams/recruitments/all?hackathon_id=${hackathonId}`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          setRecruitments(res.data);
+      } catch (e) {
+          console.error("Failed to fetch recruitments", e);
+      }
+  };
+
   // AI Insights State
   const [insights, setInsights] = useState<any>(null);
   const [loadingInsights, setLoadingInsights] = useState(false);
@@ -176,6 +218,27 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         console.error("Failed to fetch insights", e);
     } finally {
         setLoadingInsights(false);
+    }
+  };
+
+  const handleRecruitSubmit = async () => {
+    if (!myTeam) return;
+    setRecruitLoading(true);
+    try {
+        const token = localStorage.getItem('token');
+        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+        await axios.post(`${API_BASE_URL}/api/v1/teams/${myTeam.id}/recruitments`, recruitForm, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setIsRecruitOpen(false);
+        fetchHackathon(); // Refresh team data to show new recruitment
+        fetchRecruitments(); // Also refresh the general recruitment hall
+        alert(lang === 'zh' ? '招募信息已发布' : 'Recruitment published');
+    } catch (error) {
+        console.error("Recruitment failed", error);
+        alert(lang === 'zh' ? '发布失败' : 'Failed to publish');
+    } finally {
+        setRecruitLoading(false);
     }
   };
 
@@ -234,7 +297,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (isOpen && hackathonId) {
       checkUser();
       fetchHackathon();
-      setActiveTab('overview');
+      setActiveTab(initialTab || 'overview');
 
       // Animation
       if (containerRef.current) {
@@ -256,6 +319,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
           fetchTeams();
           fetchGallery(); // Fetch for stats
           fetchPosts();
+          fetchRecruitments();
           if (!insights) fetchInsights();
       }
       if (activeTab === 'gallery') fetchGallery();
@@ -307,7 +371,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                 // Enrollment
                 const resEnroll = await axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
                 const myEnroll = resEnroll.data.find((e: any) => Number(e.hackathon_id) === Number(hackathonId));
-                setEnrollment(myEnroll || null);
+                
+                // Fix: Don't overwrite enrollment with null if we just enrolled (handled in handleRegister)
+                if (myEnroll) {
+                    setEnrollment(myEnroll);
+                } else if (!enrollment) {
+                    setEnrollment(null);
+                }
 
                 // My Team
                 const resTeams = await axios.get('api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
@@ -366,24 +436,37 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     
     setRegisterLoading(true);
     try {
-        await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
+        const response = await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         
+        // Fix: Immediately update local enrollment state to unlock UI
+        const newEnrollment = {
+            id: response.data.id,
+            status: response.data.status || 'pending'
+        };
+        setEnrollment(newEnrollment);
+        
         // Success Logic
+        // Switch to my_project tab immediately
+        setActiveTab('my_project');
+        
+        // Fetch full data in background
         await fetchHackathon();
         
-        // Directly switch to my_project tab and show success message
-        alert(lang === 'zh' ? '🎉 报名成功！请前往“我的项目”创建或管理您的作品。' : '🎉 Registration Successful! Please go to "My Project" to create or manage your project.');
-        setActiveTab('my_project');
+        alert(lang === 'zh' ? '🎉 报名成功！已为您解锁“我的项目”空间。' : '🎉 Registration Successful! "My Project" space is now unlocked.');
         
     } catch (e: any) {
         // Fix for Bug 1: If already enrolled, refresh state and unlock
         const errorMsg = e.response?.data?.detail || '';
         if (errorMsg.includes('Already enrolled') || errorMsg.includes('already enrolled') || e.response?.status === 400) {
              console.log("Already enrolled, refreshing state...");
-             await fetchHackathon();
+             
+             // Manually set a dummy enrollment to unlock UI immediately
+             setEnrollment({ id: 0, status: 'approved' }); 
              setActiveTab('my_project');
+             
+             await fetchHackathon();
              alert(lang === 'zh' ? '您已报名，正在跳转...' : 'You are already enrolled. Redirecting...');
              return;
         }
@@ -611,6 +694,23 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     } catch (e) { alert('Failed to post comment'); }
   };
 
+  // Dynamic Filters
+  const availableRoles = Array.from(new Set(recruitments.map(r => r.role))).filter(Boolean).sort();
+  const availableSkills = Array.from(new Set(recruitments.flatMap(r => (r.skills || '').split(/[,，]/).map(s => s.trim())))).filter(Boolean).sort();
+
+  const filteredRecruitments = recruitments.filter(r => {
+      const searchLower = recruitmentSearch.toLowerCase();
+      const matchesSearch = !recruitmentSearch || 
+          r.role.toLowerCase().includes(searchLower) || 
+          r.skills.toLowerCase().includes(searchLower) ||
+          (r.team?.name || '').toLowerCase().includes(searchLower);
+      
+      const matchesRole = !roleFilter || r.role.toLowerCase().includes(roleFilter.toLowerCase());
+      const matchesSkill = !skillFilter || r.skills.toLowerCase().includes(skillFilter.toLowerCase());
+
+      return matchesSearch && matchesRole && matchesSkill;
+  });
+
   if (!isOpen || !hackathonId) return null;
 
   return (
@@ -618,10 +718,17 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       {/* Sub Modals */}
       <SubmitProjectModal 
         isOpen={isSubmitOpen} 
-        onClose={() => { setIsSubmitOpen(false); fetchHackathon(); }} 
+        onClose={() => { 
+          setIsSubmitOpen(false); 
+          fetchHackathon(); 
+          setRefinedDescription(''); 
+          setInitialProjectData(null); // Reset AI generated data
+        }} 
         hackathonId={hackathonId}
         teamId={myTeam?.id}
         existingProject={myProject}
+        initialDescription={refinedDescription}
+        initialData={initialProjectData}
         lang={lang}
       />
       <JudgingModal
@@ -1120,10 +1227,10 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                 </div>
                                                 <div className="flex gap-3">
                                                     <button 
-                                                        onClick={() => alert(lang === 'zh' ? '招募状态已更新：开启' : 'Recruitment Status: OPEN')}
+                                                        onClick={() => setIsRecruitOpen(true)}
                                                         className="px-4 py-2 border border-brand/50 text-brand hover:bg-brand hover:text-black transition-colors font-mono text-xs uppercase"
                                                     >
-                                                        {lang === 'zh' ? '开启招募' : 'OPEN RECRUIT'}
+                                                        {lang === 'zh' ? '发布招募' : 'PUBLISH RECRUIT'}
                                                     </button>
                                                     <button 
                                                         onClick={() => {
@@ -1166,6 +1273,18 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                         <label className="text-xs text-gray-500 uppercase font-mono">{lang === 'zh' ? '简介' : 'DESCRIPTION'}</label>
                                                         <div className="text-sm text-gray-300 line-clamp-3">{myProject.description}</div>
                                                     </div>
+                                                    {myProject.tech_stack && (
+                                                        <div>
+                                                            <label className="text-xs text-gray-500 uppercase font-mono">{lang === 'zh' ? '技术栈' : 'TECH STACK'}</label>
+                                                            <div className="flex flex-wrap gap-2 mt-2">
+                                                                {myProject.tech_stack.split(',').map((s, i) => (
+                                                                    <span key={i} className="px-2 py-1 bg-brand/10 border border-brand/30 text-brand text-xs font-mono uppercase">
+                                                                        {s.trim()}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
                                                     <div className="flex gap-4 pt-4">
                                                         <button onClick={() => setIsSubmitOpen(true)} className="btn-secondary px-6">{lang === 'zh' ? '编辑项目' : 'EDIT PROJECT'}</button>
                                                     </div>
@@ -1177,6 +1296,123 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                 </div>
                                             )}
                                         </div>
+
+                                        {/* AI Project Assistant */}
+                                        <div className="mt-8">
+                                            <AIProjectAssistant 
+                                                lang={lang}
+                                                currentDescription={myProject?.description}
+                                                mode="idea"
+                                                onIdeaSelect={(idea) => {
+                                                    console.log("Selected Idea:", idea);
+                                                    setInitialProjectData({
+                                                        title: idea.title,
+                                                        description: idea.description,
+                                                        tech_stack: Array.isArray(idea.tech_stack) ? idea.tech_stack.join(', ') : idea.tech_stack
+                                                    });
+                                                    setIsSubmitOpen(true);
+                                                }}
+                                            />
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                                                <AIProjectAssistant 
+                                                    lang={lang}
+                                                    currentDescription={myProject?.description}
+                                                    mode="recruitment"
+                                                    onRecruitmentGenerate={(recruitments) => {
+                                                        if (recruitments && recruitments.length > 0) {
+                                                            const r = recruitments[0];
+                                                            setRecruitForm({
+                                                                ...recruitForm,
+                                                                role: r.role || '',
+                                                                skills: Array.isArray(r.skills) ? r.skills.join(', ') : (r.skills || ''),
+                                                                description: r.description || '',
+                                                                count: r.count || 1
+                                                            });
+                                                            setIsRecruitOpen(true);
+                                                        }
+                                                    }}
+                                                />
+                                                <AIProjectAssistant 
+                                                    lang={lang}
+                                                    currentDescription={myProject?.description}
+                                                    mode="refine"
+                                                    onRefineDescription={(refined) => {
+                                                        setInitialProjectData({
+                                                            ...myProject,
+                                                            description: refined
+                                                        });
+                                                        setIsSubmitOpen(true);
+                                                    }}
+                                                />
+                                            </div>
+                                        </div>
+
+                                        {/* Recruitment Form Overlay */}
+                                        {isRecruitOpen && (
+                                            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+                                                <div className="bg-[#1a1a1a] border border-white/10 p-6 max-w-md w-full relative">
+                                                    <button onClick={() => setIsRecruitOpen(false)} className="absolute top-4 right-4 text-gray-500 hover:text-white">✕</button>
+                                                    <h3 className="text-xl font-bold text-white mb-4">{lang === 'zh' ? '发布招募' : 'PUBLISH RECRUITMENT'}</h3>
+                                                    <div className="space-y-4">
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">{lang === 'zh' ? '角色' : 'ROLE'}</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={recruitForm.role}
+                                                                onChange={e => setRecruitForm({...recruitForm, role: e.target.value})}
+                                                                className="w-full bg-black/50 border border-white/20 p-2 text-white"
+                                                                placeholder="e.g. Frontend Developer"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">{lang === 'zh' ? '技能要求' : 'SKILLS'}</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={recruitForm.skills}
+                                                                onChange={e => setRecruitForm({...recruitForm, skills: e.target.value})}
+                                                                className="w-full bg-black/50 border border-white/20 p-2 text-white"
+                                                                placeholder="e.g. React, TypeScript"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">{lang === 'zh' ? '人数' : 'COUNT'}</label>
+                                                            <input 
+                                                                type="number" 
+                                                                value={recruitForm.count}
+                                                                onChange={e => setRecruitForm({...recruitForm, count: parseInt(e.target.value)})}
+                                                                className="w-full bg-black/50 border border-white/20 p-2 text-white"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">{lang === 'zh' ? '联系方式' : 'CONTACT INFO'}</label>
+                                                            <input 
+                                                                type="text" 
+                                                                value={recruitForm.contact_info}
+                                                                onChange={e => setRecruitForm({...recruitForm, contact_info: e.target.value})}
+                                                                className="w-full bg-black/50 border border-white/20 p-2 text-white"
+                                                                placeholder="e.g. Email, WeChat, Discord"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-xs text-gray-500 mb-1">{lang === 'zh' ? '描述' : 'DESCRIPTION'}</label>
+                                                            <textarea 
+                                                                value={recruitForm.description}
+                                                                onChange={e => setRecruitForm({...recruitForm, description: e.target.value})}
+                                                                className="w-full bg-black/50 border border-white/20 p-2 text-white h-24"
+                                                            />
+                                                        </div>
+                                                        <button 
+                                                            onClick={handleRecruitSubmit}
+                                                            disabled={recruitLoading}
+                                                            className="w-full py-3 bg-brand text-black font-bold uppercase hover:bg-brand/90 disabled:opacity-50"
+                                                        >
+                                                            {recruitLoading ? '...' : (lang === 'zh' ? '确认发布' : 'PUBLISH')}
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
+
                                     </div>
                                 )}
                             </div>
@@ -1267,6 +1503,113 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                         </div>
                                     </div>
                                 )}
+
+                                {/* Recruitment List */}
+                                <div className="mb-12">
+                                    <div className="flex flex-col gap-4 mb-6">
+                                        <h3 className="text-xl font-bold text-white flex items-center gap-3">
+                                            <span className="w-2 h-8 bg-brand"></span>
+                                            {lang === 'zh' ? '招募大厅' : 'RECRUITMENT HALL'}
+                                        </h3>
+                                        
+                                        <div className="flex flex-col md:flex-row gap-4 bg-white/5 p-4 border border-white/10">
+                                            <div className="flex-1 relative">
+                                                <input 
+                                                    type="text" 
+                                                    value={recruitmentSearch}
+                                                    onChange={e => setRecruitmentSearch(e.target.value)}
+                                                    placeholder={lang === 'zh' ? '搜索职位、技能或战队...' : 'Search role, skills or team...'}
+                                                    className="w-full bg-black/50 border border-white/20 p-2 pl-8 text-sm text-white focus:border-brand outline-none"
+                                                />
+                                                <div className="absolute left-2.5 top-2.5 text-gray-500 text-xs">🔍</div>
+                                            </div>
+
+                                            <select 
+                                                value={roleFilter}
+                                                onChange={e => setRoleFilter(e.target.value)}
+                                                className="bg-black/50 border border-white/20 p-2 text-sm text-white focus:border-brand outline-none min-w-[140px]"
+                                            >
+                                                <option value="">{lang === 'zh' ? '所有角色' : 'All Roles'}</option>
+                                                {availableRoles.map(role => (
+                                                    <option key={role} value={role}>{role}</option>
+                                                ))}
+                                            </select>
+
+                                            <select 
+                                                value={skillFilter}
+                                                onChange={e => setSkillFilter(e.target.value)}
+                                                className="bg-black/50 border border-white/20 p-2 text-sm text-white focus:border-brand outline-none min-w-[140px]"
+                                            >
+                                                <option value="">{lang === 'zh' ? '所有技能' : 'All Skills'}</option>
+                                                {availableSkills.map(skill => (
+                                                    <option key={skill} value={skill}>{skill}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    </div>
+
+                                    {loadingRecruitments ? (
+                                        <div className="text-center py-8 text-gray-500">Loading recruitments...</div>
+                                    ) : (
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {filteredRecruitments.length > 0 ? (
+                                                filteredRecruitments.map(recruitment => (
+                                                    <div key={recruitment.id} className="bg-white/5 border border-white/10 p-5 hover:border-brand/50 transition-all group relative overflow-hidden">
+                                                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity">
+                                                            <div className="text-4xl font-black text-brand">R</div>
+                                                        </div>
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <h4 className="text-lg font-bold text-white group-hover:text-brand transition-colors">
+                                                                {recruitment.role}
+                                                            </h4>
+                                                            <span className="bg-brand/20 text-brand text-xs px-2 py-1 font-mono">
+                                                                {recruitment.count} {lang === 'zh' ? '人' : 'Openings'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="text-sm text-gray-400 mb-3 line-clamp-2">
+                                                            {recruitment.description || (lang === 'zh' ? '暂无描述' : 'No description')}
+                                                        </div>
+                                                        {recruitment.contact_info && (
+                                                            <div className="text-xs text-gray-500 mb-3 font-mono">
+                                                                <span className="text-brand mr-2">✉</span>
+                                                                {recruitment.contact_info}
+                                                            </div>
+                                                        )}
+                                                        <div className="flex flex-wrap gap-2 mb-4">
+                                                            {recruitment.skills.split(',').map((skill, i) => (
+                                                                <span key={i} className="text-xs border border-white/20 text-gray-300 px-2 py-0.5">
+                                                                    {skill.trim()}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                        <div className="flex items-center justify-between border-t border-white/10 pt-3">
+                                                            <div className="flex items-center gap-2">
+                                                                <div className="w-6 h-6 rounded-full bg-gradient-to-br from-brand to-purple-600 flex items-center justify-center text-[10px] font-bold text-white">
+                                                                    {recruitment.team?.name?.substring(0, 1).toUpperCase() || 'T'}
+                                                                </div>
+                                                                <span className="text-xs text-gray-300 font-bold">{recruitment.team?.name || 'Unknown Team'}</span>
+                                                            </div>
+                                                            <button 
+                                                                onClick={() => {
+                                                                    if (recruitment.team_id) {
+                                                                        handleJoinTeam(recruitment.team_id);
+                                                                    }
+                                                                }}
+                                                                className="text-xs text-brand hover:text-white uppercase font-bold tracking-wider flex items-center gap-1"
+                                                            >
+                                                                {lang === 'zh' ? '申请加入' : 'APPLY TO JOIN'} <span>→</span>
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                ))
+                                            ) : (
+                                                <div className="col-span-2 text-center py-10 text-gray-500 border border-dashed border-white/10">
+                                                    {lang === 'zh' ? '暂无招募信息' : 'No open recruitments found.'}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
+                                </div>
 
                                 {/* Discussion Board */}
                                 <div className="mb-12">

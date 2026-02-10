@@ -5,14 +5,14 @@ from sqlalchemy import pool
 
 from alembic import context
 from sqlmodel import SQLModel
-from app.models.user import User
-from app.models.hackathon import Hackathon
-from app.models.team_project import Team, Project, TeamMember
-from app.models.enrollment import Enrollment
-from app.models.judge import Judge
-from app.models.score import Score
-from app.models.community import CommunityPost, CommunityComment
-from app.core.config import settings
+from aura_server.models.user import User
+from aura_server.models.hackathon import Hackathon
+from aura_server.models.team_project import Team, Project, TeamMember
+from aura_server.models.enrollment import Enrollment
+from aura_server.models.judge import Judge
+from aura_server.models.score import Score
+from aura_server.models.community import CommunityPost, CommunityComment
+from aura_server.core.config import settings
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

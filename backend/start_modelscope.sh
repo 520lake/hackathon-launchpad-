@@ -36,7 +36,7 @@ ls -l $DB_FILE || echo "File not found"
 
 # 创建初始数据（管理员账号）
 echo "Creating initial data..."
-python -m app.initial_data
+python -m aura_server.initial_data
 
 # 创建Mock Hackathons (如果不存在)
 echo "Seeding Hackathons..."
@@ -56,4 +56,4 @@ python scripts/debug_login.py || echo "Debug script failed (non-fatal)"
 
 # 启动应用
 echo "Starting application on port 7860..."
-python -m uvicorn app.main:app --host 0.0.0.0 --port 7860
+python -m uvicorn aura_server.main:app --host 0.0.0.0 --port 7860

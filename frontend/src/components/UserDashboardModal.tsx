@@ -51,18 +51,25 @@ interface User {
   bio?: string;
 }
 
+interface Team {
+  id: number;
+  hackathon_id: number;
+  name: string;
+}
+
 interface Project {
   id: number;
   title: string;
   description: string;
   status: string;
   created_at: string;
+  team?: Team;
 }
 
 interface UserDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onHackathonSelect: (id: number) => void;
+  onHackathonSelect: (id: number, initialTab?: string) => void;
   onVerifyClick: () => void;
   onUserUpdate?: () => void;
   onTeamMatchClick?: () => void;
@@ -579,27 +586,31 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
               </div>
             )}
 
-            {/* JOINED TAB */}
-            {activeTab === 'joined' && (
-              <div className="space-y-8">
-                {['registering', 'upcoming', 'ongoing', 'ended'].map(status => {
-                    const filtered = myJoined.filter(e => {
-                        const h = e.hackathon;
-                        const now = new Date().getTime();
-                        const regStart = h.registration_start_date ? new Date(h.registration_start_date).getTime() : 0;
-                        const regEnd = h.registration_end_date ? new Date(h.registration_end_date).getTime() : 0;
-                        const actStart = new Date(h.start_date).getTime();
-                        const actEnd = new Date(h.end_date).getTime();
-                        
-                        const isRegistering = now >= regStart && now < regEnd;
-                        
-                        if (status === 'registering') return isRegistering;
-                        // Fix Bug 3: Include "Before Registration" AND "After Registration but Before Start" in upcoming
-                        if (status === 'upcoming') return now < actStart && !isRegistering;
-                        if (status === 'ongoing') return now >= actStart && now < actEnd;
-                        if (status === 'ended') return now >= actEnd;
-                        return false;
-                    });
+        {/* JOINED TAB */}
+        {activeTab === 'joined' && (
+          <div className="space-y-8">
+            {myJoined.length > 0 && ['registering', 'upcoming', 'ongoing', 'ended', 'other'].map(status => {
+                const filtered = myJoined.filter(e => {
+                    const h = e.hackathon;
+                    const now = new Date().getTime();
+                    
+                    // If no dates provided, put in 'other'
+                    if (!h.start_date && !h.end_date) return status === 'other';
+
+                    const regStart = h.registration_start_date ? new Date(h.registration_start_date).getTime() : 0;
+                    const regEnd = h.registration_end_date ? new Date(h.registration_end_date).getTime() : 0;
+                    const actStart = h.start_date ? new Date(h.start_date).getTime() : 0;
+                    const actEnd = h.end_date ? new Date(h.end_date).getTime() : 0;
+                    
+                    const isRegistering = regStart && regEnd && now >= regStart && now < regEnd;
+                    
+                    if (status === 'registering') return isRegistering;
+                    if (status === 'upcoming') return now < actStart && !isRegistering;
+                    if (status === 'ongoing') return now >= actStart && now < actEnd;
+                    if (status === 'ended') return now >= actEnd;
+                    if (status === 'other') return !regStart && !regEnd && !actStart && !actEnd;
+                    return false;
+                });
 
                     if (filtered.length === 0) return null;
 
@@ -607,16 +618,18 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                         <div key={status} className="space-y-4">
                             <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wider border-l-4 border-brand pl-4">
                                 {lang === 'zh' 
-                                    ? (status === 'registering' ? '报名中' : status === 'upcoming' ? '即将开始' : status === 'ongoing' ? '进行中' : '已结束') 
-                                    : (status === 'registering' ? 'REGISTERING' : status === 'upcoming' ? 'UPCOMING' : status === 'ongoing' ? 'ONGOING' : 'ENDED')}
+                                    ? (status === 'registering' ? '报名中' : status === 'upcoming' ? '即将开始' : status === 'ongoing' ? '进行中' : status === 'ended' ? '已结束' : '其他') 
+                                    : (status === 'registering' ? 'REGISTERING' : status === 'upcoming' ? 'UPCOMING' : status === 'ongoing' ? 'ONGOING' : status === 'ended' ? 'ENDED' : 'OTHER')}
                             </h3>
                             {filtered.map(e => (
                                 <div 
                                   key={e.id} 
                                   className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
                                   onClick={() => {
-                                    onHackathonSelect(e.hackathon.id);
-                                    onClose();
+                                    if (e.hackathon && e.hackathon.id) {
+                                      onHackathonSelect(e.hackathon.id);
+                                      onClose();
+                                    }
                                   }}
                                 >
                                   <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
@@ -624,18 +637,19 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                                   </div>
                                   <div className="flex justify-between items-start relative z-10">
                                     <div>
-                                      <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
+                                      <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon?.title || 'Unknown Hackathon'}</h3>
                                       <div className="flex items-center gap-4 mt-3">
                                          <p className="text-xs text-gray-500 font-mono uppercase">
                                             {lang === 'zh' ? '状态' : 'STATUS'}: <span className={
                                                 status === 'registering' ? 'text-green-500 animate-pulse' :
                                                 status === 'ongoing' ? 'text-blue-500 animate-pulse' :
-                                                status === 'upcoming' ? 'text-yellow-500' : 'text-gray-500'
-                                            }>{status}</span>
+                                                status === 'upcoming' ? 'text-yellow-500' : 
+                                                status === 'other' ? 'text-purple-500' : 'text-gray-500'
+                                            }>{status === 'other' ? (lang === 'zh' ? '未分类' : 'GENERAL') : status}</span>
                                          </p>
                                          <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
                                          <p className="text-xs text-gray-500 font-mono uppercase">
-                                            {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-white">{new Date(e.joined_at).toLocaleDateString()}</span>
+                                            {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-white">{e.joined_at ? new Date(e.joined_at).toLocaleDateString() : 'N/A'}</span>
                                          </p>
                                       </div>
                                     </div>
@@ -675,7 +689,13 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   myProjects.map(p => (
                     <div 
                       key={p.id} 
-                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden"
+                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden cursor-pointer"
+                      onClick={() => {
+                        if (p.team && p.team.hackathon_id) {
+                          onHackathonSelect(p.team.hackathon_id, 'my_project');
+                          onClose();
+                        }
+                      }}
                     >
                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                           <div className="text-6xl font-black text-brand tracking-tighter">PROJ</div>
@@ -688,6 +708,11 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                             <p className="text-xs text-gray-500 font-mono uppercase">
                                 {lang === 'zh' ? '提交时间' : 'CREATED'}: <span className="text-gray-300">{new Date(p.created_at).toLocaleDateString()}</span>
                             </p>
+                            {p.team && (
+                                <p className="text-xs text-gray-500 font-mono uppercase">
+                                    {lang === 'zh' ? '团队' : 'TEAM'}: <span className="text-brand">{p.team.name}</span>
+                                </p>
+                            )}
                           </div>
                         </div>
                         <span className="px-3 py-1 bg-white/5 border border-white/10 text-xs text-gray-400 font-mono uppercase">

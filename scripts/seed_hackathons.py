@@ -7,10 +7,10 @@ from sqlmodel import Session, select, delete
 # Add backend directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
-from app.core.config import settings
-from app.db.session import engine
-from app.models.hackathon import Hackathon, HackathonStatus, RegistrationType, HackathonFormat
-from app.models.user import User
+from aura_server.core.config import settings
+from aura_server.db.session import engine
+from aura_server.models.hackathon import Hackathon, HackathonStatus, RegistrationType, HackathonFormat
+from aura_server.models.user import User
 
 def seed_hackathons():
     print("Seeding hackathon data...")

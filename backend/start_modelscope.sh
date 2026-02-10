@@ -21,6 +21,10 @@ echo "Using database: $DATABASE_URL"
 echo "Running migrations..."
 alembic upgrade head
 
+# 强制修复数据库Schema (防止Alembic失效)
+echo "Force fixing DB schema..."
+python ../scripts/fix_db_schema.py
+
 # 创建初始数据（管理员账号）
 echo "Creating initial data..."
 python -m app.initial_data

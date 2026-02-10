@@ -50,6 +50,10 @@ python ../scripts/populate_mock_data.py
 echo "Running schema fix one last time..."
 python ../scripts/fix_db_schema.py
 
+# 调试：检查管理员账号状态
+echo "DEBUG: Checking admin account status..."
+python scripts/debug_login.py || echo "Debug script failed (non-fatal)"
+
 # 启动应用
 echo "Starting application on port 7860..."
 python -m uvicorn app.main:app --host 0.0.0.0 --port 7860

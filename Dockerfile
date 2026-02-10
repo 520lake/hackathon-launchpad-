@@ -2,21 +2,19 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# 1. 依赖文件在 backend/ 里
+# 1. 依赖
 COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# 2. 后端代码
+# 2. 复制代码
 COPY backend/ ./backend/
-
-# 3. 前端代码
 COPY frontend/ ./frontend/
 
-# 4. 入口文件（如果 app.py 在根目录就留，否则删掉这句）
-# COPY app.py ./
-
-# 5. 端口
+# 3. 端口
 EXPOSE 7860
 
-# 6. 启动
-CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "backend.app:app"]
+# 4. 关键修正：设置 PYTHONPATH 让 Python 能找到 backend 目录下的 app 模块
+ENV PYTHONPATH=/app/backend
+
+# 5. 启动：直接运行 app 模块（因为 PYTHONPATH 已经指向 backend 了）
+CMD ["gunicorn", "--bind", "0.0.0.0:7860", "--workers", "1", "app:app"]

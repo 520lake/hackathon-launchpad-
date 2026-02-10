@@ -48,7 +48,7 @@ license: apache-2.0
 ## ✨ 核心特性 (Key Features)
 
 *   **🤖 AI-Native**: 
-    -   基于 ModelScope (Qwen-Plus) 的活动一键策划、智能组队匹配、项目润色与**AI 辅助评审**。
+    -   基于 ModelScope (Qwen-Plus) 的**AI 社区洞察**、活动一键策划、智能组队匹配、项目润色与**AI 辅助评审**。
 *   **🎨 Brutalist Design**: 
     -   独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
 *   **🔄 Full Lifecycle**: 

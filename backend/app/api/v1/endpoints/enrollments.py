@@ -8,6 +8,8 @@ from app.models.user import User
 from app.models.hackathon import Hackathon
 from app.models.enrollment import Enrollment, EnrollmentCreate, EnrollmentRead, EnrollmentStatus, EnrollmentWithHackathon
 
+from app.models.team_project import Team, TeamMember
+
 router = APIRouter()
 
 @router.post("/", response_model=EnrollmentRead)
@@ -60,6 +62,31 @@ def read_my_enrollments(*, session: Session = Depends(get_session), current_user
     """
     Get current user's enrollments with hackathon details.
     """
+    # Self-Repair: Check for missing enrollments from Team Membership
+    # Find all hackathons where user is a team member
+    team_memberships = session.exec(
+        select(TeamMember, Team)
+        .join(Team, TeamMember.team_id == Team.id)
+        .where(TeamMember.user_id == current_user.id)
+    ).all()
+    
+    for member, team in team_memberships:
+        # Check if enrollment exists
+        exists = session.exec(select(Enrollment).where(
+            Enrollment.user_id == current_user.id,
+            Enrollment.hackathon_id == team.hackathon_id
+        )).first()
+        
+        if not exists:
+            # Create missing enrollment
+            new_enrollment = Enrollment(
+                user_id=current_user.id,
+                hackathon_id=team.hackathon_id,
+                status=EnrollmentStatus.APPROVED # Team members are approved
+            )
+            session.add(new_enrollment)
+            session.commit()
+    
     results = session.exec(
         select(Enrollment, Hackathon)
         .join(Hackathon, Enrollment.hackathon_id == Hackathon.id)

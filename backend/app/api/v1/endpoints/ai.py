@@ -406,6 +406,28 @@ async def generate_content(
             content_str = completion.choices[0].message.content
             content = json.loads(content_str)
             return {"content": content}
+
+        elif req.type == 'participant_analysis':
+            system_prompt = get_system_prompt("participant_analysis_system")
+            
+            participants_data = req.context_data.get('participants', []) if req.context_data else []
+            # Limit to top 50 to avoid token limits if too many
+            participants_summary = json.dumps(participants_data[:50], ensure_ascii=False)
+            
+            user_prompt = f"Analyze these participants: {participants_summary}"
+            
+            completion = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt}
+                ],
+                response_format={"type": "json_object"}
+            )
+            
+            content_str = completion.choices[0].message.content
+            content = json.loads(content_str)
+            return {"content": content}
             
         elif req.type == 'matching':
             # Use current user's skills and interests to find matches

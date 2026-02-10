@@ -25,6 +25,8 @@ interface Hackathon {
   start_date: string;
   end_date: string;
   status: string;
+  registration_start_date?: string;
+  registration_end_date?: string;
 }
 
 interface EnrollmentWithHackathon {
@@ -526,25 +528,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       <span className="relative z-10">{savingProfile ? (lang === 'zh' ? '保存中...' : 'SAVING...') : (lang === 'zh' ? '保存资料' : 'SAVE PROFILE')}</span>
                       <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0"></div>
                   </button>
-
-                   {/* AI Team Match Entry */}
-                  <div className="mt-8 p-6 border border-brand/30 bg-brand/5 relative overflow-hidden group hover:bg-brand/10 transition-colors cursor-pointer" onClick={() => {
-                        if (onTeamMatchClick) {
-                            // Keep dashboard open
-                            onTeamMatchClick();
-                        }
-                    }}>
-                      <div className="absolute top-0 right-0 p-2 opacity-50 text-4xl group-hover:scale-110 transition-transform">⚡</div>
-                      <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-tight flex items-center gap-2">
-                          {lang === 'zh' ? '寻找神队友？' : 'LOOKING FOR TEAMMATES?'}
-                          <span className="text-xs bg-brand text-black px-2 py-0.5 rounded-sm">AI POWERED</span>
-                      </h3>
-                      <p className="text-sm text-gray-400 font-mono">
-                          {lang === 'zh' 
-                              ? '使用 AI 根据你的性格和技能匹配最佳队友。' 
-                              : 'Use AI to match the best teammates based on your personality and skills.'}
-                      </p>
-                  </div>
                </div>
             )}
 
@@ -598,51 +581,80 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
 
             {/* JOINED TAB */}
             {activeTab === 'joined' && (
-              <div className="space-y-4">
-                <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
-                  {lang === 'zh' ? '我参与的活动' : 'JOINED HACKATHONS'}
-                </h3>
-                {myJoined.length === 0 ? (
+              <div className="space-y-8">
+                {['registering', 'upcoming', 'ongoing', 'ended'].map(status => {
+                    const filtered = myJoined.filter(e => {
+                        const h = e.hackathon;
+                        const now = new Date().getTime();
+                        const regStart = h.registration_start_date ? new Date(h.registration_start_date).getTime() : 0;
+                        const regEnd = h.registration_end_date ? new Date(h.registration_end_date).getTime() : 0;
+                        const actStart = new Date(h.start_date).getTime();
+                        const actEnd = new Date(h.end_date).getTime();
+                        
+                        const isRegistering = now >= regStart && now < regEnd;
+                        
+                        if (status === 'registering') return isRegistering;
+                        // Fix Bug 3: Include "Before Registration" AND "After Registration but Before Start" in upcoming
+                        if (status === 'upcoming') return now < actStart && !isRegistering;
+                        if (status === 'ongoing') return now >= actStart && now < actEnd;
+                        if (status === 'ended') return now >= actEnd;
+                        return false;
+                    });
+
+                    if (filtered.length === 0) return null;
+
+                    return (
+                        <div key={status} className="space-y-4">
+                            <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wider border-l-4 border-brand pl-4">
+                                {lang === 'zh' 
+                                    ? (status === 'registering' ? '报名中' : status === 'upcoming' ? '即将开始' : status === 'ongoing' ? '进行中' : '已结束') 
+                                    : (status === 'registering' ? 'REGISTERING' : status === 'upcoming' ? 'UPCOMING' : status === 'ongoing' ? 'ONGOING' : 'ENDED')}
+                            </h3>
+                            {filtered.map(e => (
+                                <div 
+                                  key={e.id} 
+                                  className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
+                                  onClick={() => {
+                                    onHackathonSelect(e.hackathon.id);
+                                    onClose();
+                                  }}
+                                >
+                                  <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+                                      <div className="text-6xl font-black text-brand tracking-tighter">JOIN</div>
+                                  </div>
+                                  <div className="flex justify-between items-start relative z-10">
+                                    <div>
+                                      <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
+                                      <div className="flex items-center gap-4 mt-3">
+                                         <p className="text-xs text-gray-500 font-mono uppercase">
+                                            {lang === 'zh' ? '状态' : 'STATUS'}: <span className={
+                                                status === 'registering' ? 'text-green-500 animate-pulse' :
+                                                status === 'ongoing' ? 'text-blue-500 animate-pulse' :
+                                                status === 'upcoming' ? 'text-yellow-500' : 'text-gray-500'
+                                            }>{status}</span>
+                                         </p>
+                                         <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
+                                         <p className="text-xs text-gray-500 font-mono uppercase">
+                                            {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-white">{new Date(e.joined_at).toLocaleDateString()}</span>
+                                         </p>
+                                      </div>
+                                    </div>
+                                    <div className="w-10 h-10 border border-brand/30 flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-black transition-all">
+                                       ➜
+                                    </div>
+                                  </div>
+                                </div>
+                            ))}
+                        </div>
+                    );
+                })}
+                
+                {myJoined.length === 0 && (
                   <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
                       <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
                           {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
                       </p>
                   </div>
-                ) : (
-                  myJoined.map(e => (
-                    <div 
-                      key={e.id} 
-                      className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
-                      onClick={() => {
-                        onHackathonSelect(e.hackathon.id);
-                        onClose();
-                      }}
-                    >
-                       <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
-                          <div className="text-6xl font-black text-white tracking-tighter">JOIN</div>
-                      </div>
-                      <div className="flex justify-between items-start relative z-10">
-                        <div>
-                          <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon.title}</h3>
-                          <p className="text-xs text-gray-500 mt-2 font-mono uppercase">
-                              {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-gray-300">{new Date(e.joined_at).toLocaleDateString()}</span>
-                          </p>
-                        </div>
-                        <span className={`px-3 py-1 text-xs font-mono font-bold uppercase border ${
-                          e.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/30' :
-                          e.status === 'rejected' ? 'bg-red-500/10 text-red-500 border-red-500/30' :
-                          'bg-yellow-500/10 text-yellow-500 border-yellow-500/30'
-                        }`}>
-                          {e.status === 'pending' 
-                              ? (lang === 'zh' ? '审核中' : 'PENDING') 
-                              : e.status === 'approved' 
-                                  ? (lang === 'zh' ? '已通过' : 'APPROVED') 
-                                  : (lang === 'zh' ? '已拒绝' : 'REJECTED')
-                          }
-                        </span>
-                      </div>
-                    </div>
-                  ))
                 )}
               </div>
             )}

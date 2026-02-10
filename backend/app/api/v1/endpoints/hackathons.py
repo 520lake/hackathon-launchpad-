@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List, Optional
+from datetime import datetime
 from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate, HackathonStatus, HackathonFormat
 from app.db.session import get_session
 from app.api.deps import get_current_user
@@ -70,6 +71,47 @@ def read_hackathon(*, session: Session = Depends(get_session), hackathon_id: int
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
     return hackathon
+
+@router.get("/{hackathon_id}/status")
+def get_hackathon_status(*, session: Session = Depends(get_session), hackathon_id: int):
+    hackathon = session.get(Hackathon, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+        
+    now = datetime.now()
+    
+    status_label = "unknown"
+    
+    reg_start = hackathon.registration_start_date
+    reg_end = hackathon.registration_end_date
+    act_start = hackathon.start_date
+    act_end = hackathon.end_date
+    
+    # Logic from user:
+    # IF now < registration_start: 状态 = '报名未开始'
+    if reg_start and now < reg_start:
+        status_label = "报名未开始"
+    # ELIF registration_start <= now < registration_end: 状态 = '报名进行中'
+    elif reg_start and reg_end and reg_start <= now < reg_end:
+        status_label = "报名进行中"
+    # ELIF now >= registration_end: 状态 = '报名已截止'（含子状态）
+    elif reg_end and now >= reg_end:
+        if now < act_start:
+            status_label = "等待活动开始"
+        elif now >= act_start and now < act_end:
+            status_label = "活动进行中"
+        else:
+            status_label = "活动已结束"
+            
+    return {
+        "status": status_label,
+        "hackathon_status": hackathon.status, # DB status
+        "time_status": {
+            "registration_open": reg_start <= now < reg_end if reg_start and reg_end else False,
+            "activity_ongoing": act_start <= now < act_end,
+            "ended": now >= act_end
+        }
+    }
 
 @router.patch("/{hackathon_id}", response_model=HackathonRead)
 def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, hackathon_in: HackathonUpdate, current_user: User = Depends(get_current_user)):

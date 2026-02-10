@@ -92,7 +92,32 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
     
     // Filter
     if (statusFilter !== 'all') {
-      result = result.filter(h => h.status === statusFilter);
+      const now = new Date().getTime();
+      result = result.filter(h => {
+        const regStart = h.registration_start_date ? new Date(h.registration_start_date).getTime() : 0;
+        const regEnd = h.registration_end_date ? new Date(h.registration_end_date).getTime() : 0;
+        const actStart = new Date(h.start_date).getTime();
+        const actEnd = new Date(h.end_date).getTime();
+
+        // 报名中 (Registering): reg_start <= now < reg_end
+        if (statusFilter === 'registering') {
+            return now >= regStart && now < regEnd;
+        }
+        // 即将开始 (Upcoming): now < reg_start
+        if (statusFilter === 'upcoming') {
+            return now < regStart;
+        }
+        // 进行中 (Ongoing): act_start <= now < act_end
+        if (statusFilter === 'ongoing') {
+            return now >= actStart && now < actEnd;
+        }
+        // 已结束 (Ended): now >= act_end
+        if (statusFilter === 'ended') {
+            return now >= actEnd;
+        }
+        // Fallback to strict status check if needed, but time-based is preferred for this requirement
+        return h.status === statusFilter;
+      });
     }
     if (formatFilter !== 'all') {
       result = result.filter(h => h.format === formatFilter);
@@ -249,7 +274,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
                       {lang === 'zh' ? '状态筛选' : 'FILTER BY STATUS'}
                   </h3>
                   <div className="space-y-1">
-                      {['all', 'published', 'ongoing', 'ended'].map(status => (
+                      {['all', 'registering', 'upcoming', 'ongoing', 'ended'].map(status => (
                           <button
                               key={status}
                               onClick={() => setStatusFilter(status)}
@@ -262,7 +287,8 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
                               <span className="relative z-10 group-hover:tracking-widest transition-all duration-300 font-bold">
                                   {statusFilter === status && '> '}
                                   {status === 'all' && (lang === 'zh' ? '全部' : 'ALL')}
-                                  {status === 'published' && (lang === 'zh' ? '即将开始' : 'UPCOMING')}
+                                  {status === 'registering' && (lang === 'zh' ? '报名中' : 'REG OPEN')}
+                                  {status === 'upcoming' && (lang === 'zh' ? '即将开始' : 'UPCOMING')}
                                   {status === 'ongoing' && (lang === 'zh' ? '进行中' : 'ONGOING')}
                                   {status === 'ended' && (lang === 'zh' ? '已结束' : 'ENDED')}
                               </span>

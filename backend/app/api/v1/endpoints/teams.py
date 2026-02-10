@@ -8,6 +8,7 @@ from app.models.user import User
 from app.models.hackathon import Hackathon
 from app.models.team_project import Team, TeamCreate, TeamRead, TeamMember, TeamMemberRead, TeamReadWithMembers
 from app.models.user import User
+from app.models.enrollment import Enrollment, EnrollmentStatus
 
 router = APIRouter()
 
@@ -29,6 +30,13 @@ def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate,
     # Add leader as member
     member = TeamMember(team_id=team.id, user_id=current_user.id)
     session.add(member)
+    
+    # Auto-enroll leader if not enrolled
+    existing_enrollment = session.exec(select(Enrollment).where(Enrollment.user_id == current_user.id, Enrollment.hackathon_id == hackathon_id)).first()
+    if not existing_enrollment:
+        enrollment = Enrollment(user_id=current_user.id, hackathon_id=hackathon_id, status=EnrollmentStatus.APPROVED)
+        session.add(enrollment)
+        
     session.commit()
     
     return team
@@ -73,6 +81,13 @@ def join_team(*, session: Session = Depends(get_session), team_id: int, current_
         
     member = TeamMember(team_id=team_id, user_id=current_user.id)
     session.add(member)
+    
+    # Auto-enroll member if not enrolled
+    existing_enrollment = session.exec(select(Enrollment).where(Enrollment.user_id == current_user.id, Enrollment.hackathon_id == team.hackathon_id)).first()
+    if not existing_enrollment:
+        enrollment = Enrollment(user_id=current_user.id, hackathon_id=team.hackathon_id, status=EnrollmentStatus.APPROVED)
+        session.add(enrollment)
+        
     session.commit()
     session.refresh(member)
     return member

@@ -118,6 +118,24 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
     }
   };
 
+  const handleAIReview = async () => {
+    if (!selectedProject) return;
+    // Mock AI analysis for now
+    setLoading(true);
+    setTimeout(() => {
+        const mockScores = dimensions.reduce((acc, dim) => {
+            acc[dim.name] = Math.floor(Math.random() * (95 - 75) + 75); // Random score between 75-95
+            return acc;
+        }, {} as {[key: string]: number});
+        
+        setScores(mockScores);
+        setComment(lang === 'zh' 
+            ? "【AI 分析报告】\n该项目展现了极高的完整度。技术架构清晰，UI设计符合现代审美（Brutalist风格）。\n\n优点：\n1. 创新性：将AI与传统工作流结合得很好。\n2. 完成度：核心功能均已实现，Demo运行流畅。\n\n建议：\n可以增加更多的用户引导流程。" 
+            : "[AI Analysis Report]\nThe project demonstrates high completeness. Technical architecture is clear, UI fits modern aesthetics (Brutalist).\n\nPros:\n1. Innovation: Good combination of AI and workflow.\n2. Completeness: Core features implemented, Demo runs smoothly.\n\nSuggestions:\nConsider adding more user onboarding flows.");
+        setLoading(false);
+    }, 1500);
+  };
+
   if (!isOpen) return null;
 
   return (

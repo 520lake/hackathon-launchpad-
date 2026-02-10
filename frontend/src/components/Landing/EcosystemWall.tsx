@@ -28,18 +28,17 @@ export default function EcosystemWall() {
     // Setup scrolling animations
     useEffect(() => {
         const setupScroll = (track: HTMLDivElement, direction: 'left' | 'right') => {
-            const totalWidth = track.scrollWidth / 2; // We double the content, so half is one full set
+            // We have 3 copies of the data, so the seamless loop point is 1/3 of the total width
+            const loopWidth = track.scrollWidth / 3;
             
+            // Ensure we start from a clean state
+            gsap.set(track, { x: direction === 'left' ? 0 : -loopWidth });
+
             const tween = gsap.to(track, {
-                x: direction === 'left' ? -totalWidth : 0, // Left goes -width, Right starts at -width and goes to 0
-                startAt: { x: direction === 'left' ? 0 : -totalWidth },
-                duration: 60, // Much slower speed
+                x: direction === 'left' ? -loopWidth : 0,
+                duration: 40, 
                 ease: "none",
                 repeat: -1,
-                paused: false,
-                modifiers: {
-                    x: gsap.utils.unitize(x => parseFloat(x) % totalWidth)
-                }
             });
             return tween;
         };
@@ -58,6 +57,15 @@ export default function EcosystemWall() {
             ref={containerRef}
             className="w-full relative overflow-hidden bg-void/50 border-y border-brand/10 py-16 flex flex-col gap-8"
         >
+            {/* Title Section */}
+            <div className="text-center mb-8 relative z-30">
+                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-2">
+                    Loved by <span className="text-brand text-shadow-brand">Hackathon</span>
+                </h2>
+                <div className="w-24 h-1 bg-brand mx-auto mb-4"></div>
+                <p className="text-gray-400 font-mono text-sm tracking-widest uppercase">Trusted by 10,000+ Developers & Organizers</p>
+            </div>
+
             {/* Background Grid */}
             <div className="absolute inset-0 bg-[linear-gradient(rgba(212,163,115,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(212,163,115,0.03)_1px,transparent_1px)] bg-[size:60px_60px] pointer-events-none opacity-20"></div>
 

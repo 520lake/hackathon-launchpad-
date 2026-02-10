@@ -171,6 +171,128 @@ class SearchHackathonResponse(BaseModel):
     matches: List[dict] # {id, reason}
     summary: str
 
+class GeneratePitchDeckRequest(BaseModel):
+    project_name: str
+    project_description: str
+
+class GeneratePitchDeckResponse(BaseModel):
+    slides: List[dict] # {title, content, speaker_notes}
+
+class BrainstormRequest(BaseModel):
+    theme: str
+    skills: str
+    interests: str
+
+class BrainstormResponse(BaseModel):
+    ideas: List[dict] # {title, description, tech_stack, complexity}
+
+@router.post("/brainstorm-ideas", response_model=BrainstormResponse)
+async def brainstorm_ideas(
+    req: BrainstormRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        system_prompt = """You are a creative Hackathon Idea Generator.
+Your goal is to suggest 3-5 unique, feasible, and impressive hackathon project ideas based on the user's skills and the event theme.
+
+Input:
+1. Hackathon Theme
+2. User Skills
+3. User Interests
+
+Task:
+Generate a list of project ideas. For each idea provide:
+- Title: Catchy name
+- Description: 2-3 sentences explaining the problem and solution
+- Tech Stack: Recommended technologies based on user skills
+- Complexity: Easy/Medium/Hard
+
+Return ONLY a valid JSON object:
+{
+  "ideas": [
+    {
+      "title": "EcoTrack AI",
+      "description": "An AI-powered app that scans trash to tell you how to recycle it...",
+      "tech_stack": "Flutter, TensorFlow Lite, Firebase",
+      "complexity": "Medium"
+    }
+  ]
+}
+"""
+        user_prompt = f"""
+Theme: {req.theme}
+User Skills: {req.skills}
+User Interests: {req.interests}
+"""
+
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return content
+
+    except Exception as e:
+        print(f"AI Brainstorm Error: {e}")
+        return {"ideas": []}
+
+@router.post("/generate-pitch-deck", response_model=GeneratePitchDeckResponse)
+async def generate_pitch_deck(
+    req: GeneratePitchDeckRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        system_prompt = """You are a Startup Pitch Coach.
+Your goal is to generate a structured 5-7 slide pitch deck outline for a hackathon project.
+
+Input:
+1. Project Name
+2. Project Description
+
+Task:
+Generate slides including: Problem, Solution, Demo/Features, Tech Stack, and Future Value.
+For each slide provide:
+- Title
+- Content (Bullet points)
+- Speaker Notes (What to say)
+
+Return ONLY a valid JSON object:
+{
+  "slides": [
+    {
+      "title": "The Problem",
+      "content": "- Recycling is confusing\n- 90% of plastic isn't recycled",
+      "speaker_notes": "Start with a personal story about..."
+    }
+  ]
+}
+"""
+        user_prompt = f"""
+Project Name: {req.project_name}
+Description: {req.project_description}
+"""
+
+        completion = client.chat.completions.create(
+            model=settings.MODELSCOPE_MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return content
+
+    except Exception as e:
+        print(f"AI Pitch Deck Error: {e}")
+        return {"slides": []}
+
 class GenerateResumeRequest(BaseModel):
     keywords: str
     role: str

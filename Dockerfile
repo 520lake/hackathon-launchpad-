@@ -1,8 +1,14 @@
+# Stage 1: Build Frontend
+FROM node:18-alpine as frontend-build
+WORKDIR /app/frontend
+COPY frontend/package*.json ./
+RUN npm install
+COPY frontend ./
+RUN npm run build
 
-# Use an official Python runtime as a parent image
+# Stage 2: Backend Runtime
 FROM python:3.10-slim
 
-# Set the working directory in the container
 WORKDIR /app
 
 # Install system dependencies
@@ -11,26 +17,22 @@ RUN apt-get update && apt-get install -y \
     libpq-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy the backend requirements file into the container at /app
+# Copy backend requirements
 COPY backend/requirements.txt /app/requirements.txt
-
-# Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy the backend code
+# Copy backend code
 COPY backend /app/backend
 
-# Copy the frontend build artifacts
-# We assume the frontend has been built locally and dist folder exists
-# We will copy it to a folder that main.py expects (static_dist)
-COPY frontend/dist /app/backend/static_dist
+# Copy frontend artifacts from Stage 1
+COPY --from=frontend-build /app/frontend/dist /app/backend/static_dist
 
-# Make port 7860 available to the world outside this container
+# Expose port
 EXPOSE 7860
 
-# Define environment variable
+# Environment variables
 ENV PYTHONPATH=/app/backend
 
-# Run the start script
+# Run
 WORKDIR /app/backend
 CMD ["bash", "start_modelscope.sh"]

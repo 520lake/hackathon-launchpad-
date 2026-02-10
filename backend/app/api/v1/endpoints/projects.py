@@ -65,6 +65,7 @@ def read_my_projects(*, session: Session = Depends(get_session), current_user: U
     return projects
 
 @router.get("", response_model=List[ProjectReadWithTeam])
+@router.get("/", response_model=List[ProjectReadWithTeam], include_in_schema=False)
 def read_projects(*, session: Session = Depends(get_session), hackathon_id: int = None, offset: int = 0, limit: int = 100, sort_by_score: bool = False):
     query = select(Project)
     if hackathon_id:

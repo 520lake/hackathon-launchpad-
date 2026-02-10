@@ -5,6 +5,7 @@ import SubmitProjectModal from './SubmitProjectModal';
 import JudgingModal from './JudgingModal';
 import ResultPublishModal from './ResultPublishModal';
 import AIResumeModal from './AIResumeModal';
+import AIParticipantTools from './AIParticipantTools';
 import ReactMarkdown from 'react-markdown';
 
 interface Hackathon {
@@ -49,6 +50,8 @@ interface User {
   full_name?: string;
   nickname?: string;
   avatar_url?: string;
+  skills?: string[];
+  interests?: string[];
 }
 
 interface JudgeUser {
@@ -111,6 +114,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [activeTab, setActiveTab] = useState('overview');
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
@@ -204,6 +208,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             
             const res = await axios.get('api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
             setIsVerified(res.data.is_verified);
+            setCurrentUser(res.data);
         } catch (e) {
             console.error(e);
         }
@@ -239,12 +244,12 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             try {
                 // Enrollment
                 const resEnroll = await axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
-                const myEnroll = resEnroll.data.find((e: any) => e.hackathon_id === hackathonId);
+                const myEnroll = resEnroll.data.find((e: any) => Number(e.hackathon_id) === Number(hackathonId));
                 setEnrollment(myEnroll || null);
 
                 // My Team
                 const resTeams = await axios.get('api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
-                const myTeamFound = resTeams.data.find((t: any) => t.hackathon_id === hackathonId);
+                const myTeamFound = resTeams.data.find((t: any) => Number(t.hackathon_id) === Number(hackathonId));
                 setMyTeam(myTeamFound || null);
 
                 // My Project (via Team)
@@ -253,7 +258,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                         params: { hackathon_id: hackathonId },
                         headers: { Authorization: `Bearer ${token}` } 
                     });
-                    const myProj = resProj.data.find((p: any) => p.team_id === myTeamFound.id);
+                    const myProj = resProj.data.find((p: any) => Number(p.team_id) === Number(myTeamFound.id));
                     setMyProject(myProj || null);
                 } else {
                     setMyProject(null);
@@ -306,16 +311,9 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         // Success Logic
         await fetchHackathon();
         
-        // Ask user next steps
-        if (confirm(lang === 'zh' 
-            ? '🎉 报名成功！\n\n您想要现在生成一份 AI 简历，以便更好地寻找队友吗？' 
-            : '🎉 Registration Successful!\n\nDo you want to generate an AI Resume to find teammates easier?')) {
-            setIsAIResumeOpen(true);
-        } else if (confirm(lang === 'zh'
-            ? '那您想要现在尝试 AI 组队匹配吗？'
-            : 'Do you want to try AI Team Match now?')) {
-            onTeamMatch && onTeamMatch();
-        }
+        // Directly switch to my_project tab and show success message
+        alert(lang === 'zh' ? '🎉 报名成功！请前往“我的项目”创建或管理您的作品。' : '🎉 Registration Successful! Please go to "My Project" to create or manage your project.');
+        setActiveTab('my_project');
         
     } catch (e: any) {
         alert(e.response?.data?.detail || (lang === 'zh' ? '报名失败' : 'Registration failed'));
@@ -507,23 +505,26 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       />
 
       <div ref={containerRef} className="bg-surface w-full h-full flex flex-col relative border-none shadow-none overflow-hidden">
-        {/* Navigation Bar */}
-        <div className="absolute top-0 left-0 z-50 flex">
-            <button onClick={onClose} className="p-3 flex items-center gap-2 text-white bg-black/50 hover:bg-brand hover:text-black transition-colors font-mono text-sm uppercase tracking-wider font-bold shadow-lg backdrop-blur-sm border-r border-b border-brand/20">
-                <span>←</span> {lang === 'zh' ? '全部活动' : 'ALL HACKATHONS'}
-            </button>
-        </div>
-        {/* Close Button */}
-        <button onClick={onClose} className="absolute top-0 right-0 z-50 p-3 bg-brand text-black hover:bg-white transition-colors font-mono font-bold">✕</button>
+
 
         {loading || !hackathon ? (
             <div className="flex-1 flex items-center justify-center">
                 <div className="font-mono text-brand animate-pulse">{lang === 'zh' ? '正在加载...' : 'LOADING...'}</div>
             </div>
         ) : (
-            <div className="flex flex-col h-full">
+            <div className="h-full overflow-y-auto scrollbar-thin relative bg-surface" id="detail-scroll-container">
                 {/* Header Section */}
                 <div className="relative shrink-0 bg-black border-b border-brand/20">
+                    {/* Close Button */}
+                    <button 
+                        onClick={onClose} 
+                        className="absolute top-6 right-6 z-50 p-2 bg-black/50 hover:bg-brand text-white hover:text-black rounded-full transition-all backdrop-blur-md border border-white/10 group"
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6 group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+
                     <div className="relative h-auto min-h-[300px] w-full overflow-hidden flex flex-col justify-end">
                         {hackathon.cover_image && (
                             <div className="absolute inset-0">
@@ -587,13 +588,14 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                 </div>
 
                 {/* Tabs */}
-                <div className="flex border-b border-brand/20 bg-black/20 backdrop-blur-sm overflow-x-auto">
+                <div className="sticky top-0 z-40 flex border-b border-brand/20 bg-black/80 backdrop-blur-md overflow-x-auto">
                     {[
                         { id: 'overview', label: lang === 'zh' ? '活动详情' : 'OVERVIEW' },
                         { id: 'my_project', label: lang === 'zh' ? '我的项目' : 'MY PROJECT' },
                         { id: 'participants', label: lang === 'zh' ? '社区 & 组队' : 'COMMUNITY' },
                         { id: 'gallery', label: lang === 'zh' ? '项目展示' : 'GALLERY' },
                         { id: 'results', label: lang === 'zh' ? '评审结果' : 'RESULTS' },
+                        ...(enrollment?.status === 'approved' ? [{ id: 'tools', label: lang === 'zh' ? 'AI 工具箱' : 'AI TOOLS' }] : []),
                     ].map(tab => (
                         <button
                             key={tab.id}
@@ -613,18 +615,29 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                              <button onClick={() => setIsResultPublishOpen(true)} className="text-xs text-gray-400 hover:text-white font-mono">[{lang === 'zh' ? '发布' : 'PUBLISH'}]</button>
                         </div>
                     )}
+                    {/* Public Judge Button - Only visible during judging phase for judges */}
+                    {isJudge && hackathon.status === 'judging' && (
+                        <div className="ml-auto flex items-center px-4">
+                             <button 
+                                onClick={() => setIsJudgingOpen(true)} 
+                                className="px-6 py-2 bg-brand text-black font-black uppercase tracking-wider hover:bg-white border-2 border-brand shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all text-sm animate-pulse"
+                             >
+                                {lang === 'zh' ? '进入评审室' : 'ENTER JUDGING ROOM'}
+                             </button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Tab Content */}
-                <div className="flex-1 overflow-hidden relative bg-surface">
-                    <div className="absolute inset-0 overflow-y-auto p-6 md:p-12 pb-32 scrollbar-thin">
+                <div className="relative min-h-screen bg-surface">
+                    <div className="p-6 md:p-12 pb-32">
                         
                         {/* OVERVIEW */}
                         {activeTab === 'overview' && (
                             <div className="grid grid-cols-1 md:grid-cols-4 gap-12 max-w-7xl mx-auto">
                                 {/* Left Sidebar - TOC */}
                                 <div className="hidden md:block col-span-1">
-                                    <div className="sticky top-8 space-y-2 border-l border-white/10 pl-6">
+                                    <div className="sticky top-24 space-y-2 border-l border-white/10 pl-6">
                                         <div className="text-xs font-mono text-gray-500 mb-4 uppercase tracking-widest">Navigation</div>
                                         {sections.map(s => (
                                             <button key={s.id} onClick={() => scrollToSection(s.id)} 
@@ -637,7 +650,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                                 {/* Middle Content */}
                                 <div className="col-span-1 md:col-span-2 space-y-16">
-                                    <section id="intro">
+                                    <section id="intro" className="scroll-mt-24">
                                         <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
                                             <span className="w-8 h-1 bg-brand"></span>
                                             {lang === 'zh' ? '活动简介' : 'INTRODUCTION'}
@@ -647,7 +660,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                         </div>
                                     </section>
                                     
-                                    <section id="schedule">
+                                    <section id="schedule" className="scroll-mt-24">
                                         <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
                                             <span className="w-8 h-1 bg-brand"></span>
                                             {lang === 'zh' ? '活动日程' : 'SCHEDULE'}
@@ -693,7 +706,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                     )}
 
                                     {judges.length > 0 && (
-                                        <section id="judges">
+                                        <section id="judges" className="scroll-mt-24">
                                             <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
                                                 <span className="w-8 h-1 bg-brand"></span>
                                                 {lang === 'zh' ? '评委阵容' : 'JUDGES'}
@@ -742,7 +755,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                     )}
 
                                     {sponsors.length > 0 && (
-                                        <section id="sponsors">
+                                        <section id="sponsors" className="scroll-mt-24">
                                             <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
                                                 <span className="w-8 h-1 bg-brand"></span>
                                                 {lang === 'zh' ? '合作伙伴' : 'SPONSORS'}
@@ -767,7 +780,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                     )}
                                     
                                     {hackathon.resource_detail && (
-                                        <section id="resources">
+                                        <section id="resources" className="scroll-mt-24">
                                             <h3 className="text-2xl font-black text-white mb-6 flex items-center gap-3">
                                                 <span className="w-8 h-1 bg-brand"></span>
                                                 {lang === 'zh' ? '资源与支持' : 'RESOURCES'}
@@ -1100,33 +1113,54 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                 {/* Individual Participants Section */}
                                 <div>
                                     <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                                        <span className="w-2 h-8 bg-gray-600"></span>
-                                        {lang === 'zh' ? '参赛成员' : 'PARTICIPANTS'} ({participants.length})
+                                        <span className="w-2 h-8 bg-brand"></span>
+                                        {lang === 'zh' ? '参赛者广场' : 'PARTICIPANT PLAZA'} ({participants.length})
                                     </h3>
-                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                                         {participants.map(p => (
-                                            <div key={p.user_id} className="p-4 border border-white/5 bg-white/5 flex flex-col items-center text-center hover:bg-white/10 transition-colors relative group">
-                                                <div className="w-16 h-16 rounded-full bg-brand/10 border border-brand/20 mb-3 flex items-center justify-center text-xl text-brand font-bold overflow-hidden">
-                                                     {p.avatar_url ? (
-                                                        <img src={p.avatar_url} className="w-full h-full object-cover" />
-                                                     ) : (
-                                                        (p.nickname || 'U')[0].toUpperCase()
-                                                     )}
-                                                </div>
-                                                <div className="text-white font-bold text-sm truncate w-full mb-1">{p.nickname}</div>
-                                                <div className="text-xs text-gray-500 font-mono mb-2">{p.enrollment_status}</div>
-                                                {/* Hover Info */}
-                                                <div className="absolute inset-0 bg-black/90 flex flex-col items-center justify-center p-4 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                                                    <div className="text-xs text-gray-300 line-clamp-3 mb-2">{p.bio || 'No bio'}</div>
-                                                    <div className="flex flex-wrap justify-center gap-1">
-                                                        {p.skills?.slice(0, 3).map((s: string, i: number) => (
-                                                            <span key={i} className="text-[10px] text-brand border border-brand/30 px-1">{s}</span>
-                                                        ))}
+                                            <div key={p.user_id} className="group relative bg-[#1a1a1a] border border-white/10 hover:border-brand/50 transition-all duration-300 overflow-hidden">
+                                                {/* Agent Badge */}
+                                                <div className="absolute top-2 right-2 z-20 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <div className="bg-brand text-black text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider flex items-center gap-1">
+                                                        <span className="w-1.5 h-1.5 bg-black rounded-full animate-pulse"></span>
+                                                        AI AGENT
                                                     </div>
                                                 </div>
+
+                                                <div className="p-6 flex flex-col items-center text-center relative z-10">
+                                                    <div className="w-20 h-20 rounded-full bg-brand/10 border-2 border-brand/20 mb-4 p-1 group-hover:scale-110 transition-transform duration-500">
+                                                         {p.avatar_url ? (
+                                                            <img src={p.avatar_url} className="w-full h-full object-cover rounded-full" />
+                                                         ) : (
+                                                            <div className="w-full h-full rounded-full bg-brand/20 flex items-center justify-center text-2xl text-brand font-black">
+                                                                {(p.nickname || 'U')[0].toUpperCase()}
+                                                            </div>
+                                                         )}
+                                                    </div>
+                                                    <h4 className="text-white font-bold text-lg truncate w-full mb-1 group-hover:text-brand transition-colors">{p.nickname}</h4>
+                                                    <div className="text-xs text-gray-500 font-mono mb-4 uppercase tracking-wider">{p.enrollment_status}</div>
+                                                    
+                                                    {/* Skills Tags */}
+                                                    <div className="flex flex-wrap justify-center gap-1.5 mb-4">
+                                                        {(p.skills || ['Developer']).slice(0, 3).map((s: string, i: number) => (
+                                                            <span key={i} className="text-[10px] text-gray-400 border border-white/10 px-1.5 py-0.5">{s}</span>
+                                                        ))}
+                                                    </div>
+
+                                                    {/* Agent Action */}
+                                                    <button 
+                                                        onClick={() => alert(lang === 'zh' ? `正在连接 ${p.nickname} 的智能体...\n(分析其过往项目与代码风格)` : `Connecting to ${p.nickname}'s Agent...\n(Analyzing past projects & code style)`)}
+                                                        className="w-full py-2 bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-brand hover:text-black hover:border-brand transition-all font-mono uppercase flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100"
+                                                    >
+                                                        <span>🤖</span> {lang === 'zh' ? '智能分析' : 'AI INSIGHT'}
+                                                    </button>
+                                                </div>
+
+                                                {/* Background Noise/Effect */}
+                                                <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>
                                             </div>
                                         ))}
-                                         {participants.length === 0 && <div className="col-span-full text-center py-10 text-gray-500 font-mono text-sm">NO PARTICIPANTS YET</div>}
+                                         {participants.length === 0 && <div className="col-span-full text-center py-20 text-gray-500 font-mono text-sm">NO PARTICIPANTS YET</div>}
                                     </div>
                                 </div>
                             </div>
@@ -1182,6 +1216,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                 ) : (
                                     <div className="text-center py-20 text-gray-500 font-mono">{lang === 'zh' ? '结果尚未公布' : 'RESULTS NOT PUBLISHED'}</div>
                                 )}
+                            </div>
+                        )}
+
+                        {/* AI TOOLS */}
+                        {activeTab === 'tools' && hackathon && currentUser && (
+                            <div className="max-w-4xl mx-auto h-full min-h-[500px]">
+                                <AIParticipantTools user={currentUser} hackathon={hackathon} />
                             </div>
                         )}
 

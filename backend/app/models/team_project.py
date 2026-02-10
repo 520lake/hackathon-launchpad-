@@ -49,6 +49,7 @@ class TeamReadWithMembers(TeamRead):
     members: List[TeamMemberReadWithUser] = []
 
 class ProjectStatus(str, Enum):
+    DRAFT = "draft"
     SUBMITTED = "submitted"
     GRADING = "grading"
     GRADED = "graded"

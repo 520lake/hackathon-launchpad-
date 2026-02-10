@@ -17,7 +17,7 @@ import logging
 logger = logging.getLogger("uvicorn")
 @app.on_event("startup")
 async def startup_event():
-    logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.0 ---")
+    logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.1-FIX-DB ---")
     logger.info(f"DEBUG: SECRET_KEY first 5 chars: {settings.SECRET_KEY[:5]}")
 
 # Ensure uploads directory exists

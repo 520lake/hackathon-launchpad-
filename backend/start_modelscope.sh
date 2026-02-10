@@ -29,6 +29,12 @@ alembic upgrade head || echo "WARNING: Alembic upgrade failed. Proceeding to man
 # 确保 Python 路径包含后端代码
 export PYTHONPATH=/app/backend
 
+# 删除与包同名的冲突模块文件，避免 'app' 被识别为单文件模块
+if [ -f "/app/backend/app.py" ]; then
+  echo "Removing conflicting module file /app/backend/app.py to ensure package import"
+  rm -f /app/backend/app.py
+fi
+
 # 强制修复数据库Schema (防止Alembic失效)
 echo "Force fixing DB schema..."
 python ../scripts/fix_db_schema.py

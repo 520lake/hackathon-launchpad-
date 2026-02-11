@@ -1,7 +1,7 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, JSONResponse
 import os
 
 from aura_server.core.config import settings
@@ -35,6 +35,24 @@ if settings.BACKEND_CORS_ORIGINS:
         allow_headers=["*"],
     )
 
+@app.get("/config")
+async def space_config():
+    return JSONResponse(
+        content={
+            "version": "3.35.2",
+            "mode": "production",
+            "dev_mode": False,
+            "root": "/",
+            "space_id": "SULAKE666/Aura-Clean",
+            "is_space": True,
+            "is_colab": False,
+            "components": [],
+            "dependencies": [],
+            "layout": {"children": []},
+            "enable_queue": False,
+        }
+    )
+
 # 1. API Router (Must be first)
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
@@ -57,7 +75,7 @@ if os.path.exists(dist_path):
     @app.get("/{full_path:path}")
     async def serve_spa(full_path: str):
         # Allow API requests to pass through
-        if full_path.startswith("api/") or full_path.startswith("static/") or full_path.startswith("health"):
+        if full_path.startswith("api/") or full_path.startswith("static/") or full_path.startswith("health") or full_path.startswith("config"):
             raise HTTPException(status_code=404)
             
         # Check if file exists

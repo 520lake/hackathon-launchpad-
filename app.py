@@ -1,18 +1,29 @@
-import os
 import sys
-import importlib.util
+import os
+import uvicorn
+import logging
 
-APP_DIR = os.path.join(os.path.dirname(__file__), "backend", "app")
-INIT_FILE = os.path.join(APP_DIR, "__init__.py")
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("vibebuild")
 
-if os.path.exists(INIT_FILE):
-    spec = importlib.util.spec_from_file_location(
-        "app",
-        INIT_FILE,
-        submodule_search_locations=[APP_DIR]
-    )
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules["app"] = module
+# Add backend directory to python path
+sys.path.append(os.path.join(os.path.dirname(__file__), "backend"))
 
-from app.main import app
+from aura_server.main import app
+from aura_server.db.session import init_db
+
+if __name__ == "__main__":
+    try:
+        # Initialize database tables
+        logger.info("Initializing database...")
+        init_db()
+        logger.info("Database initialized successfully.")
+    except Exception as e:
+        logger.error(f"Error initializing database: {e}")
+        # Continue anyway, as some errors might be recoverable or migration-related
+
+    # ModelScope/HuggingFace Spaces typically use port 7860
+    port = int(os.environ.get("PORT", 7860))
+    logger.info(f"Starting server on port {port}...")
+    uvicorn.run(app, host="0.0.0.0", port=port)

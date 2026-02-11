@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Send, Loader2, Lightbulb, UserPlus, Wand2 } from 'lucide-react';
+import { Sparkles, Loader2, Wand2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 interface AIProjectAssistantProps {
     onIdeaSelect?: (idea: any) => void;
@@ -10,6 +10,7 @@ interface AIProjectAssistantProps {
     onRefineDescription?: (description: string) => void;
     currentDescription?: string;
     mode: 'idea' | 'recruitment' | 'refine';
+    lang?: 'zh' | 'en'; // Added lang prop
 }
 
 const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({ 
@@ -17,7 +18,8 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
     onRecruitmentGenerate, 
     onRefineDescription,
     currentDescription,
-    mode 
+    mode,
+    lang // Destructure lang prop
 }) => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
@@ -74,9 +76,9 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
             <div className="flex items-center gap-2 mb-3 text-brand">
                 <Sparkles className="w-4 h-4" />
                 <h3 className="text-sm font-bold uppercase tracking-wider">
-                    {mode === 'idea' && 'AI Project Brainstorm'}
-                    {mode === 'recruitment' && 'AI Role Scout'}
-                    {mode === 'refine' && 'AI Content Polisher'}
+                    {mode === 'idea' && (lang === 'zh' ? 'AI 项目构思' : 'AI Project Brainstorm')}
+                    {mode === 'recruitment' && (lang === 'zh' ? 'AI 角色搜寻' : 'AI Role Scout')}
+                    {mode === 'refine' && (lang === 'zh' ? 'AI 内容优化' : 'AI Content Polisher')}
                 </h3>
             </div>
 
@@ -87,8 +89,8 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
                         value={input}
                         onChange={(e) => setInput(e.target.value)}
                         placeholder={
-                            mode === 'idea' ? "Enter keywords (e.g., 'Eco-friendly, Blockchain')..." :
-                            "Enter project name..."
+                            mode === 'idea' ? (lang === 'zh' ? "输入关键词（例如：'环保，区块链'）..." : "Enter keywords (e.g., 'Eco-friendly, Blockchain')...") :
+                            (lang === 'zh' ? "输入项目名称..." : "Enter project name...")
                         }
                         className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-brand focus:outline-none"
                     />
@@ -100,7 +102,7 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
                     className="bg-brand text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand/80 disabled:opacity-50 flex items-center gap-2"
                 >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                    {mode === 'refine' ? 'Refine' : 'Generate'}
+                    {mode === 'refine' ? (lang === 'zh' ? '优化' : 'Refine') : (lang === 'zh' ? '生成' : 'Generate')}
                 </button>
             </div>
 

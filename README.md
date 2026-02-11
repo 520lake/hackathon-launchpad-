@@ -1,0 +1,127 @@
+---
+title: Aura AI Hackathon Platform
+emoji: 🚀
+colorFrom: gray
+colorTo: black
+sdk: docker
+app_port: 7860
+license: apache-2.0
+---
+
+# Aura - AI-Empowered Hackathon Platform (AI 赋能黑客松平台)
+
+> **China's Devpost** —— A brutalist-styled, AI-empowered platform for hackathon organizers, participants, and judges.
+>
+> 打造中国的 Devpost：一个极具“粗野主义”风格、由 AI 深度赋能的黑客松创新协作平台。
+
+📄 **[阅读项目白皮书 (Project White Paper)](docs/Aura_WhitePaper.md)** - 包含详细的功能介绍与技术架构说明。
+
+---
+
+## 🚀 最新更新 (What's New)
+
+**Version 2.8.0 (Registration & Project Workflow Refactor)**
+
+1.  **⚡ 报名与项目流程重构 (Registration & Project Refactor)**:
+    -   **即时解锁**: 报名成功后立即解锁“我的项目”标签页，无需手动刷新。
+    -   **数据全量同步**: 个人中心与活动详情页数据打通，支持从个人中心一键跳转至特定活动的项目空间。
+    -   **状态自动同步**: 修复了报名状态、项目创建状态、招募发布状态在多页面间的不一致问题。
+2.  **🤖 AI 项目助手增强 (AI Assistant Plus)**:
+    -   **智能方案生成**: 支持根据关键词生成项目创意、技术路径与实施计划。
+    -   **招募文案一键润色**: AI 自动生成并优化团队招募描述，提高组队成功率。
+    -   **无缝衔接提交**: AI 生成的项目描述可直接填充至项目提交表单。
+3.  **📢 招募系统联动 (Recruitment Ecosystem)**:
+    -   **全平台发布**: 在项目空间发布的招募信息会自动同步至“社区 & 组队”大厅。
+    -   **精准筛选**: 支持按角色、技能标签快速寻找心仪的战队。
+
+**Version 2.7.0 (AI Judging + Smart Dimensions)**
+
+1.  **⚡ AI 辅助评审 (AI-Assisted Judging)**:
+    -   **智能评分**: 评委终端集成 ModelScope AI Agent，可根据项目详情与自定义评分维度，自动生成建议分数与评语。
+    -   **多维考核**: 支持在创建活动时自定义复杂的评分维度（权重、细则），AI 能够理解并针对性打分。
+2.  **模拟实名认证 (Mock Verification)**:
+    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
+    -   一键绕过实名限制，快速测试“发起活动”全流程。
+3.  **UI/UX 优化**:
+    -   评审终端 (Judging Terminal) 升级，支持详细维度打分展示与 AI 交互。
+
+**Version 2.6.0 (Secure + Mock Auth)**
+
+1.  **模拟实名认证 (Mock Verification)**:
+    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
+    -   一键绕过实名限制，快速测试“发起活动”全流程。
+2.  **ModelScope 兼容性增强**:
+    -   **Cookie Auth Fallback**: 修复了在 iframe 中 LocalStorage 失效导致的 401 登录问题。
+    -   **Mock WeChat Login**: 本地与测试环境支持模拟微信登录（自动生成模拟二维码），无需真实扫码。
+3.  **UI/UX 优化**:
+    -   修复了导航栏管理员显示逻辑，优先展示昵称/全名。
+    -   优化了“发起活动”的状态检测逻辑，认证后立即刷新权限，无需重复登录。
+
+---
+
+## ✨ 核心特性 (Key Features)
+
+*   **🤖 AI-Native**: 
+    -   基于 ModelScope (Qwen-Plus) 的**AI 社区洞察**、活动一键策划、智能组队匹配、项目润色与**AI 辅助评审**。
+*   **🎨 Brutalist Design**: 
+    -   独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
+*   **🔄 Full Lifecycle**: 
+    -   覆盖活动发布、报名审核、组队协作、项目提交、评委打分的全流程。
+*   **🔐 Dual Auth**: 
+    -   支持微信（测试号）扫码与邮箱验证码双重登录。
+
+---
+
+## 🛠️ 快速开始 (Getting Started)
+
+### ModelScope 部署 (Production)
+平台已预配置 `Dockerfile` 和启动脚本，推送到 ModelScope Space 即可自动构建。
+- **启动脚本**: `start_modelscope.sh` (自动处理数据库挂载与迁移)
+- **端口**: 7860
+
+### 本地开发 (Local Development)
+
+**1. 后端 (Backend)**:
+```bash
+cd backend
+# 激活虚拟环境 (可选)
+python -m uvicorn app.main:app --reload
+```
+*   访问: `http://localhost:8000/docs`
+
+**2. 前端 (Frontend)**:
+```bash
+cd frontend
+npm install
+npm run dev
+```
+*   访问: `http://localhost:5173`
+
+**3. 模拟登录指南**:
+*   点击登录 -> 选择微信 -> 点击二维码（或等待） -> 自动登录。
+*   点击右上角用户名 -> 点击 "CLICK TO MOCK VERIFY" -> 完成实名。
+
+---
+
+## 📂 项目结构 (Project Structure)
+
+```
+.
+├── backend/                 # FastAPI 后端
+│   ├── app/                 # 应用核心代码
+│   ├── alembic/             # 数据库迁移脚本
+│   └── start_modelscope.sh  # 魔搭启动脚本
+├── frontend/                # React + Tailwind v4 前端
+├── docs/                    # 项目文档
+│   ├── Aura_WhitePaper.md   # 项目白皮书
+│   └── PRD.md               # 产品需求文档
+└── Dockerfile               # ModelScope 部署文件
+```
+
+---
+
+## 🤝 贡献 (Contributing)
+
+欢迎提交 Issue 和 Pull Request！让我们一起打造最好的黑客松平台。
+
+License: Apache-2.0

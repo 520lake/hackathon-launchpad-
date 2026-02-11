@@ -72,11 +72,11 @@ interface UserDashboardModalProps {
   onHackathonSelect: (id: number, initialTab?: string) => void;
   onVerifyClick: () => void;
   onUserUpdate?: () => void;
-  onTeamMatchClick?: () => void;
+  // onTeamMatchClick?: () => void;
   lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick, lang }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, /* onTeamMatchClick, */ lang }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);

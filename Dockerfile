@@ -11,8 +11,6 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-SHELL ["/bin/bash", "-lc"]
-
 # Install system dependencies (Minimal for SQLite)
 # Removed heavy build-essential/libpq-dev to prevent OOM
 RUN apt-get update && apt-get install -y \
@@ -29,9 +27,6 @@ COPY scripts /app/scripts
 # Copy backend code
 COPY backend /app/backend
 
-# Remove conflicting module file to force package import resolution
-RUN rm -f /app/backend/app.py || true
-
 # Copy frontend artifacts from Stage 1
 COPY --from=frontend-build /app/frontend/dist /app/backend/static_dist
 
@@ -41,6 +36,7 @@ EXPOSE 7860
 # Environment variables
 ENV PYTHONPATH=/app/backend
 
+# Run
 WORKDIR /app/backend
 RUN chmod +x start_modelscope.sh
-ENTRYPOINT ["bash", "-lc", "bash /app/backend/start_modelscope.sh || true; exec gunicorn -k uvicorn.workers.UvicornWorker app.main:app -b 0.0.0.0:7860 -w 1"]
+ENTRYPOINT ["bash", "start_modelscope.sh"]

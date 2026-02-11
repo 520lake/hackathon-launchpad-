@@ -1,0 +1,14 @@
+fastapi
+uvicorn
+sqlmodel
+alembic
+pydantic
+pydantic-settings
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+requests
+openai
+tenacity
+email-validator
+python-dotenv

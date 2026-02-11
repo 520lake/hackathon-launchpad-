@@ -261,7 +261,7 @@ function App() {
             setIsVerificationOpen(true);
         }}
         onUserUpdate={fetchCurrentUser}
-        onTeamMatchClick={() => setIsTeamMatchOpen(true)}
+
         lang={lang}
       />
       <HackathonDetailModal 
@@ -269,7 +269,7 @@ function App() {
         onClose={() => setIsDetailOpen(false)} 
         hackathonId={selectedHackathonId}
         initialTab={detailInitialTab}
-        onEdit={(hackathon) => {
+        onEdit={(hackathon: Hackathon) => {
             setIsDetailOpen(false);
             setEditingHackathon(hackathon);
             setIsCreateHackathonOpen(true);

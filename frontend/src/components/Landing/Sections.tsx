@@ -111,9 +111,10 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
                             'Aura is not just another hackathon platform. It is a particle accelerator for ideas. We remove technical barriers through AI, making every line of code a lever to change reality.'}
                     </p>
                     <p className="text-lg text-gray-500 font-mono">
-                        &gt; 01. {lang === 'zh' ? '智能匹配队友' : 'AI Matchmaking'} <br />
-                        &gt; 02. {lang === 'zh' ? 'AI 辅助开发' : 'AI-Assisted Dev'} <br />
-                        &gt; 03. {lang === 'zh' ? '自动化评审' : 'Auto Evaluation'}
+                        &gt; 01. {lang === 'zh' ? 'AI 社区洞察' : 'AI Community Insights'} <br />
+                        &gt; 02. {lang === 'zh' ? 'AI 智能组队' : 'AI Team Matchmaking'} <br />
+                        &gt; 03. {lang === 'zh' ? 'AI 项目副驾驶' : 'AI Project Copilot'} <br />
+                        &gt; 04. {lang === 'zh' ? 'AI 活动架构师' : 'AI Event Architect'}
                     </p>
                 </div>
             </div>
@@ -123,6 +124,74 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
                 <div className="absolute top-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent"></div>
                 <EcosystemWall />
                 <div className="absolute bottom-0 left-0 w-full h-px bg-gradient-to-r from-transparent via-brand/50 to-transparent"></div>
+            </div>
+        </section>
+    );
+}
+
+// --- 2.5 Features Section (Based on WhitePaper) ---
+export function Features({ lang }: { lang: 'zh' | 'en' }) {
+    const containerRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const ctx = gsap.context(() => {
+            gsap.from(".feature-item", {
+                scrollTrigger: {
+                    trigger: containerRef.current,
+                    start: "top 80%",
+                },
+                y: 30,
+                opacity: 0,
+                duration: 0.6,
+                stagger: 0.1,
+                ease: "power2.out"
+            });
+        }, containerRef);
+        return () => ctx.revert();
+    }, []);
+
+    const featureData = [
+        {
+            title: lang === 'zh' ? '🤖 AI 深度赋能' : 'AI-Empowered',
+            items: [
+                { icon: '🔮', label: lang === 'zh' ? 'AI 社区洞察' : 'Community Insights', desc: lang === 'zh' ? '实时生成技能分布与趋势报告' : 'Real-time skill distribution and trend reports.' },
+                { icon: '⚡', label: lang === 'zh' ? 'AI 智能组队' : 'AI Team Match', desc: lang === 'zh' ? '基于性格与技能的智能推荐' : 'Smart recommendations based on personality and skills.' },
+                { icon: '✨', label: lang === 'zh' ? 'AI 项目副驾驶' : 'AI Project Copilot', desc: lang === 'zh' ? '辅助生成商业计划书与项目亮点' : 'Assist in generating BP and project highlights.' },
+                { icon: '🏗️', label: lang === 'zh' ? 'AI 活动架构师' : 'AI Event Architect', desc: lang === 'zh' ? '一句话生成完整的活动策划案' : 'One sentence to generate full event plan.' }
+            ]
+        },
+        {
+            title: lang === 'zh' ? '🎯 面向全人群' : 'Target Audience',
+            items: [
+                { icon: '🏢', label: lang === 'zh' ? '组织者 (Organizer)' : 'Organizer', desc: lang === 'zh' ? '从繁杂事务中解脱，专注于运营' : 'Free from tedious tasks, focus on operations.' },
+                { icon: '👨‍💻', label: lang === 'zh' ? '参赛者 (Participant)' : 'Participant', desc: lang === 'zh' ? '找到神队友，专注于创新本身' : 'Find great teammates, focus on innovation.' },
+                { icon: '⚖️', label: lang === 'zh' ? '评委 (Judge)' : 'Judge', desc: lang === 'zh' ? '沉浸式评审，AI 辅助客观评分' : 'Immersive judging with AI-assisted scoring.' }
+            ]
+        }
+    ];
+
+    return (
+        <section ref={containerRef} className="py-24 bg-void relative border-y border-brand/5">
+            <div className="container mx-auto px-6">
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-16">
+                    {featureData.map((group, idx) => (
+                        <div key={idx} className="space-y-8">
+                            <h3 className="text-3xl font-black text-ink flex items-center gap-4">
+                                <span className="w-1.5 h-8 bg-brand"></span>
+                                {group.title}
+                            </h3>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                                {group.items.map((item, i) => (
+                                    <div key={i} className="feature-item p-6 border border-white/5 bg-white/[0.02] hover:border-brand/30 hover:bg-white/[0.04] transition-all group">
+                                        <div className="text-3xl mb-4 group-hover:scale-110 transition-transform duration-300">{item.icon}</div>
+                                        <h4 className="text-lg font-bold text-ink mb-2">{item.label}</h4>
+                                        <p className="text-sm text-gray-500 leading-relaxed">{item.desc}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         </section>
     );

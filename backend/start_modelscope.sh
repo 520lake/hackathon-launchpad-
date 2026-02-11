@@ -54,13 +54,6 @@ python ../scripts/fix_db_schema.py
 echo "DEBUG: Checking admin account status..."
 python scripts/debug_login.py || echo "Debug script failed (non-fatal)"
 
-# 调试：检查前端静态文件是否存在
-echo "DEBUG: Listing contents of /app/backend/static_dist..."
-ls -lR /app/backend/static_dist
-
-echo "DEBUG: Listing contents of /app..."
-ls -lR /app
-
 # 启动应用
 echo "Starting application on port 7860..."
 python -m uvicorn aura_server.main:app --host 0.0.0.0 --port 7860

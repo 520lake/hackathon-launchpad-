@@ -31,11 +31,9 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   // Details
   const [rulesDetail, setRulesDetail] = useState('');
-  // const [awardsDetail, setAwardsDetail] = useState('');
   
   // Judging
   const [judges, setJudges] = useState<string[]>([]);
-  // const [newJudgeEmail, setNewJudgeEmail] = useState('');
   const [scoringDimensions, setScoringDimensions] = useState<{name: string, description: string, weight: number}[]>([]);
   const [newDimension, setNewDimension] = useState({ name: '', description: '', weight: 10 });
 
@@ -157,14 +155,11 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                  try {
                      const parsed = JSON.parse(initialData.awards_detail);
                      if (Array.isArray(parsed)) {
-                         setAwards(parsed);
-                     } else {
-                         // Fallback for old string data
-                         // setAwardsDetail(initialData.awards_detail); 
-                     }
-                 } catch {
-                     // setAwardsDetail(initialData.awards_detail || '');
-                 }
+                        setAwards(parsed);
+                    }
+                } catch {
+                    // Ignore parsing error for legacy string
+                }
             } else {
                 setAwards([]);
             }
@@ -222,7 +217,6 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
             setSubmissionEndDate('');
             setJudgingStartDate('');
             setJudgingEndDate('');
-            // setAwardsDetail('');
             setRulesDetail('');
             setScoringDimensions([]);
             setJudges([]);
@@ -282,9 +276,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
         }
 
         if (content.awards_detail) {
-            if (typeof content.awards_detail === 'string') {
-                // setAwardsDetail(content.awards_detail);
-            } else if (Array.isArray(content.awards_detail)) {
+            if (Array.isArray(content.awards_detail)) {
                 setAwards(content.awards_detail);
             }
         }

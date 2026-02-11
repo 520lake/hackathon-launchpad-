@@ -4,7 +4,7 @@ import axios from 'axios'
 // Landing Components
 import Navbar from './components/Landing/Navbar'
 import Hero from './components/Landing/Hero'
-import { LatestEvents, About, Partners, Schedule, Footer } from './components/Landing/Sections'
+import { LatestEvents, About, Features, Partners, Schedule, Footer } from './components/Landing/Sections'
 
 // Modals
 import RegisterModal from './components/RegisterModal'
@@ -227,6 +227,8 @@ function App() {
         
         <About lang={lang} />
         
+        <Features lang={lang} />
+        
         <LatestEvents 
             hackathons={latestHackathons}
             onDetailClick={openHackathonDetail}
@@ -261,7 +263,7 @@ function App() {
             setIsVerificationOpen(true);
         }}
         onUserUpdate={fetchCurrentUser}
-
+        onTeamMatchClick={() => setIsTeamMatchOpen(true)}
         lang={lang}
       />
       <HackathonDetailModal 
@@ -269,7 +271,7 @@ function App() {
         onClose={() => setIsDetailOpen(false)} 
         hackathonId={selectedHackathonId}
         initialTab={detailInitialTab}
-        onEdit={(hackathon: Hackathon) => {
+        onEdit={(hackathon) => {
             setIsDetailOpen(false);
             setEditingHackathon(hackathon);
             setIsCreateHackathonOpen(true);

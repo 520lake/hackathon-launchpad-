@@ -191,7 +191,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchRecruitments = async () => {
       try {
           const token = localStorage.getItem('token');
-          const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+          const API_BASE_URL = import.meta.env.VITE_API_URL || '';
           const res = await axios.get(`${API_BASE_URL}/api/v1/teams/recruitments/all?hackathon_id=${hackathonId}`, {
               headers: { Authorization: `Bearer ${token}` }
           });

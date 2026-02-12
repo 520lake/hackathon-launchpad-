@@ -4,11 +4,11 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
 from sqlmodel import Session, SQLModel, create_engine, StaticPool
-from app.main import app
-from app.api import deps
-from app.models.user import User
-from app.models.hackathon import Hackathon
-from app.models.enrollment import Enrollment, EnrollmentStatus
+from aura_server.main import app
+from aura_server.api import deps
+from aura_server.models.user import User
+from aura_server.models.hackathon import Hackathon
+from aura_server.models.enrollment import Enrollment, EnrollmentStatus
 
 # Setup in-memory DB with StaticPool to share connection across threads/sessions
 engine = create_engine("sqlite:///:memory:", connect_args={"check_same_thread": False}, poolclass=StaticPool)

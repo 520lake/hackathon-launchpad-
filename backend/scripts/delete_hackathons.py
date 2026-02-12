@@ -5,7 +5,7 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlmodel import create_engine, Session, select
-from app.models.hackathon import Hackathon
+from aura_server.models.hackathon import Hackathon
 
 sqlite_url = "sqlite:///./vibebuild.db"
 engine = create_engine(sqlite_url)

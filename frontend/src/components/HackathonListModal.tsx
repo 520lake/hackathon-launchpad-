@@ -152,7 +152,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
   const fetchHackathons = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('api/v1/hackathons');
+      const response = await axios.get('/api/v1/hackathons');
       setHackathons(response.data);
     } catch (err) {
       console.error(err);
@@ -167,7 +167,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
     setAiResults(null);
     try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('api/v1/ai/search-hackathons', { query: aiQuery }, {
+        const res = await axios.post('/api/v1/ai/search-hackathons', { query: aiQuery }, {
              headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         setAiResults(res.data);

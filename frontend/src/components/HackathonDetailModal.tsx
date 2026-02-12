@@ -16,6 +16,7 @@ interface Recruitment {
   skills: string;
   count: number;
   description?: string;
+  contact_info?: string;
   status: string;
   created_at: string;
   team?: Team;
@@ -159,7 +160,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [awards, setAwards] = useState<any[]>([]);
   const [contact, setContact] = useState<{text?: string, image?: string} | any[] | null>(null);
   const [results, setResults] = useState<any[]>([]);
-  const [scoring, setScoring] = useState<any[]>([]); // Added missing state
   const [judges, setJudges] = useState<JudgeUser[]>([]);
   const [sponsors, setSponsors] = useState<SponsorItem[]>([]);
 
@@ -167,13 +167,17 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [aiAnalysis, setAiAnalysis] = useState<any>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   
+  // Individual Participant AI Insight
+  const [isAnalyzingIndividual, setIsAnalyzingIndividual] = useState<number | null>(null);
+  const [individualInsights, setIndividualInsights] = useState<Record<number, any>>({});
+  const [showInsightId, setShowInsightId] = useState<number | null>(null);
+  
   // Community
   const [posts, setPosts] = useState<any[]>([]);
-  const [isPostsLoading, setIsPostsLoading] = useState(false);
   const [showNewPost, setShowNewPost] = useState(false);
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostContent, setNewPostContent] = useState('');
-  const [newPostType, setNewPostType] = useState('discussion');
+  const newPostType = 'discussion';
   
   // Comments
   const [expandedPostId, setExpandedPostId] = useState<number | null>(null);
@@ -189,15 +193,17 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [skillFilter, setSkillFilter] = useState('');
 
   const fetchRecruitments = async () => {
+      setLoadingRecruitments(true);
       try {
           const token = localStorage.getItem('token');
-          const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-          const res = await axios.get(`${API_BASE_URL}/api/v1/teams/recruitments/all?hackathon_id=${hackathonId}`, {
+          const res = await axios.get(`/api/v1/teams/recruitments/all?hackathon_id=${hackathonId}`, {
               headers: { Authorization: `Bearer ${token}` }
           });
           setRecruitments(res.data);
       } catch (e) {
           console.error("Failed to fetch recruitments", e);
+      } finally {
+          setLoadingRecruitments(false);
       }
   };
 
@@ -226,8 +232,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     setRecruitLoading(true);
     try {
         const token = localStorage.getItem('token');
-        const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
-        await axios.post(`${API_BASE_URL}/api/v1/teams/${myTeam.id}/recruitments`, recruitForm, {
+        await axios.post(`/api/v1/teams/${myTeam.id}/recruitments`, recruitForm, {
             headers: { Authorization: `Bearer ${token}` }
         });
         setIsRecruitOpen(false);
@@ -279,7 +284,15 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         const res = await axios.post('/api/v1/ai/generate', {
             prompt: 'Analyze participants',
             type: 'participant_analysis',
-            context_data: { participants: participants }
+            context_data: { 
+                participants: participants.map(p => ({
+                    nickname: p.nickname,
+                    skills: p.skills,
+                    interests: p.interests,
+                    bio: p.bio
+                })),
+                lang: lang
+            }
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });
@@ -289,6 +302,39 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         alert(lang === 'zh' ? 'AI 分析失败' : 'AI Analysis Failed');
     } finally {
         setIsAnalyzing(false);
+    }
+  };
+
+  const handleAnalyzeIndividualParticipant = async (participant: any) => {
+    if (isAnalyzingIndividual) return;
+    setIsAnalyzingIndividual(participant.user_id);
+    try {
+        const token = localStorage.getItem('token');
+        const res = await axios.post('/api/v1/ai/generate', {
+            prompt: `Analyze participant ${participant.nickname}`,
+            type: 'individual_participant_analysis',
+            context_data: { 
+                participant: {
+                    nickname: participant.nickname,
+                    skills: participant.skills,
+                    interests: participant.interests,
+                    bio: participant.bio
+                },
+                lang: lang
+            }
+        }, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        setIndividualInsights(prev => ({
+            ...prev,
+            [participant.user_id]: res.data.content
+        }));
+        setShowInsightId(participant.user_id);
+    } catch (e) {
+        console.error(e);
+        alert(lang === 'zh' ? '分析失败，请稍后重试' : 'Analysis failed, please try again later');
+    } finally {
+        setIsAnalyzingIndividual(null);
     }
   };
 
@@ -332,7 +378,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             const payload = JSON.parse(atob(token.split('.')[1]));
             setCurrentUserId(payload.sub ? parseInt(payload.sub) : null);
             
-            const res = await axios.get('api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get('/api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
             setIsVerified(res.data.is_verified);
             setCurrentUser(res.data);
         } catch (e) {
@@ -347,20 +393,19 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (!hackathonId) return;
     setLoading(true);
     try {
-        const res = await axios.get(`api/v1/hackathons/${hackathonId}`);
+        const res = await axios.get(`/api/v1/hackathons/${hackathonId}`);
         const h = res.data;
         setHackathon(h);
         
         // Parse JSON fields
         try { if (h.awards_detail) setAwards(typeof h.awards_detail === 'string' ? JSON.parse(h.awards_detail) : h.awards_detail); } catch(e) { setAwards([]); }
         try { if (h.contact_info) setContact(typeof h.contact_info === 'string' ? JSON.parse(h.contact_info) : h.contact_info); } catch(e) { setContact(null); }
-        try { if (h.scoring_dimensions) setScoring(typeof h.scoring_dimensions === 'string' ? JSON.parse(h.scoring_dimensions) : h.scoring_dimensions); } catch(e) { setScoring([]); }
         try { if (h.results_detail) setResults(typeof h.results_detail === 'string' ? JSON.parse(h.results_detail) : h.results_detail); } catch(e) { setResults([]); }
         try { if (h.sponsors_detail) setSponsors(typeof h.sponsors_detail === 'string' ? JSON.parse(h.sponsors_detail) : h.sponsors_detail); } catch(e) { setSponsors([]); }
 
         // Fetch Judges
         try {
-            const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`);
+            const resJudges = await axios.get(`/api/v1/hackathons/${hackathonId}/judges`);
             setJudges(resJudges.data);
         } catch(e) { setJudges([]); }
 
@@ -369,7 +414,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         if (token) {
             try {
                 // Enrollment
-                const resEnroll = await axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
+                const resEnroll = await axios.get('/api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
                 const myEnroll = resEnroll.data.find((e: any) => Number(e.hackathon_id) === Number(hackathonId));
                 
                 // Fix: Don't overwrite enrollment with null if we just enrolled (handled in handleRegister)
@@ -380,13 +425,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                 }
 
                 // My Team
-                const resTeams = await axios.get('api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
+                const resTeams = await axios.get('/api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
                 const myTeamFound = resTeams.data.find((t: any) => Number(t.hackathon_id) === Number(hackathonId));
                 setMyTeam(myTeamFound || null);
 
                 // My Project (via Team)
                 if (myTeamFound) {
-                    const resProj = await axios.get('api/v1/projects', { 
+                    const resProj = await axios.get('/api/v1/projects', { 
                         params: { hackathon_id: hackathonId },
                         headers: { Authorization: `Bearer ${token}` } 
                     });
@@ -398,7 +443,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                 // Judge Check
                 try {
-                   const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`, { headers: { Authorization: `Bearer ${token}` } });
+                   const resJudges = await axios.get(`/api/v1/hackathons/${hackathonId}/judges`, { headers: { Authorization: `Bearer ${token}` } });
                    setIsJudge(resJudges.data.some((j: any) => j.user_id === parseInt(JSON.parse(atob(token.split('.')[1])).sub)));
                 } catch(e) {}
             } catch (e) { console.error(e); }
@@ -413,11 +458,11 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchTeams = async () => {
       if (!hackathonId) return;
       try {
-          const res = await axios.get(`api/v1/teams?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/teams?hackathon_id=${hackathonId}`);
           setTeams(res.data);
           
           // Fetch Individual Participants
-          const resPart = await axios.get(`api/v1/enrollments/public/${hackathonId}`);
+          const resPart = await axios.get(`/api/v1/enrollments/public/${hackathonId}`);
           setParticipants(resPart.data);
       } catch (e) { console.error(e); }
   };
@@ -425,7 +470,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchGallery = async () => {
       if (!hackathonId) return;
       try {
-          const res = await axios.get(`api/v1/projects?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/projects?hackathon_id=${hackathonId}`);
           setGalleryProjects(res.data);
       } catch (e) { console.error(e); }
   };
@@ -436,7 +481,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     
     setRegisterLoading(true);
     try {
-        const response = await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
+        const response = await axios.post('/api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         
@@ -480,7 +525,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       if (!newTeamName.trim()) return;
       setCreatingTeam(true);
       try {
-          await axios.post('api/v1/teams', { name: newTeamName }, {
+          await axios.post('/api/v1/teams', { name: newTeamName }, {
               params: { hackathon_id: hackathonId },
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
@@ -495,7 +540,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleJoinTeam = async (teamId: number) => {
       try {
-          await axios.post(`api/v1/teams/${teamId}/join`, {}, {
+          await axios.post(`/api/v1/teams/${teamId}/join`, {}, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchHackathon();
@@ -512,7 +557,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       }
       if (!confirm(lang === 'zh' ? '确定要退出战队吗？' : 'Are you sure you want to leave the team?')) return;
       try {
-          await axios.delete(`api/v1/teams/${myTeam.id}/leave`, {
+          await axios.delete(`/api/v1/teams/${myTeam.id}/leave`, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchHackathon();
@@ -525,7 +570,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       // Auto-create team for individual
       try {
           // Check if already has team (should be handled by UI, but double check)
-          await axios.post('api/v1/teams', { name: `${lang === 'zh' ? '个人项目' : 'Individual Project'} - ${currentUserId}` }, {
+          await axios.post('/api/v1/teams', { name: `${lang === 'zh' ? '个人项目' : 'Individual Project'} - ${currentUserId}` }, {
               params: { hackathon_id: hackathonId },
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
@@ -616,18 +661,16 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const fetchPosts = async () => {
       if (!hackathonId) return;
-      setIsPostsLoading(true);
       try {
-          const res = await axios.get(`api/v1/community/posts?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/community/posts?hackathon_id=${hackathonId}`);
           setPosts(res.data);
       } catch (e) { console.error(e); }
-      finally { setIsPostsLoading(false); }
   };
 
   const handleCreatePost = async () => {
       if (!newPostTitle || !newPostContent) return;
       try {
-          await axios.post('api/v1/community/posts', {
+          await axios.post('/api/v1/community/posts', {
               hackathon_id: hackathonId,
               title: newPostTitle,
               content: newPostContent,
@@ -644,7 +687,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleGenerateTopic = async () => {
       try {
-          await axios.post(`api/v1/community/generate?hackathon_id=${hackathonId}`, {}, {
+          await axios.post(`/api/v1/community/generate?hackathon_id=${hackathonId}`, {}, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchPosts();
@@ -653,7 +696,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleLikePost = async (postId: number) => {
     try {
-        await axios.post(`api/v1/community/posts/${postId}/like`, {}, {
+        await axios.post(`/api/v1/community/posts/${postId}/like`, {}, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         setPosts(posts.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
@@ -674,7 +717,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchComments = async (postId: number) => {
     setLoadingComments(true);
     try {
-        const res = await axios.get(`api/v1/community/posts/${postId}/comments`);
+        const res = await axios.get(`/api/v1/community/posts/${postId}/comments`);
         setComments(prev => ({ ...prev, [postId]: res.data }));
     } catch (e) { console.error(e); }
     finally { setLoadingComments(false); }
@@ -683,7 +726,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const handleCreateComment = async (postId: number) => {
     if (!commentContent.trim()) return;
     try {
-        await axios.post(`api/v1/community/posts/${postId}/comments`, {
+        await axios.post(`/api/v1/community/posts/${postId}/comments`, {
             content: commentContent,
             post_id: postId
         }, {
@@ -1887,12 +1930,68 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                                                     {/* Agent Action */}
                                                     <button 
-                                                        onClick={() => alert(lang === 'zh' ? `正在连接 ${p.nickname} 的智能体...\n(分析其过往项目与代码风格)` : `Connecting to ${p.nickname}'s Agent...\n(Analyzing past projects & code style)`)}
-                                                        className="w-full py-2 bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-brand hover:text-black hover:border-brand transition-all font-mono uppercase flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100"
+                                                        onClick={() => handleAnalyzeIndividualParticipant(p)}
+                                                        disabled={isAnalyzingIndividual === p.user_id}
+                                                        className="w-full py-2 bg-white/5 border border-white/10 text-xs text-gray-300 hover:bg-brand hover:text-black hover:border-brand transition-all font-mono uppercase flex items-center justify-center gap-2 opacity-60 group-hover:opacity-100 disabled:opacity-30"
                                                     >
-                                                        <span>🤖</span> {lang === 'zh' ? '智能分析' : 'AI INSIGHT'}
+                                                        {isAnalyzingIndividual === p.user_id ? (
+                                                            <><span className="animate-spin text-sm">⌛</span> ANALYZING...</>
+                                                        ) : (
+                                                            <><span className="text-sm">🤖</span> {lang === 'zh' ? '智能分析' : 'AI INSIGHT'}</>
+                                                        )}
                                                     </button>
                                                 </div>
+
+                                                {/* AI Insight Popup */}
+                                                {showInsightId === p.user_id && individualInsights[p.user_id] && (
+                                                    <div className="absolute inset-0 z-30 bg-black/95 p-4 flex flex-col animate-fade-in border border-brand/50">
+                                                        <div className="flex justify-between items-center mb-3">
+                                                            <div className="text-[10px] text-brand font-bold uppercase tracking-widest">AI AGENT INSIGHT</div>
+                                                            <button onClick={() => setShowInsightId(null)} className="text-gray-500 hover:text-white">✕</button>
+                                                        </div>
+                                                        
+                                                        <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1">
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">{lang === 'zh' ? '技术深度' : 'Technical Depth'}</div>
+                                                                <div className="text-xs text-white">{individualInsights[p.user_id].technical_depth}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">{lang === 'zh' ? '多面性评分' : 'Versatility'}</div>
+                                                                <div className="flex items-center gap-2">
+                                                                    <div className="flex-1 h-1 bg-gray-800 rounded-full overflow-hidden">
+                                                                        <div className="h-full bg-brand" style={{width: `${individualInsights[p.user_id].versatility}%`}}></div>
+                                                                    </div>
+                                                                    <span className="text-[10px] text-brand font-mono">{individualInsights[p.user_id].versatility}</span>
+                                                                </div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">{lang === 'zh' ? '潜在贡献' : 'Potential Contribution'}</div>
+                                                                <div className="text-xs text-white">{individualInsights[p.user_id].potential_contribution}</div>
+                                                            </div>
+                                                            <div>
+                                                                <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">{lang === 'zh' ? '理想队友角色' : 'Perfect Teammates'}</div>
+                                                                <div className="flex flex-wrap gap-1">
+                                                                    {individualInsights[p.user_id].perfect_teammate_roles?.map((role: string, idx: number) => (
+                                                                        <span key={idx} className="text-[10px] bg-brand/10 text-brand px-1.5 py-0.5 rounded-sm border border-brand/20">{role}</span>
+                                                                    ))}
+                                                                </div>
+                                                            </div>
+                                                            <div className="pt-2 border-t border-white/10">
+                                                                <div className="text-[10px] text-brand uppercase font-bold mb-1">{lang === 'zh' ? 'Aura 洞察' : 'Aura Insight'}</div>
+                                                                <div className="text-xs text-gray-300 italic leading-relaxed">
+                                                                    "{individualInsights[p.user_id].aura_insight}"
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        
+                                                        <button 
+                                                            onClick={() => setShowInsightId(null)}
+                                                            className="mt-3 w-full py-1.5 bg-brand text-black text-[10px] font-bold uppercase tracking-wider hover:bg-white transition-colors"
+                                                        >
+                                                            {lang === 'zh' ? '返回' : 'BACK'}
+                                                        </button>
+                                                    </div>
+                                                )}
 
                                                 {/* Background Noise/Effect */}
                                                 <div className="absolute inset-0 bg-gradient-to-b from-transparent to-brand/5 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"></div>

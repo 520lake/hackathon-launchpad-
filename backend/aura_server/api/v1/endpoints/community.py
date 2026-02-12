@@ -8,6 +8,7 @@ from aura_server.models.community import CommunityPost, CommunityComment, Commun
 from aura_server.models.enrollment import Enrollment
 import requests
 import random
+import json
 from datetime import datetime, timedelta
 
 router = APIRouter()
@@ -17,43 +18,97 @@ def get_community_insights(
     hackathon_id: int,
     session: Session = Depends(get_session)
 ):
-    # 1. Hot Topics (Mocked based on post titles or real aggregation)
-    # In a real scenario, we would use NLP to extract keywords from post content
-    hot_topics = [
-        {"text": "AI Models", "value": 45},
-        {"text": "Team Formation", "value": 30},
-        {"text": "Dataset", "value": 25},
-        {"text": "Deployment", "value": 20},
-        {"text": "GPU", "value": 15},
-        {"text": "Frontend", "value": 10},
-    ]
+    # 1. Hot Topics (Aggregated from real post titles)
+    posts = session.exec(
+        select(CommunityPost).where(CommunityPost.hackathon_id == hackathon_id)
+    ).all()
+    
+    topic_map = {}
+    for p in posts:
+        # Simple keyword extraction from titles
+        words = p.title.split()
+        for w in words:
+            if len(w) > 3:
+                topic_map[w] = topic_map.get(w, 0) + 1
+    
+    hot_topics = [{"text": k, "value": v * 10} for k, v in sorted(topic_map.items(), key=lambda x: x[1], reverse=True)[:6]]
+    if not hot_topics:
+        hot_topics = [
+            {"text": "AI Models", "value": 45},
+            {"text": "Team Formation", "value": 30},
+            {"text": "Dataset", "value": 25},
+        ]
 
-    # 2. Skill Distribution (Aggregated from enrolled users)
-    # Joining Enrollment and User tables would be ideal here
-    # For now, we mock it to guarantee data for visualization
-    skill_distribution = [
-        {"name": "Python", "count": 35},
-        {"name": "React", "count": 20},
-        {"name": "Design", "count": 15},
-        {"name": "Product", "count": 10},
-        {"name": "Marketing", "count": 5},
-    ]
+    # 2. Skill Distribution (Aggregated from real enrolled users)
+    enrollments = session.exec(
+        select(Enrollment).where(Enrollment.hackathon_id == hackathon_id)
+    ).all()
+    user_ids = [e.user_id for e in enrollments]
+    users = session.exec(
+        select(User).where(User.id.in_(user_ids))
+    ).all() if user_ids else []
+    
+    skill_map = {}
+    for u in users:
+        if u.skills:
+            # skills is stored as a string, might be comma-separated or JSON
+            try:
+                # Try JSON first
+                skills_list = json.loads(u.skills)
+                if isinstance(skills_list, list):
+                    for s in skills_list:
+                        skill_map[s] = skill_map.get(s, 0) + 1
+                else:
+                    skill_map[u.skills] = skill_map.get(u.skills, 0) + 1
+            except:
+                # Fallback to comma-separated
+                skills_list = [s.strip() for s in u.skills.split(',')]
+                for s in skills_list:
+                    if s:
+                        skill_map[s] = skill_map.get(s, 0) + 1
+    
+    skill_distribution = [{"name": k, "count": v} for k, v in sorted(skill_map.items(), key=lambda x: x[1], reverse=True)[:5]]
+    if not skill_distribution:
+        skill_distribution = [
+            {"name": "Python", "count": 35},
+            {"name": "React", "count": 20},
+            {"name": "Design", "count": 15},
+        ]
 
-    # 3. Activity Trend (Posts per day for the last 7 days)
+    # 3. Activity Trend (Real posts per day for the last 7 days)
     activity_trend = []
     today = datetime.now().date()
     for i in range(6, -1, -1):
         date = today - timedelta(days=i)
-        # Randomize for demo effect
-        count = random.randint(2, 15)
-        activity_trend.append({"date": date.strftime("%m-%d"), "count": count})
+        start_dt = datetime.combine(date, datetime.min.time())
+        end_dt = datetime.combine(date, datetime.max.time())
+        
+        count = session.exec(
+            select(CommunityPost)
+            .where(CommunityPost.hackathon_id == hackathon_id)
+            .where(CommunityPost.created_at >= start_dt)
+            .where(CommunityPost.created_at <= end_dt)
+        ).all()
+        activity_trend.append({"date": date.strftime("%m-%d"), "count": len(count)})
 
     # 4. Participant Portraits (AI Summary)
-    participant_portraits = [
-        "Most participants are full-stack developers interested in GenAI.",
-        "High interest in healthcare and finance domains.",
-        "30% of teams are looking for a designer."
-    ]
+    # These will be enriched by AI if requested, for now we provide a base summary from skills
+    top_skills = [s["name"] for s in skill_distribution[:3]]
+    
+    # Check if there's real data
+    if len(users) > 0:
+        participant_portraits = [
+            f"社区规模正在扩大，目前已有 {len(users)} 位参赛者加入。",
+            f"核心技能栈涵盖了 {', '.join(top_skills)} 等热门领域。" if top_skills else "正在等待更多拥有多元背景的参赛者加入。",
+            f"社区氛围活跃，已发起 {len(posts)} 场深度技术讨论。"
+        ]
+    else:
+        # Better mock data for empty state
+        participant_portraits = [
+            "黑客松火热报名中，虚位以待。",
+            "期待看到更多关于 AI、Web3 和可持续发展的创新想法。",
+            "加入社区，寻找志同道合的队友，共同开启创新之旅。"
+        ]
 
     return {
         "hot_topics": hot_topics,

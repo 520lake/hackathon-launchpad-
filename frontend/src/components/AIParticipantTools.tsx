@@ -27,12 +27,17 @@ interface Idea {
   description: string;
   tech_stack: string;
   complexity: string;
+  impact_potential?: {
+    score: number;
+    reason: string;
+  };
 }
 
 interface Slide {
   title: string;
   content: string;
   speaker_notes: string;
+  visual_idea?: string;
 }
 
 const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon }) => {
@@ -59,6 +64,8 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
     }
   }, [activeTool]);
 
+  const lang = navigator.language.startsWith('zh') ? 'zh' : 'en';
+
   const handleBrainstorm = async () => {
     setLoading(true);
     try {
@@ -70,7 +77,8 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
       const res = await axios.post('/api/v1/ai/brainstorm-ideas', {
         theme: hackathon.theme_tags || hackathon.title,
         skills: skills,
-        interests: interests
+        interests: interests,
+        lang: lang
       }, { headers: { Authorization: `Bearer ${token}` } });
       setIdeas(res.data.ideas || []);
     } catch (error) {
@@ -87,7 +95,8 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
       const token = localStorage.getItem('token');
       const res = await axios.post('/api/v1/ai/generate-pitch-deck', {
         project_name: "My Hackathon Project", // Could add input for this
-        project_description: projectDesc
+        project_description: projectDesc,
+        lang: lang
       }, { headers: { Authorization: `Bearer ${token}` } });
       setSlides(res.data.slides || []);
     } catch (error) {
@@ -98,24 +107,31 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
   };
 
   const handleRoadmap = async () => {
+      if (!projectDesc && ideas.length === 0) {
+          alert(lang === 'zh' ? '请先提供项目描述或生成一些想法' : 'Please provide a project description or generate some ideas first');
+          return;
+      }
       setLoading(true);
       try {
-        // Mock Roadmap Generation for now (simulated AI)
-        // Ideally this calls a new endpoint /api/v1/ai/generate-roadmap
-        await new Promise(r => setTimeout(r, 1500));
-        setRoadmap([
-            "Day 1: Project Setup & Core Architecture (Repo, CI/CD, DB Schema)",
-            "Day 2: MVP Backend API Implementation (Auth, Core Logic)",
-            "Day 3: Frontend MVP Integration (UI Components, State Management)",
-            "Day 4: Polish & Refinement (Error Handling, Styling, Animations)",
-            "Day 5: Testing & Pitch Prep (Unit Tests, Demo Video, Slides)"
-        ]);
+        const token = localStorage.getItem('token');
+        const desc = projectDesc || (ideas.length > 0 ? ideas[0].description : "");
+        const skills = user.skills?.length ? user.skills.join(', ') : "General Programming";
+        
+        const res = await axios.post('/api/v1/ai/generate-roadmap', {
+            project_description: desc,
+            team_skills: skills,
+            lang: lang
+        }, { headers: { Authorization: `Bearer ${token}` } });
+        
+        setRoadmap(res.data.roadmap || []);
       } catch (error) {
-          console.error(error);
+          console.error("Roadmap failed", error);
+          alert(lang === 'zh' ? '路线图生成失败' : 'Roadmap generation failed');
       } finally {
           setLoading(false);
       }
   };
+
 
   return (
     <div ref={containerRef} className="h-full flex flex-col gap-6 text-[#D4A373]">
@@ -200,9 +216,20 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
                     <p className="text-sm text-gray-400 mb-4 font-mono leading-relaxed">
                       {idea.description}
                     </p>
-                    <div className="text-xs font-mono text-[#D4A373]/60">
+                    <div className="text-xs font-mono text-[#D4A373]/60 mb-2">
                       <span className="text-[#D4A373]">STACK:</span> {idea.tech_stack}
                     </div>
+                    {idea.impact_potential && (
+                      <div className="bg-[#D4A373]/10 p-3 border-l-2 border-[#D4A373] mt-2">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-xs font-mono text-[#D4A373]">IMPACT SCORE:</span>
+                          <span className="text-xs font-mono font-bold text-white bg-[#D4A373] px-2 rounded">{idea.impact_potential.score}</span>
+                        </div>
+                        <p className="text-xs text-gray-400 font-mono italic">
+                          {idea.impact_potential.reason}
+                        </p>
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -259,6 +286,14 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
                         {slide.content}
                       </pre>
                     </div>
+                    {slide.visual_idea && (
+                      <div className="mb-4 bg-[#D4A373]/5 p-3 border border-[#D4A373]/10 rounded">
+                        <div className="text-xs text-[#D4A373]/50 mb-1 font-mono uppercase">Visual Concept</div>
+                        <p className="text-xs text-gray-400 italic">
+                          {slide.visual_idea}
+                        </p>
+                      </div>
+                    )}
                     <div className="bg-[#D4A373]/5 p-3 border-l-2 border-[#D4A373]/30">
                       <div className="text-xs text-[#D4A373]/50 mb-1 font-mono uppercase">Speaker Notes</div>
                       <p className="text-sm text-[#D4A373]/80 italic">

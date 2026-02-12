@@ -57,6 +57,7 @@ else:
 class TeamMatchRequest(BaseModel):
     hackathon_id: int
     requirements: str # User's input about what they are looking for
+    lang: Optional[str] = 'zh'
 
 class TeamMatchResponse(BaseModel):
     matches: List[dict] # [{user_id, name, skills, personality, bio, match_reason, match_score}]
@@ -70,6 +71,7 @@ async def team_match(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
+        lang = req.lang or 'zh'
         # 1. Fetch potential candidates (enrolled in the same hackathon, excluding self)
         query = select(User).join(Enrollment).where(
             Enrollment.hackathon_id == req.hackathon_id,
@@ -113,7 +115,10 @@ Current User Profile:
 
 Candidate Users:
 {json.dumps(candidates_data, ensure_ascii=False)}
+
+Language: {lang}
 """
+
 
         # 3. Call AI Model
         completion = client.chat.completions.create(
@@ -177,6 +182,41 @@ class GeneratePitchDeckRequest(BaseModel):
 class GeneratePitchDeckResponse(BaseModel):
     slides: List[dict] # {title, content, speaker_notes}
 
+class GenerateRoadmapRequest(BaseModel):
+    project_description: str
+    team_skills: Optional[str] = None
+
+class GenerateRoadmapResponse(BaseModel):
+    roadmap: List[str]
+
+@router.post("/generate-roadmap", response_model=GenerateRoadmapResponse)
+async def generate_roadmap(
+    req: GenerateRoadmapRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    try:
+        lang = 'zh' if any('\u4e00' <= char <= '\u9fff' for char in req.project_description + (req.team_skills or "")) else 'en'
+        system_prompt = get_system_prompt("roadmap_system")
+        user_prompt = f"""
+Project Description: {req.project_description}
+Team Skills: {req.team_skills or 'Not specified'}
+Language: {lang}
+"""
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return content
+    except Exception as e:
+        print(f"Roadmap Error: {e}")
+        return {"roadmap": ["Day 1: Setup", "Day 2: Development", "Day 3: Finalize"]}
+
 class BrainstormRequest(BaseModel):
     theme: str
     skills: str
@@ -191,11 +231,13 @@ async def brainstorm_ideas(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
+        lang = 'zh' if any('\u4e00' <= char <= '\u9fff' for char in req.theme + req.skills + req.interests) else 'en'
         system_prompt = get_system_prompt("brainstorm_system")
         user_prompt = f"""
 Theme: {req.theme}
 User Skills: {req.skills}
 User Interests: {req.interests}
+Language: {lang}
 """
 
         completion = client.chat.completions.create(
@@ -220,10 +262,12 @@ async def generate_pitch_deck(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
+        lang = 'zh' if any('\u4e00' <= char <= '\u9fff' for char in req.project_name + req.project_description) else 'en'
         system_prompt = get_system_prompt("pitch_deck_system")
         user_prompt = f"""
 Project Name: {req.project_name}
 Description: {req.project_description}
+Language: {lang}
 """
 
         completion = client.chat.completions.create(
@@ -367,128 +411,43 @@ async def generate_content(
     current_user: User = Depends(deps.get_current_user)
 ):
     try:
-        if req.type == 'hackathon':
-            if req.context_data:
-                # Refinement Mode
-                system_prompt = get_system_prompt("hackathon_refinement_system")
-                user_prompt = f"Current Data: {json.dumps(req.context_data, ensure_ascii=False)}\nUser Instruction: {req.prompt}"
-            else:
-                # Creation Mode
-                system_prompt = get_system_prompt("hackathon_creation_system")
-                user_prompt = f"Topic: {req.prompt}"
-            
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
-            
-            content_str = completion.choices[0].message.content
-            content = json.loads(content_str)
-            return {"content": content}
-
-        elif req.type == 'project':
-            system_prompt = get_system_prompt("project_refinement_system")
-            user_prompt = f"Project Idea: {req.prompt}"
-            
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
-            
-            content_str = completion.choices[0].message.content
-            content = json.loads(content_str)
-            return {"content": content}
-
-        elif req.type == 'participant_analysis':
-            system_prompt = get_system_prompt("participant_analysis_system")
-            
-            participants_data = req.context_data.get('participants', []) if req.context_data else []
-            # Limit to top 50 to avoid token limits if too many
-            participants_summary = json.dumps(participants_data[:50], ensure_ascii=False)
-            
-            user_prompt = f"Analyze these participants: {participants_summary}"
-            
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
-            
-            content_str = completion.choices[0].message.content
-            content = json.loads(content_str)
-            return {"content": content}
-            
-        elif req.type == 'matching':
-            # Use current user's skills and interests to find matches
-            user_skills = current_user.skills or "General"
-            user_interests = current_user.interests or "General"
-            
-            system_prompt = get_system_prompt("matching_system")
-            if req.prompt and len(req.prompt) > 10 and req.prompt != 'match':
-                context_prompt = f"Project Context: {req.prompt}. "
-            else:
-                context_prompt = "Context: General Hackathon Team. "
-                
-            user_prompt = f"{context_prompt}User Skills: {user_skills}. User Interests: {user_interests}. Suggest complementary teammates."
-            
-            completion = client.chat.completions.create(
-                model=MODEL_NAME,
-                messages=[
-                    {'role': 'system', 'content': system_prompt},
-                    {'role': 'user', 'content': user_prompt}
-                ],
-                response_format={"type": "json_object"}
-            )
-            
-            content_str = completion.choices[0].message.content
-            content = json.loads(content_str)
-            return {"content": content}
-
+        # 1. Identify System Prompt
+        system_key = f"{req.type}_system"
+        system_prompt = get_system_prompt(system_key)
+        
+        # 2. Extract Context and Language
+        context = req.context_data or {}
+        lang = context.get('lang', 'zh')
+        
+        # 3. Construct User Prompt
+        user_prompt = f"Prompt: {req.prompt}\nContext: {json.dumps(context, ensure_ascii=False)}\nLanguage: {lang}"
+        
+        # 4. Call AI
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = json.loads(completion.choices[0].message.content)
+        return {"content": content}
+        
     except Exception as e:
         print(f"AI Generation Error: {e}")
-        # Fallback to mock if AI fails
-        if req.type == 'hackathon':
+        # Return structured fallback based on type
+        if req.type == 'participant_analysis':
             return {
                 "content": {
-                    "title": f"Aura {req.prompt} Hackathon (Offline Mode)",
-                    "description": f"AI Service unavailable. Generating offline template for {req.prompt}.",
-                    "theme_tags": f"{req.prompt}, Fallback",
-                    "professionalism_tags": "General",
-                    "rules_detail": "Standard rules apply.",
-                    "resource_detail": "Standard resources provided.",
-                    "awards_detail": "Standard awards.",
-                    "scoring_dimensions": [{"name": "General", "description": "Overall score", "weight": 100}]
+                    "summary": "分析暂时不可用，请稍后重试。",
+                    "skill_distribution": [],
+                    "interest_clusters": [],
+                    "recommendation": "手动查看参赛者列表获取灵感。"
                 }
             }
-        elif req.type == 'project':
-             return {
-                "content": {
-                    "description": f"AI Service unavailable. Please refine '{req.prompt}' manually.",
-                    "business_plan": "N/A"
-                }
-            }
-        elif req.type == 'matching':
-             return {
-                "content": {
-                    "matches": [
-                        {"user_id": 1, "name": "Offline Match 1", "skills": "Java", "match_score": 80},
-                        {"user_id": 2, "name": "Offline Match 2", "skills": "Python", "match_score": 75}
-                    ]
-                }
-            }
-            
-    return {"content": {}}
+        return {"content": {"text": "AI generation failed."}}
 
 # --- New AI Project Assistant Endpoints ---
 

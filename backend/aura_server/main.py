@@ -6,6 +6,7 @@ import os
 
 from aura_server.core.config import settings
 from aura_server.api.v1.api import api_router
+from aura_server.initial_data import init_db
 
 app = FastAPI(
     title=settings.PROJECT_NAME,
@@ -18,8 +19,11 @@ logger = logging.getLogger("uvicorn")
 @app.on_event("startup")
 async def startup_event():
     logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.5-FORCE-SCHEMA-FIX-V2 ---")
-    # 确保数据库表已创建 (通常由 alembic 处理，这里作为双重检查或本地开发用)
-    # SQLModel.metadata.create_all(engine)
+    try:
+        init_db()
+        logger.info("Database initialized (superuser check).")
+    except Exception as e:
+        logger.error(f"Failed to initialize database: {e}")
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):

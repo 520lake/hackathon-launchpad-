@@ -185,7 +185,10 @@ async def get_wechat_qr():
         qr_url = await WeChatService.get_qr_code(scene_id)
         return {"scene_id": scene_id, "qr_url": qr_url}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.warning(f"Failed to get real WeChat QR: {e}. Returning mock QR for dev.")
+        # Fallback for development/hackathon if WeChat config is invalid
+        mock_qr_url = f"https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=MOCK_SCAN_{scene_id}"
+        return {"scene_id": scene_id, "qr_url": mock_qr_url, "warning": "Using mock QR due to WeChat config error"}
 
 @router.get("/wechat/poll")
 def poll_wechat(scene_id: str, session: Session = Depends(get_session)):

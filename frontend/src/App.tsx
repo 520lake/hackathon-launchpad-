@@ -4,7 +4,7 @@ import axios from 'axios'
 // Landing Components
 import Navbar from './components/Landing/Navbar'
 import Hero from './components/Landing/Hero'
-import { LatestEvents, About, Partners, Schedule, Footer } from './components/Landing/Sections'
+import { LatestEvents, About, Features, Partners, Schedule, Footer } from './components/Landing/Sections'
 
 // Modals
 import RegisterModal from './components/RegisterModal'
@@ -96,7 +96,7 @@ function App() {
           }
       }
 
-      const res = await axios.get('api/v1/users/me', {
+      const res = await axios.get('/api/v1/users/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentUser(res.data);
@@ -116,11 +116,10 @@ function App() {
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('api/v1/hackathons');
-      // 取前6个
-      setLatestHackathons(response.data.slice(0, 6));
-    } catch (err) {
-      console.error(err);
+      const res = await axios.get('/api/v1/hackathons?limit=6');
+      setLatestHackathons(res.data);
+    } catch (e) {
+      console.error("Failed to fetch hackathons", e);
     }
   };
 
@@ -154,7 +153,7 @@ function App() {
             // If cached user is not verified (or null), double check with API
             // This ensures that if they just verified in the dashboard, we get the latest status
             console.log('[DEBUG] Cached user not verified or missing, fetching fresh data...');
-            const res = await axios.get('api/v1/users/me', {
+            const res = await axios.get('/api/v1/users/me', {
                 headers: { Authorization: `Bearer ${token}` }
             });
             console.log('[DEBUG] User info fetched:', res.data);
@@ -226,6 +225,8 @@ function App() {
         />
         
         <About lang={lang} />
+        
+        <Features lang={lang} />
         
         <LatestEvents 
             hackathons={latestHackathons}

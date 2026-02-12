@@ -76,7 +76,7 @@ interface UserDashboardModalProps {
   lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick, lang }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, lang }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
@@ -142,7 +142,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       if (!token) return;
 
       // 0. 获取当前用户信息
-      const resUser = await axios.get('api/v1/users/me', {
+      const resUser = await axios.get('/api/v1/users/me', {
           headers: { Authorization: `Bearer ${token}` }
       });
       setUser(resUser.data);
@@ -157,23 +157,23 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       setBio(resUser.data.bio || '');
 
       // 1. 获取我创建的活动
-      const resCreated = await axios.get('api/v1/hackathons/my', {
+      const resCreated = await axios.get('/api/v1/hackathons/my', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMyCreated(resCreated.data);
+      setMyCreated(Array.isArray(resCreated.data) ? resCreated.data : []);
       
       // 2. 获取我参与的活动
-      const resJoined = await axios.get('api/v1/enrollments/me', {
+      const resJoined = await axios.get('/api/v1/enrollments/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setMyJoined(resJoined.data);
+      setMyJoined(Array.isArray(resJoined.data) ? resJoined.data : []);
 
       // 3. Get my projects
       try {
-        const resProjects = await axios.get('api/v1/projects/me', {
+        const resProjects = await axios.get('/api/v1/projects/me', {
             headers: { Authorization: `Bearer ${token}` }
         });
-        setMyProjects(resProjects.data);
+        setMyProjects(Array.isArray(resProjects.data) ? resProjects.data : []);
       } catch (e) {
         console.error("Failed to fetch projects", e);
       }
@@ -190,7 +190,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     setSavingProfile(true);
     try {
         const token = localStorage.getItem('token');
-        await axios.put('api/v1/users/me', {
+        await axios.put('/api/v1/users/me', {
             nickname,
             avatar_url: avatarUrl,
             skills: skillsString,
@@ -220,7 +220,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const handleMockVerify = async () => {
     try {
         const token = localStorage.getItem('token');
-        await axios.post('api/v1/users/me/verify', {}, {
+        await axios.post('/api/v1/users/me/verify', {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         alert(lang === 'zh' ? '模拟认证成功！' : 'Mock verification successful!');
@@ -242,7 +242,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post('api/v1/upload/file', formData, {
+            const res = await axios.post('/api/v1/upload/file', formData, {
                 headers: { 
                     'Content-Type': 'multipart/form-data',
                     Authorization: `Bearer ${token}` 
@@ -260,7 +260,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     setSavingProfile(true);
     try {
         const token = localStorage.getItem('token');
-        await axios.put('api/v1/users/me', {
+        await axios.put('/api/v1/users/me', {
             nickname,
             avatar_url: avatarUrl,
             skills,
@@ -326,7 +326,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                    )}
                 </div>
                 <div>
-                   <div className="text-white font-bold font-mono text-sm truncate max-w-[140px]">{user.nickname || user.email.split('@')[0]}</div>
+                   <div className="text-white font-bold font-mono text-sm truncate max-w-[140px]">{user.nickname || user.email?.split('@')[0] || 'USER'}</div>
                    <div className="text-xs text-brand/80 font-mono flex items-center gap-1 mt-1">
                       {user.is_verified ? (
                         <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> VERIFIED</>
@@ -592,6 +592,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             {myJoined.length > 0 && ['registering', 'upcoming', 'ongoing', 'ended', 'other'].map(status => {
                 const filtered = myJoined.filter(e => {
                     const h = e.hackathon;
+                    if (!h) return status === 'other'; // Guard against missing hackathon
                     const now = new Date().getTime();
                     
                     // If no dates provided, put in 'other'

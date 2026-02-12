@@ -11,9 +11,11 @@ frontend/.env
 frontend/.env.local
 frontend/coverage/
 
-# Backend
-backend/__pycache__/
-backend/*.py[cod]
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+**/__pycache__/
 backend/.venv
 backend/venv/
 backend/.env

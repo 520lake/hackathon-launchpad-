@@ -10,6 +10,8 @@ from aura_server.models.enrollment import Enrollment, EnrollmentCreate, Enrollme
 
 from aura_server.models.team_project import Team, TeamMember
 
+from app.models.team_project import Team, TeamMember
+
 router = APIRouter()
 
 @router.post("/", response_model=EnrollmentRead)

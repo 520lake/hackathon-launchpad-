@@ -1,18 +1,19 @@
 import React from 'react';
 
-interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'default' | 'outline' | 'ghost' | 'link' | 'destructive';
+export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'primary' | 'outline' | 'ghost' | 'link' | 'destructive'; // Adjusted to match usage 'primary'
   size?: 'sm' | 'md' | 'lg' | 'icon';
   isLoading?: boolean;
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className = '', variant = 'default', size = 'md', isLoading, children, ...props }, ref) => {
+  ({ className = '', variant = 'primary', size = 'md', isLoading, children, ...props }, ref) => {
     
     const baseStyles = "inline-flex items-center justify-center font-bold transition-all focus-visible:outline-none disabled:opacity-50 disabled:pointer-events-none active:scale-[0.98]";
     
-    const variants = {
-      default: "bg-brand text-void hover:bg-white clip-path-slant shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] hover:translate-x-[2px] hover:translate-y-[2px]",
+    const variants: Record<string, string> = {
+      primary: "bg-brand text-void hover:bg-white clip-path-slant shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] hover:translate-x-[2px] hover:translate-y-[2px]",
+      default: "bg-brand text-void hover:bg-white clip-path-slant shadow-[4px_4px_0px_0px_rgba(0,0,0,0.5)] hover:shadow-[2px_2px_0px_0px_rgba(0,0,0,0.5)] hover:translate-x-[2px] hover:translate-y-[2px]", // Alias for compatibility
       outline: "border border-white/20 text-ink bg-transparent hover:border-brand hover:text-brand",
       ghost: "hover:bg-white/10 text-ink hover:text-white",
       link: "text-brand underline-offset-4 hover:underline",
@@ -36,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
     return (
       <button
         ref={ref}
-        className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${className}`}
+        className={`${baseStyles} ${variants[variant] || variants.primary} ${sizes[size]} ${className}`}
         disabled={isLoading || props.disabled}
         {...props}
       >
@@ -48,3 +49,5 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 
 Button.displayName = "Button";
+
+export default Button;

@@ -14,7 +14,6 @@ import JudgingModal from '../components/JudgingModal';
 import ResultPublishModal from '../components/ResultPublishModal';
 import AIResumeModal from '../components/AIResumeModal';
 import AIParticipantTools from '../components/AIParticipantTools';
-import AIProjectAssistant from '../components/AIProjectAssistant';
 
 export default function HackathonDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -31,6 +30,9 @@ export default function HackathonDetailPage() {
   const [myTeam, setMyTeam] = useState<Team | null>(null);
   const [isOrganizer, setIsOrganizer] = useState(false);
   const [isJudge, setIsJudge] = useState(false);
+  
+  // AI Tools State
+  const [activeAiTool, setActiveAiTool] = useState<'idea' | 'pitch' | 'roadmap' | 'teammate'>('idea');
 
   // Sub-modal states
   const [isSubmitProjectOpen, setIsSubmitProjectOpen] = useState(false);
@@ -185,11 +187,17 @@ export default function HackathonDetailPage() {
                 <Button variant="outline" className="w-full justify-start text-xs" onClick={() => setIsAIResumeOpen(true)}>
                   📝 {lang === 'zh' ? '简历优化' : 'Optimize Resume'}
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-xs">
+                <Button variant="outline" className="w-full justify-start text-xs" onClick={() => { setActiveTab('ai_toolkit'); setActiveAiTool('teammate'); }}>
                   🤝 {lang === 'zh' ? '寻找队友' : 'Find Teammates'}
                 </Button>
-                <Button variant="outline" className="w-full justify-start text-xs">
-                  💡 {lang === 'zh' ? '创意生成' : 'Generate Ideas'}
+                <Button variant="outline" className="w-full justify-start text-xs" onClick={() => { setActiveTab('ai_toolkit'); setActiveAiTool('idea'); }}>
+                  💡 {lang === 'zh' ? '创意生成' : 'Idea Storm'}
+                </Button>
+                <Button variant="outline" className="w-full justify-start text-xs" onClick={() => { setActiveTab('ai_toolkit'); setActiveAiTool('pitch'); }}>
+                  🎤 {lang === 'zh' ? '路演设计' : 'Pitch Architect'}
+                </Button>
+                <Button variant="outline" className="w-full justify-start text-xs" onClick={() => { setActiveTab('ai_toolkit'); setActiveAiTool('roadmap'); }}>
+                  🗺️ {lang === 'zh' ? '项目规划' : 'Roadmap'}
                 </Button>
               </div>
             </Card>
@@ -198,7 +206,7 @@ export default function HackathonDetailPage() {
           {/* Tabs Content */}
           <div className="flex-1">
              <div className="flex border-b border-ink/10 mb-8 overflow-x-auto">
-               {['overview', 'participants', 'projects', 'judging', 'results'].map(tab => (
+               {['overview', 'ai_toolkit', 'projects', 'judging', 'results'].map(tab => (
                  <button
                    key={tab}
                    onClick={() => setActiveTab(tab)}
@@ -209,7 +217,7 @@ export default function HackathonDetailPage() {
                      }
                    `}
                  >
-                   {tab}
+                   {tab === 'ai_toolkit' ? (lang === 'zh' ? 'AI 工具箱' : 'AI TOOLKIT') : tab}
                  </button>
                ))}
              </div>
@@ -228,9 +236,14 @@ export default function HackathonDetailPage() {
                  </div>
                )}
 
-               {activeTab === 'participants' && (
+               {activeTab === 'ai_toolkit' && (
                  user ? (
-                   <AIParticipantTools user={user as any} hackathon={hackathon as any} />
+                   <AIParticipantTools 
+                      user={user as any} 
+                      hackathon={hackathon as any} 
+                      activeTool={activeAiTool}
+                      onToolChange={setActiveAiTool}
+                   />
                  ) : (
                    <div className="text-center py-12">
                      <p className="mb-4">Please login to access AI tools.</p>

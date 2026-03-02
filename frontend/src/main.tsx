@@ -6,6 +6,8 @@ import App from './App.tsx'
 import { AuthProvider } from './contexts/AuthContext.tsx'
 import { UIProvider } from './contexts/UIContext.tsx'
 
+console.log('Main entry point executing...');
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <AuthProvider>

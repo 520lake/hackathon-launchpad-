@@ -1,12 +1,16 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+import Button from './ui/Button';
+import Input from './ui/Input';
+import Card from './ui/Card';
+import AIProjectAssistant from './AIProjectAssistant';
 
 interface SubmitProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   hackathonId: number;
-  teamId?: number; // Added teamId
-  existingProject?: any; // If editing
+  teamId?: number;
+  existingProject?: any;
   initialDescription?: string;
   initialData?: {
     title?: string;
@@ -19,7 +23,7 @@ interface SubmitProjectModalProps {
 export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, initialDescription, initialData, lang }: SubmitProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [techStack, setTechStack] = useState(''); // New field
+  const [techStack, setTechStack] = useState('');
   const [repoUrl, setRepoUrl] = useState('');
   const [demoUrl, setDemoUrl] = useState('');
   const [videoUrl, setVideoUrl] = useState('');
@@ -29,15 +33,13 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
   const [error, setError] = useState('');
 
   // AI Assistance
-  const [aiLoading, setAiLoading] = useState(false);
-  const [innovationPrompt, setInnovationPrompt] = useState('');
-  const [showAiPanel, setShowAiPanel] = useState(false);
+  const [showAiRefine, setShowAiRefine] = useState(false);
 
   useEffect(() => {
     if (existingProject) {
       setTitle(existingProject.title);
       setDescription(initialDescription || existingProject.description);
-      setTechStack(existingProject.tech_stack || ''); // New field
+      setTechStack(existingProject.tech_stack || '');
       setRepoUrl(existingProject.repo_url || '');
       setDemoUrl(existingProject.demo_url || '');
       setVideoUrl(existingProject.video_url || '');
@@ -56,7 +58,7 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
       // Reset if new
       setTitle('');
       setDescription(initialDescription || '');
-      setTechStack(''); // New field
+      setTechStack('');
       setRepoUrl('');
       setDemoUrl('');
       setVideoUrl('');
@@ -69,7 +71,7 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
     const formData = new FormData();
     formData.append('file', file);
     const token = localStorage.getItem('token');
-    const res = await axios.post('/api/v1/upload/image', formData, {
+    const res = await axios.post('http://localhost:8000/api/v1/upload/image', formData, {
         headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}` 
@@ -87,31 +89,6 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
             console.error(err);
             alert('Upload failed');
         }
-    }
-  };
-
-  if (!isOpen) return null;
-
-  const handleAIAssist = async () => {
-    if (!innovationPrompt.trim()) return;
-    setAiLoading(true);
-    try {
-        const token = localStorage.getItem('token');
-        const res = await axios.post('/api/v1/ai/generate', {
-            prompt: innovationPrompt,
-            type: 'project'
-        }, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        
-        const content = res.data.content;
-        setDescription(prev => prev + '\n\n' + content.description);
-        alert(lang === 'zh' ? 'AI 优化建议已生成并追加到简介中！' : 'AI suggestions generated and appended!');
-    } catch (e) {
-        console.error(e);
-        alert(lang === 'zh' ? 'AI 辅助失败' : 'AI assist failed');
-    } finally {
-        setAiLoading(false);
     }
   };
 
@@ -143,16 +120,15 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                     video_url: videoUrl,
                     attachment_url: attachmentUrl,
                     cover_image: coverImage,
-                    // hackathon_id removed as it's not in ProjectCreate and linked via team
                 };
 
       if (existingProject) {
-        await axios.patch(`/api/v1/projects/${existingProject.id}`, payload, { headers }); // Changed put to patch
+        await axios.patch(`http://localhost:8000/api/v1/projects/${existingProject.id}`, payload, { headers });
       } else {
         if (!teamId) {
              throw new Error("Team ID is missing");
         }
-        await axios.post(`/api/v1/projects/?team_id=${teamId}`, payload, { headers });
+        await axios.post(`http://localhost:8000/api/v1/projects/?team_id=${teamId}`, payload, { headers });
       }
       
       alert(lang === 'zh' ? '作品提交成功！' : 'Project submitted successfully!');
@@ -165,186 +141,161 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
     }
   };
 
+  if (!isOpen) return null;
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-void/90 backdrop-blur-sm p-4">
-      <div className="bg-surface w-full max-w-4xl border-2 border-brand shadow-[8px_8px_0px_0px_#000] relative flex flex-col max-h-[90vh]">
+      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-2 border-brand shadow-[8px_8px_0px_0px_rgba(212,163,115,0.5)]">
+        
         {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b-2 border-brand bg-black">
-          <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-            {existingProject ? (lang === 'zh' ? '编辑原型' : 'EDIT PROTOTYPE') : (lang === 'zh' ? '提交原型' : 'SUBMIT PROTOTYPE')}
+        <div className="flex justify-between items-center p-6 border-b border-ink/10 bg-void">
+          <h2 className="text-2xl font-black text-ink uppercase tracking-tighter">
+            {existingProject ? (lang === 'zh' ? '编辑项目' : 'EDIT PROJECT') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
           </h2>
-          <button 
-            onClick={onClose}
-            className="text-brand hover:text-white font-mono font-bold text-xl"
-          >
-            [X]
-          </button>
+          <button onClick={onClose} className="text-ink/50 hover:text-brand font-mono font-bold text-xl">[X]</button>
         </div>
         
-        <div className="p-6 overflow-y-auto custom-scrollbar">
+        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-void">
             {error && (
-            <div className="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 font-mono text-sm">
-                ERROR: {error}
-            </div>
+                <div className="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 font-mono text-sm">
+                    ERROR: {error}
+                </div>
             )}
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-            
-            {/* Cover Image */}
-            <div>
-                <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                    {lang === 'zh' ? '项目封面' : 'PROJECT COVER'}
-                </label>
-                <div className="relative w-full h-48 bg-black/50 border border-brand/30 flex items-center justify-center overflow-hidden group">
-                    {coverImage ? (
-                        <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
-                    ) : (
-                        <div className="text-gray-500 font-mono text-sm">{lang === 'zh' ? '点击上传封面图片' : 'Click to upload cover image'}</div>
-                    )}
-                    <input 
-                        type="file" 
-                        accept="image/*"
-                        className="absolute inset-0 opacity-0 cursor-pointer"
-                        onChange={handleCoverUpload}
-                    />
-                    <div className="absolute inset-0 bg-brand/10 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
-                </div>
-            </div>
-
-            <div>
-                <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                    {lang === 'zh' ? '项目代号' : 'PROJECT CODENAME'} *
-                </label>
-                <input
-                type="text"
-                required
-                className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                value={title}
-                onChange={(e) => setTitle(e.target.value)}
-                placeholder={lang === 'zh' ? "例如: Aura AI" : "e.g., Aura AI"}
-                />
-            </div>
-            
-            <div>
-                <div className="flex justify-between items-center mb-2">
-                    <label className="block text-sm font-bold text-brand font-mono uppercase tracking-widest">
-                        {lang === 'zh' ? '技术简报' : 'TECH BRIEF'} *
-                    </label>
-                    <button
-                        type="button"
-                        onClick={() => setShowAiPanel(!showAiPanel)}
-                        className="text-xs text-brand hover:text-white font-mono border border-brand px-2 py-1 uppercase"
-                    >
-                        {lang === 'zh' ? '✨ AI 增强' : '✨ AI ENHANCE'}
-                    </button>
-                </div>
-
-                {showAiPanel && (
-                    <div className="mb-4 p-4 bg-brand/5 border border-brand/20">
-                        <input
-                            type="text"
-                            placeholder={lang === 'zh' ? "输入核心创意点..." : "Enter core concept..."}
-                            className="w-full mb-3 px-3 py-2 text-sm bg-black border border-gray-700 text-white font-mono focus:border-brand focus:outline-none"
-                            value={innovationPrompt}
-                            onChange={(e) => setInnovationPrompt(e.target.value)}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                {/* Left Column: Form */}
+                <div className="lg:col-span-2 space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
+                            {lang === 'zh' ? '项目名称' : 'PROJECT TITLE'}
+                        </label>
+                        <Input 
+                            value={title} 
+                            onChange={(e) => setTitle(e.target.value)} 
+                            placeholder={lang === 'zh' ? "给你的杰作起个名字..." : "Name your masterpiece..."}
                         />
-                        <button
-                            type="button"
-                            onClick={handleAIAssist}
-                            disabled={aiLoading || !innovationPrompt}
-                            className="w-full py-2 bg-brand text-black font-bold text-xs uppercase hover:bg-white transition-colors disabled:opacity-50"
-                        >
-                            {aiLoading ? (lang === 'zh' ? '计算中...' : 'PROCESSING...') : (lang === 'zh' ? '生成商业计划/润色文案' : 'GENERATE BUSINESS PLAN / POLISH')}
-                        </button>
                     </div>
-                )}
 
-                <textarea
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700 h-40"
-                placeholder={lang === 'zh' ? "描述你的项目解决了什么问题，使用了什么技术..." : "Describe the problem solved and tech stack used..."}
-                required
-                />
+                    <div>
+                        <div className="flex justify-between items-center mb-2">
+                            <label className="block text-xs font-bold text-brand font-mono uppercase tracking-widest">
+                                {lang === 'zh' ? '项目简介' : 'DESCRIPTION'}
+                            </label>
+                            <button 
+                                type="button"
+                                onClick={() => setShowAiRefine(!showAiRefine)}
+                                className="text-xs font-mono text-brand hover:underline flex items-center gap-1"
+                            >
+                                ✨ {lang === 'zh' ? 'AI 润色' : 'AI Refine'}
+                            </button>
+                        </div>
+                        
+                        {showAiRefine && (
+                            <div className="mb-4">
+                                <AIProjectAssistant 
+                                    mode="refine" 
+                                    currentDescription={description} 
+                                    onRefineDescription={(refined) => {
+                                        setDescription(refined);
+                                        setShowAiRefine(false);
+                                    }}
+                                    lang={lang} 
+                                />
+                            </div>
+                        )}
+
+                        <textarea 
+                            value={description}
+                            onChange={(e) => setDescription(e.target.value)}
+                            className="w-full h-40 bg-ink/5 border border-ink/20 p-4 text-ink focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all font-mono text-sm resize-none"
+                            placeholder={lang === 'zh' ? "详细描述你的项目解决了什么问题，以及它是如何工作的..." : "Describe what problem your project solves and how it works..."}
+                        />
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
+                            {lang === 'zh' ? '技术栈' : 'TECH STACK'}
+                        </label>
+                        <Input 
+                            value={techStack} 
+                            onChange={(e) => setTechStack(e.target.value)} 
+                            placeholder="React, FastAPI, Solidity, etc."
+                        />
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label className="block text-xs font-bold text-ink/50 font-mono mb-2 uppercase tracking-widest">
+                                REPO URL
+                            </label>
+                            <Input 
+                                value={repoUrl} 
+                                onChange={(e) => setRepoUrl(e.target.value)} 
+                                placeholder="https://github.com/..."
+                            />
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-ink/50 font-mono mb-2 uppercase tracking-widest">
+                                DEMO URL
+                            </label>
+                            <Input 
+                                value={demoUrl} 
+                                onChange={(e) => setDemoUrl(e.target.value)} 
+                                placeholder="https://..."
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column: Media */}
+                <div className="space-y-6">
+                    <div>
+                        <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
+                            {lang === 'zh' ? '封面图片' : 'COVER IMAGE'}
+                        </label>
+                        <div className="relative w-full aspect-video bg-ink/5 border border-dashed border-ink/20 flex items-center justify-center overflow-hidden group hover:border-brand transition-colors cursor-pointer">
+                            {coverImage ? (
+                                <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
+                            ) : (
+                                <div className="text-center p-4">
+                                    <span className="text-2xl mb-2 block">📷</span>
+                                    <span className="text-xs text-ink/40 font-mono">CLICK TO UPLOAD</span>
+                                </div>
+                            )}
+                            <input 
+                                type="file" 
+                                accept="image/*" 
+                                onChange={handleCoverUpload}
+                                className="absolute inset-0 opacity-0 cursor-pointer"
+                            />
+                        </div>
+                    </div>
+
+                    <div>
+                        <label className="block text-xs font-bold text-ink/50 font-mono mb-2 uppercase tracking-widest">
+                            VIDEO URL
+                        </label>
+                        <Input 
+                            value={videoUrl} 
+                            onChange={(e) => setVideoUrl(e.target.value)} 
+                            placeholder="Youtube / Bilibili Link"
+                        />
+                    </div>
+                </div>
             </div>
-
-            <div>
-                <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                    {lang === 'zh' ? '技术栈 (以逗号分隔)' : 'TECH STACK (COMMA SEPARATED)'}
-                </label>
-                <input 
-                  type="text" 
-                  value={techStack} 
-                  onChange={e => setTechStack(e.target.value)}
-                  placeholder="React, TypeScript, FastAPI, etc."
-                  className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                />
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                    <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                        {lang === 'zh' ? '代码仓库' : 'REPOSITORY'}
-                    </label>
-                    <input
-                    type="url"
-                    className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                    value={repoUrl}
-                    onChange={(e) => setRepoUrl(e.target.value)}
-                    placeholder="https://github.com/..."
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                        {lang === 'zh' ? '演示 DEMO' : 'LIVE DEMO'}
-                    </label>
-                    <input
-                    type="url"
-                    className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                    value={demoUrl}
-                    onChange={(e) => setDemoUrl(e.target.value)}
-                    placeholder="https://demo.com"
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                        {lang === 'zh' ? '视频展示' : 'VIDEO SHOWCASE'}
-                    </label>
-                    <input
-                    type="url"
-                    className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                    value={videoUrl}
-                    onChange={(e) => setVideoUrl(e.target.value)}
-                    placeholder="https://youtube.com/..."
-                    />
-                </div>
-
-                <div>
-                    <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                        {lang === 'zh' ? '附件链接' : 'ATTACHMENT'}
-                    </label>
-                    <input
-                    type="url"
-                    className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700"
-                    value={attachmentUrl}
-                    onChange={(e) => setAttachmentUrl(e.target.value)}
-                    placeholder="Google Drive / Dropbox"
-                    />
-                </div>
-            </div>
-
-            <button
-                type="submit"
-                disabled={loading}
-                className="w-full py-4 bg-brand text-black font-black text-lg uppercase tracking-wider hover:bg-white border-2 border-brand shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all disabled:opacity-50 mt-8"
-            >
-                {loading ? (lang === 'zh' ? '正在上传...' : 'UPLOADING...') : (lang === 'zh' ? '确认部署' : 'DEPLOY PROTOTYPE')}
-            </button>
-            </form>
         </div>
-      </div>
+
+        {/* Footer Actions */}
+        <div className="p-6 border-t border-ink/10 bg-ink/5 flex justify-end gap-4">
+            <Button variant="outline" onClick={onClose}>
+                {lang === 'zh' ? '取消' : 'CANCEL'}
+            </Button>
+            <Button onClick={handleSubmit} disabled={loading}>
+                {loading ? (lang === 'zh' ? '提交中...' : 'SUBMITTING...') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
+            </Button>
+        </div>
+
+      </Card>
     </div>
   );
 }

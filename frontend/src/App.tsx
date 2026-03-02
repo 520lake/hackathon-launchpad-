@@ -15,9 +15,6 @@ import HackathonDetailPage from './pages/HackathonDetailPage';
 import RegisterModal from './components/RegisterModal';
 import LoginModal from './components/LoginModal';
 import CreateHackathonModal from './components/CreateHackathonModal';
-// import HackathonListModal from './components/HackathonListModal'; // Refactored to Page
-// import UserDashboardModal from './components/UserDashboardModal'; // Refactored to Page
-// import HackathonDetailModal from './components/HackathonDetailModal'; // Refactored to Page
 import VerificationModal from './components/VerificationModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
 import AITeamMatchModal from './components/AITeamMatchModal';

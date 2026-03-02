@@ -4,10 +4,12 @@ import axios from 'axios';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onRegisterSuccess: () => void;
+  onLoginClick: () => void;
   lang?: 'zh' | 'en';
 }
 
-export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLoginClick, lang = 'zh' }: RegisterModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -27,8 +29,9 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
         password,
         full_name: fullName,
       });
-      alert('注册成功！请登录。');
-      onClose();
+      // alert('注册成功！请登录。');
+      // onClose();
+      onRegisterSuccess();
     } catch (err: any) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.detail) {
@@ -118,6 +121,16 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
           >
             {loading ? (lang === 'zh' ? '处理中...' : 'PROCESSING...') : (lang === 'zh' ? '加入网络' : 'JOIN_NETWORK')}
           </button>
+          
+          <div className="mt-4 text-center">
+            <button 
+              type="button" 
+              onClick={onLoginClick}
+              className="text-xs text-gray-500 hover:text-brand font-mono underline"
+            >
+              {lang === 'zh' ? '已有账号？登录' : 'Already have an account? Login'}
+            </button>
+          </div>
         </form>
       </div>
     </div>

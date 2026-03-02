@@ -4,12 +4,14 @@ import axios from 'axios';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
+  onLoginSuccess: (token: string) => void;
+  onRegisterClick?: () => void;
   lang?: 'zh' | 'en';
 }
 
 type AuthMethod = 'wechat' | 'email_code' | 'password';
 
-export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegisterClick, lang = 'zh' }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<AuthMethod>('password');
   
   // Form states
@@ -69,7 +71,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           try {
               const res = await axios.get(`/api/v1/wechat/poll?scene_id=${sid}`);
               if (res.data.status === 'success') {
-                  handleLoginSuccess(res.data.access_token);
+                  handleLoginSuccessInternal(res.data.access_token);
               }
           } catch (err) {
               // ignore poll errors
@@ -77,15 +79,12 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
       }, 3000);
   };
 
-  const handleLoginSuccess = (token: string) => {
+  const handleLoginSuccessInternal = (token: string) => {
       stopPolling();
-      localStorage.setItem('token', token);
       // Set cookie as backup for ModelScope iframe/proxy scenarios
-      // MUST use SameSite=None; Secure for cross-site iframes (ModelScope)
       document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=None; Secure`;
-      alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
-      onClose();
-      window.location.reload();
+      // alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
+      onLoginSuccess(token);
   };
 
   const handleSendCode = async () => {
@@ -121,7 +120,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
       e.preventDefault();
       try {
           const res = await axios.post('/api/v1/login/email', { email, code });
-          handleLoginSuccess(res.data.access_token);
+          handleLoginSuccessInternal(res.data.access_token);
       } catch (err: any) {
           console.error('Login error:', err);
           let msg = '登录失败';
@@ -143,7 +142,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
           params.append('username', email);
           params.append('password', password);
           const res = await axios.post('/api/v1/login/access-token', params);
-          handleLoginSuccess(res.data.access_token);
+          handleLoginSuccessInternal(res.data.access_token);
       } catch (err: any) {
           console.error('Password login error:', err);
           let msg = '登录失败';
@@ -167,35 +166,38 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
             onClick={onClose} 
             className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
         >✕</button>
-        
+
         <div className="mb-8 text-center">
             <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
-            LOGIN <span className="text-brand">AURA</span>
+            {lang === 'zh' ? '系统接入' : 'SYSTEM ACCESS'}
             </h2>
-            <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                {lang === 'zh' ? '身份验证' : 'AUTHENTICATION'}
-            </p>
-        </div>
-
-        <div className="flex justify-center mb-6 border-b border-brand/10">
-            <button 
-                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'password' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
-                onClick={() => setActiveTab('password')}
-            >
-                {lang === 'zh' ? '密码登录' : 'PASSWORD'}
-            </button>
-            <button 
-                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'email_code' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
-                onClick={() => setActiveTab('email_code')}
-            >
-                {lang === 'zh' ? '邮箱验证' : 'EMAIL_CODE'}
-            </button>
-            <button 
-                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'wechat' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
-                onClick={() => setActiveTab('wechat')}
-            >
-                {lang === 'zh' ? '微信扫码' : 'WECHAT'}
-            </button>
+            <div className="flex justify-center gap-4 text-xs font-mono text-gray-500 uppercase tracking-widest mt-4">
+                <button 
+                    onClick={() => setActiveTab('password')}
+                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'password' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
+                >
+                    {lang === 'zh' ? '密码登录' : 'PASSWORD'}
+                </button>
+                <button 
+                    onClick={() => setActiveTab('email_code')}
+                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'email_code' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
+                >
+                    {lang === 'zh' ? '验证码' : 'CODE'}
+                </button>
+                <button 
+                    onClick={() => setActiveTab('wechat')}
+                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'wechat' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
+                >
+                    {lang === 'zh' ? '微信' : 'WECHAT'}
+                </button>
+            </div>
+            {onRegisterClick && (
+                <div className="mt-4">
+                    <button onClick={onRegisterClick} className="text-xs text-gray-500 hover:text-brand underline">
+                        {lang === 'zh' ? '没有账号？注册' : 'No account? Register'}
+                    </button>
+                </div>
+            )}
         </div>
 
         {activeTab === 'password' && (

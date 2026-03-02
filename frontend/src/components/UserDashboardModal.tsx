@@ -42,7 +42,7 @@ interface User {
   full_name?: string;
   nickname?: string;
   avatar_url?: string;
-  is_verified: boolean;
+  is_verified?: boolean;
   skills?: string;
   interests?: string;
   city?: string;
@@ -69,15 +69,17 @@ interface Project {
 interface UserDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onHackathonSelect: (id: number, initialTab?: string) => void;
+  onHackathonSelect?: (id: number, initialTab?: string) => void;
   onVerifyClick: () => void;
   onUserUpdate?: () => void;
   onTeamMatchClick?: () => void;
+  onEditHackathon?: (hackathon: any) => void;
+  user?: User | null;
   lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, lang }: UserDashboardModalProps) {
-  const [user, setUser] = useState<User | null>(null);
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onEditHackathon, user: initialUser, lang }: UserDashboardModalProps) {
+  const [user, setUser] = useState<User | null>(initialUser || null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
   const [myProjects, setMyProjects] = useState<Project[]>([]);
@@ -211,10 +213,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     } finally {
         setSavingProfile(false);
     }
-  };
-
-  const handleVerify = () => {
-    onVerifyClick();
   };
 
   const handleMockVerify = async () => {
@@ -516,7 +514,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           </div>
                           {!user?.is_verified && (
                               <div className="flex gap-2">
-                                  <button onClick={handleVerify} className="px-3 py-1 bg-brand/20 text-brand text-xs font-bold border border-brand/50 hover:bg-brand hover:text-black transition-colors">
+                                  <button onClick={onVerifyClick} className="px-3 py-1 bg-brand/20 text-brand text-xs font-bold border border-brand/50 hover:bg-brand hover:text-black transition-colors">
                                       {lang === 'zh' ? '真实认证' : 'REAL VERIFY'}
                                   </button>
                                   <button onClick={handleMockVerify} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs font-bold border border-gray-600 hover:bg-white hover:text-black transition-colors">
@@ -556,7 +554,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       key={h.id} 
                       className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
                       onClick={() => {
-                        onHackathonSelect(h.id);
+                        onHackathonSelect?.(h.id);
                         onClose();
                       }}
                     >
@@ -576,8 +574,19 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                              </p>
                           </div>
                         </div>
-                        <div className="w-10 h-10 border border-brand/30 flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-black transition-all">
-                           ➜
+                        <div className="flex flex-col gap-2 items-end">
+                           <div className="w-10 h-10 border border-brand/30 flex items-center justify-center text-brand group-hover:bg-brand group-hover:text-black transition-all">
+                              ➜
+                           </div>
+                           <button
+                               onClick={(e) => {
+                                   e.stopPropagation();
+                                   onEditHackathon?.(h);
+                               }}
+                               className="px-2 py-1 bg-white/5 border border-white/10 text-xs font-mono text-gray-300 hover:bg-white hover:text-black z-20"
+                           >
+                               {lang === 'zh' ? '编辑' : 'EDIT'}
+                           </button>
                         </div>
                       </div>
                     </div>
@@ -628,7 +637,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                                   className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all cursor-pointer relative overflow-hidden"
                                   onClick={() => {
                                     if (e.hackathon && e.hackathon.id) {
-                                      onHackathonSelect(e.hackathon.id);
+                                      onHackathonSelect?.(e.hackathon.id);
                                       onClose();
                                     }
                                   }}
@@ -692,11 +701,11 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       key={p.id} 
                       className="group border border-brand/20 bg-surface p-6 hover:border-brand hover:bg-black transition-all relative overflow-hidden cursor-pointer"
                       onClick={() => {
-                        if (p.team && p.team.hackathon_id) {
-                          onHackathonSelect(p.team.hackathon_id, 'my_project');
-                          onClose();
-                        }
-                      }}
+                          if (p.team && p.team.hackathon_id) {
+                            onHackathonSelect?.(p.team.hackathon_id, 'my_project');
+                            onClose();
+                          }
+                        }}
                     >
                        <div className="absolute top-0 right-0 p-2 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
                           <div className="text-6xl font-black text-brand tracking-tighter">PROJ</div>

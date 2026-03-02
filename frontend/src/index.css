@@ -158,4 +158,8 @@
       0 10px
     );
   }
+
+  .clip-path-slant {
+    clip-path: polygon(0 0, 100% 0, 100% 80%, 95% 100%, 0 100%);
+  }
 }

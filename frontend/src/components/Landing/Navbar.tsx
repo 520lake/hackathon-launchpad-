@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
     isLoggedIn: boolean;
@@ -6,7 +7,6 @@ interface NavbarProps {
     onLoginClick: () => void;
     onRegisterClick: () => void;
     onLogoutClick: () => void;
-    onDashboardClick: () => void;
     onAdminClick: () => void;
     lang: 'zh' | 'en';
     setLang: (lang: 'zh' | 'en') => void;
@@ -18,12 +18,12 @@ export default function Navbar({
     onLoginClick, 
     onRegisterClick, 
     onLogoutClick, 
-    onDashboardClick, 
     onAdminClick,
     lang,
     setLang
 }: NavbarProps) {
     const [scrolled, setScrolled] = useState(false);
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -37,13 +37,18 @@ export default function Navbar({
         <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-void/90 border-brand/20 backdrop-blur-md py-4' : 'bg-transparent border-transparent py-6'}`}>
             <div className="container mx-auto px-6 flex justify-between items-center">
                 {/* Logo */}
-                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
+                <Link to="/" className="flex items-center gap-2 group cursor-pointer">
                     <div className="w-3 h-3 bg-brand group-hover:animate-pulse" />
                     <span className="text-xl font-black tracking-tighter text-ink font-mono">AURA</span>
-                </div>
+                </Link>
 
                 {/* Actions */}
                 <div className="flex items-center gap-6 font-mono text-sm">
+                    {/* Navigation Links */}
+                    <Link to="/hackathons" className="text-ink hover:text-brand transition-colors text-xs hidden md:block">
+                        [ {lang === 'zh' ? '探索赛事' : 'EXPLORE'} ]
+                    </Link>
+
                     {/* Language Switcher */}
                     <button 
                         onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
@@ -59,7 +64,7 @@ export default function Navbar({
                                     [ {lang === 'zh' ? '管理' : 'ADMIN'} ]
                                 </button>
                             )}
-                            <button onClick={onDashboardClick} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
+                            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
                                 <span className="w-2 h-2 bg-green-500 rounded-full" />
                                 {currentUser?.full_name || currentUser?.nickname || currentUser?.name || (lang === 'zh' ? '用户' : 'USER')}
                             </button>

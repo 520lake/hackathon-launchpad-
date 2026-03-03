@@ -4,11 +4,10 @@ import gsap from 'gsap';
 interface HeroProps {
     onCreateClick: () => void;
     onExploreClick: () => void;
-    onAIGuideClick: () => void;
-    lang: 'zh' | 'en';
+    onAIGuideClick?: () => void;
 }
 
-export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps) {
+export default function Hero({ onCreateClick, onExploreClick }: HeroProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLHeadingElement>(null);
     const subTextRef = useRef<HTMLParagraphElement>(null);
@@ -90,9 +89,7 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
           </h1>
 
           <p ref={subTextRef} className="max-w-2xl text-lg text-gray-400 font-mono mb-8 leading-relaxed">
-               {lang === 'zh' 
-                   ? '为组织者、参与者、评委及赞助商打造的一站式全链路智能黑客松平台。' 
-                   : 'The one-stop intelligent platform for Organizers, Participants, Judges, and Sponsors.'}
+               {'为组织者、参与者、评委及赞助商打造的一站式全链路智能黑客松平台。'}
           </p>
 
           <div ref={btnRef} className="flex flex-col sm:flex-row gap-6 mb-12">
@@ -101,7 +98,7 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                   className="group relative px-8 py-4 bg-brand text-void font-bold text-lg overflow-hidden transition-all hover:bg-white clip-path-slant"
               >
                   <span className="relative z-10 flex items-center gap-2">
-                      {lang === 'zh' ? '发起活动' : 'INITIATE HACKATHON'}
+                      发起活动
                   </span>
               </button>
               
@@ -109,7 +106,7 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                   onClick={onExploreClick}
                   className="group px-8 py-4 border border-white/20 text-ink font-mono text-lg hover:border-brand hover:text-brand transition-all"
               >
-                  {lang === 'zh' ? '探索活动' : 'EXPLORE EVENTS'}
+                  探索活动
               </button>
           </div>
 
@@ -119,10 +116,10 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">🏗️</div>
                    <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
-                       {lang === 'zh' ? '组织者' : 'ORGANIZER'}
+                       组织者
                    </h3>
                    <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
-                       {lang === 'zh' ? 'AI 辅助策划、一键发布' : 'AI planning, one-click publish'}
+                       AI 辅助策划、一键发布
                    </p>
                </div>
 
@@ -130,10 +127,10 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">🚀</div>
                    <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
-                       {lang === 'zh' ? '参与者' : 'PARTICIPANT'}
+                       参与者
                    </h3>
                    <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
-                       {lang === 'zh' ? 'AI 简历、智能组队' : 'AI resume, smart match'}
+                       AI 简历、智能组队
                    </p>
                </div>
 
@@ -141,10 +138,10 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">⚖️</div>
                    <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
-                       {lang === 'zh' ? '评委' : 'JUDGE'}
+                       评委
                    </h3>
                    <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
-                       {lang === 'zh' ? '智能评分、公平公正' : 'Smart scoring, fairness'}
+                       智能评分、公平公正
                    </p>
                </div>
 
@@ -152,10 +149,10 @@ export default function Hero({ onCreateClick, onExploreClick, lang }: HeroProps)
                <div className="group p-4 border border-brand/20 bg-black/40 hover:bg-brand hover:text-black transition-all duration-300 relative overflow-hidden">
                    <div className="absolute top-0 right-0 p-2 opacity-10 text-3xl group-hover:opacity-20">💎</div>
                    <h3 className="font-bold font-mono text-sm mb-1 text-brand group-hover:text-black uppercase">
-                       {lang === 'zh' ? '赞助商' : 'SPONSOR'}
+                       赞助商
                    </h3>
                    <p className="text-[10px] text-gray-400 group-hover:text-black/70 font-mono leading-relaxed">
-                       {lang === 'zh' ? '品牌曝光、人才发掘' : 'Brand exposure, talent discovery'}
+                       品牌曝光、人才发掘
                    </p>
                </div>
           </div>

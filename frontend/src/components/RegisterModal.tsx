@@ -4,10 +4,9 @@ import axios from 'axios';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lang?: 'zh' | 'en';
 }
 
-export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose }: RegisterModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -58,7 +57,7 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
             JOIN <span className="text-brand">AURA</span>
             </h2>
             <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                {lang === 'zh' ? '初始序列' : 'Initial Sequence'}
+                初始序列
             </p>
         </div>
         
@@ -71,7 +70,7 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
-              {lang === 'zh' ? '邮箱' : 'EMAIL'}
+              邮箱
             </label>
             <input
               type="email"
@@ -85,7 +84,7 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
           
           <div>
             <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
-              {lang === 'zh' ? '代号 (全名)' : 'CODENAME (FULL NAME)'}
+              代号 (全名)
             </label>
             <input
               type="text"
@@ -93,13 +92,13 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
               className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
-              placeholder={lang === 'zh' ? "您的名字" : "YOUR_NAME"}
+              placeholder="您的名字"
             />
           </div>
 
           <div>
             <label className="block text-xs font-mono text-gray-500 mb-1 uppercase tracking-wider">
-              {lang === 'zh' ? '密码' : 'PASSWORD'}
+              密码
             </label>
             <input
               type="password"
@@ -116,7 +115,7 @@ export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: Register
             disabled={loading}
             className="w-full py-4 bg-brand text-void font-bold text-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-8 clip-path-slant"
           >
-            {loading ? (lang === 'zh' ? '处理中...' : 'PROCESSING...') : (lang === 'zh' ? '加入网络' : 'JOIN_NETWORK')}
+            {loading ? '处理中...' : '加入网络'}
           </button>
         </form>
       </div>

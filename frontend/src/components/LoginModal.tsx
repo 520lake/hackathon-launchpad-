@@ -4,12 +4,11 @@ import axios from 'axios';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lang?: 'zh' | 'en';
 }
 
 type AuthMethod = 'wechat' | 'email_code' | 'password';
 
-export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalProps) {
+export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<AuthMethod>('wechat');
   
   // Form states
@@ -83,7 +82,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
       // Set cookie as backup for ModelScope iframe/proxy scenarios
       // MUST use SameSite=None; Secure for cross-site iframes (ModelScope)
       document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=None; Secure`;
-      alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
+      alert('登录成功！');
       onClose();
       window.location.reload();
   };
@@ -173,7 +172,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
             LOGIN <span className="text-brand">AURA</span>
             </h2>
             <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
-                {lang === 'zh' ? '身份验证' : 'AUTHENTICATION'}
+                身份验证
             </p>
         </div>
 
@@ -182,19 +181,19 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
                 className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'wechat' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
                 onClick={() => setActiveTab('wechat')}
             >
-                {lang === 'zh' ? '微信扫码' : 'WECHAT'}
+                微信扫码
             </button>
             <button 
                 className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'email_code' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
                 onClick={() => setActiveTab('email_code')}
             >
-                {lang === 'zh' ? '邮箱验证' : 'EMAIL_CODE'}
+                邮箱验证
             </button>
             <button 
                 className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'password' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
                 onClick={() => setActiveTab('password')}
             >
-                {lang === 'zh' ? '密码登录' : 'PASSWORD'}
+                密码登录
             </button>
         </div>
 
@@ -216,7 +215,7 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
                             ) : <p className="text-red-400 font-mono">QR_LOAD_FAILED</p>}
                         </div>
                         <p className="text-sm text-gray-500 font-mono">
-                            {lang === 'zh' ? '请使用微信扫一扫登录' : 'Scan via WeChat to Login'}
+                            请使用微信扫一扫登录
                         </p>
                         <p className="text-xs text-gray-400 mt-4 font-mono">
                             [DEV_MODE]: <a href={`/api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
@@ -230,14 +229,14 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
             <form onSubmit={handleEmailLogin} className="space-y-4">
                 <input 
                     type="email" required 
-                    placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
+                    placeholder="邮箱地址"
                     value={email} onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
                 <div className="flex gap-2">
                     <input 
                         type="text" required 
-                        placeholder={lang === 'zh' ? "验证码" : "Code"} 
+                        placeholder="验证码" 
                         value={code} onChange={e => setCode(e.target.value)}
                         className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                     />
@@ -245,11 +244,11 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
                         type="button" onClick={handleSendCode} disabled={countDown > 0}
                         className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors"
                     >
-                        {countDown > 0 ? `${countDown}s` : (lang === 'zh' ? '获取验证码' : 'GET_CODE')}
+                        {countDown > 0 ? `${countDown}s` : '获取验证码'}
                     </button>
                 </div>
                 <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
-                    {lang === 'zh' ? '登录 / 注册' : 'LOGIN / REGISTER'}
+                    登录 / 注册
                 </button>
             </form>
         )}
@@ -258,18 +257,18 @@ export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalP
             <form onSubmit={handlePasswordLogin} className="space-y-4">
                  <input 
                     type="email" required 
-                    placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
+                    placeholder="邮箱地址" 
                     value={email} onChange={e => setEmail(e.target.value)}
                     className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
                 <input 
                     type="password" required 
-                    placeholder={lang === 'zh' ? "密码" : "Password"} 
+                    placeholder="密码" 
                     value={password} onChange={e => setPassword(e.target.value)}
                     className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
                 />
                 <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
-                    {lang === 'zh' ? '登录' : 'LOGIN'}
+                    登录
                 </button>
             </form>
         )}

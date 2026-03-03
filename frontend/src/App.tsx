@@ -1,4 +1,3 @@
-import { useState } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 
 // Pages
@@ -10,12 +9,10 @@ import ProfilePage from './pages/ProfilePage'
 import CreateHackathonPage from './pages/CreateHackathonPage'
 
 function App() {
-  const [lang, setLang] = useState<'zh' | 'en'>('zh')
-
   return (
     <BrowserRouter>
       <Routes>
-        <Route element={<Layout lang={lang} setLang={setLang} />}>
+        <Route element={<Layout />}>
           <Route path="/" element={<HomePage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/events/:id" element={<EventDetailPage />} />

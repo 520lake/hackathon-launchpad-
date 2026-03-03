@@ -27,12 +27,11 @@ interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
   fetchCurrentUser: () => void;
-  lang: 'zh' | 'en';
 }
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { isLoggedIn, currentUser, fetchCurrentUser, lang } = useOutletContext<OutletContextType>()
+  const { isLoggedIn, currentUser, fetchCurrentUser } = useOutletContext<OutletContextType>()
   
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
@@ -102,30 +101,27 @@ export default function HomePage() {
         onCreateClick={handleCreateHackathonClick}
         onExploreClick={() => openEventsList('list')}
         onAIGuideClick={() => openEventsList('ai')}
-        lang={lang}
       />
       
-      <About lang={lang} />
+      <About />
       
       <LatestEvents 
         hackathons={latestHackathons}
         onDetailClick={openHackathonDetail}
         onViewAll={() => openEventsList('list')}
-        lang={lang}
       />
       
-      <Schedule lang={lang} />
+      <Schedule />
       <Partners />
-      <Footer lang={lang} />
+      <Footer />
 
       {/* Modals */}
-      <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} lang={lang} />
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} lang={lang} />
+      <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
       <VerificationModal 
         isOpen={isVerificationOpen} 
         onClose={() => setIsVerificationOpen(false)}
         onSuccess={() => {}} 
-        lang={lang}
       />
       <UserDashboardModal 
         isOpen={isDashboardOpen} 
@@ -137,17 +133,14 @@ export default function HomePage() {
         }}
         onUserUpdate={fetchCurrentUser}
         onTeamMatchClick={() => setIsTeamMatchOpen(true)}
-        lang={lang}
       />
       <AdminDashboardModal 
         isOpen={isAdminDashboardOpen} 
         onClose={() => setIsAdminDashboardOpen(false)} 
-        lang={lang}
       />
       <AITeamMatchModal
         isOpen={isTeamMatchOpen}
         onClose={() => setIsTeamMatchOpen(false)}
-        lang={lang}
         hackathonId={null}
       />
     </>

@@ -18,13 +18,12 @@ interface Hackathon {
 interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
-  lang: 'zh' | 'en';
 }
 
 export default function EventsPage() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-  const { lang } = useOutletContext<OutletContextType>()
+  useOutletContext<OutletContextType>()
   
   const [hackathons, setHackathons] = useState<Hackathon[]>([])
   const [loading, setLoading] = useState(true)

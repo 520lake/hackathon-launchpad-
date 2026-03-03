@@ -73,10 +73,9 @@ interface UserDashboardModalProps {
   onVerifyClick: () => void;
   onUserUpdate?: () => void;
   onTeamMatchClick?: () => void;
-  lang: 'zh' | 'en';
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick, lang }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
@@ -202,12 +201,12 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         }, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        alert(lang === 'zh' ? 'AI 简历已保存至个人资料！' : 'AI Resume saved to profile!');
+        alert('AI 简历已保存至个人资料！');
         setIsAIResumeOpen(false);
         fetchMyData();
     } catch (e) {
         console.error(e);
-        alert(lang === 'zh' ? '保存失败' : 'Failed to save');
+        alert('保存失败');
     } finally {
         setSavingProfile(false);
     }
@@ -223,14 +222,14 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
         await axios.post('/api/v1/users/me/verify', {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
-        alert(lang === 'zh' ? '模拟认证成功！' : 'Mock verification successful!');
+        alert('模拟认证成功！');
         fetchMyData(); // Refresh user data to show verified status
         if (onUserUpdate) {
             onUserUpdate(); // Notify parent component
         }
     } catch (e) {
         console.error(e);
-        alert(lang === 'zh' ? '模拟认证失败' : 'Mock verification failed');
+        alert('模拟认证失败');
     }
   };
 
@@ -310,8 +309,8 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
           <div className="p-6 border-b border-brand/20">
             <h2 className="text-2xl font-black text-white tracking-tighter uppercase italic flex items-center gap-3 select-none">
                <span className="text-brand text-3xl">◈</span> 
-               <span className="text-glitch" data-text={lang === 'zh' ? '个人中心' : 'DASHBOARD'}>
-                 {lang === 'zh' ? '个人中心' : 'DASHBOARD'}
+               <span className="text-glitch" data-text="个人中心">
+                 个人中心
                </span>
             </h2>
             {user && (
@@ -341,10 +340,10 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
           
           <div className="flex-1 p-4 space-y-2 overflow-y-auto custom-scrollbar" ref={sidebarRef}>
             {[
-              { id: 'created', label: lang === 'zh' ? '我发起的' : 'CREATED' },
-              { id: 'joined', label: lang === 'zh' ? '我参与的' : 'JOINED' },
-              { id: 'projects', label: lang === 'zh' ? '我的项目' : 'PROJECTS' },
-              { id: 'profile', label: lang === 'zh' ? '资料设置' : 'PROFILE' },
+              { id: 'created', label: '我发起的' },
+              { id: 'joined', label: '我参与的' },
+              { id: 'projects', label: '我的项目' },
+              { id: 'profile', label: '资料设置' },
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -365,7 +364,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
 
           <div className="p-4 border-t border-brand/20">
              <button onClick={onClose} className="w-full py-3 border border-red-500/30 text-red-400 hover:bg-red-500/10 hover:border-red-500 transition-all font-mono text-sm uppercase tracking-wider">
-                {lang === 'zh' ? '关闭系统' : 'CLOSE SYSTEM'}
+                关闭系统
              </button>
           </div>
         </div>
@@ -382,19 +381,19 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                <div className="space-y-8 max-w-3xl mx-auto pb-10">
                   <div className="flex justify-between items-center border-b border-brand/20 pb-4">
                      <h3 className="text-3xl font-black text-white uppercase tracking-tighter italic">
-                       {lang === 'zh' ? '个人资料' : 'PROFILE SETTINGS'}
+                       个人资料
                      </h3>
                      <button 
                        onClick={() => setIsAIResumeOpen(true)}
                        className="px-4 py-2 bg-brand text-void font-bold hover:bg-white hover:text-black transition-all uppercase text-sm flex items-center gap-2 clip-path-polygon"
                      >
-                       <span>✨</span> {lang === 'zh' ? 'AI 简历生成' : 'AI RESUME BUILDER'}
+                       <span>✨</span> AI 简历生成
                      </button>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="group">
-                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '昵称' : 'NICKNAME'}</label>
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">昵称</label>
                           <input
                               type="text"
                               value={nickname}
@@ -403,7 +402,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           />
                       </div>
                       <div className="group">
-                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '头像链接' : 'AVATAR URL'}</label>
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">头像链接</label>
                           <input
                               type="text"
                               value={avatarUrl}
@@ -412,18 +411,18 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           />
                       </div>
                       <div className="group">
-                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '城市' : 'CITY'}</label>
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">城市</label>
                           <select
                               value={city}
                               onChange={(e) => setCity(e.target.value)}
                               className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none appearance-none"
                           >
-                              <option value="">{lang === 'zh' ? '选择城市...' : 'Select City...'}</option>
+                              <option value="">选择城市...</option>
                               {CITY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                           </select>
                       </div>
                       <div className="group">
-                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '手机号' : 'PHONE'}</label>
+                          <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">手机号</label>
                           <input
                               type="text"
                               value={phone}
@@ -434,7 +433,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group">
-                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '性格 (MBTI)' : 'PERSONALITY (MBTI)'}</label>
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">性格 (MBTI)</label>
                       <input
                           type="text"
                           value={personality}
@@ -445,7 +444,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group">
-                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '个人简介' : 'BIO / MANIFESTO'}</label>
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">个人简介</label>
                       <textarea
                           value={bio}
                           onChange={(e) => setBio(e.target.value)}
@@ -455,7 +454,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group">
-                      <label className="block text-xs font-bold text-brand mb-3 uppercase tracking-wider font-mono">{lang === 'zh' ? '专业技能' : 'SKILL MATRIX'}</label>
+                      <label className="block text-xs font-bold text-brand mb-3 uppercase tracking-wider font-mono">专业技能</label>
                       <div className="flex flex-wrap gap-2">
                           {SKILL_OPTIONS.map((opt) => {
                               const isSelected = skills.split(',').map(s => s.trim()).includes(opt.value);
@@ -469,7 +468,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                                               : 'bg-black/50 text-gray-500 border-gray-800 hover:border-brand hover:text-brand'
                                       }`}
                                   >
-                                      {lang === 'zh' ? opt.label : opt.label}
+                                      {opt.label}
                                   </button>
                               );
                           })}
@@ -477,7 +476,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group">
-                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '兴趣标签' : 'INTEREST TAGS'}</label>
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">兴趣标签</label>
                       <input
                           type="text"
                           value={interests}
@@ -488,7 +487,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group">
-                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '上传简历 (PDF/Image)' : 'UPLOAD RESUME'}</label>
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">上传简历 (PDF/Image)</label>
                       <div className="flex items-center gap-4">
                         <input
                             type="file"
@@ -505,7 +504,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                   </div>
 
                   <div className="group pt-4 border-t border-brand/20">
-                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">{lang === 'zh' ? '认证状态' : 'VERIFICATION STATUS'}</label>
+                      <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">认证状态</label>
                       <div className="flex items-center justify-between bg-black/50 p-4 border border-brand/30">
                           <div className="flex items-center gap-2">
                               {user?.is_verified ? (
@@ -517,10 +516,10 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           {!user?.is_verified && (
                               <div className="flex gap-2">
                                   <button onClick={handleVerify} className="px-3 py-1 bg-brand/20 text-brand text-xs font-bold border border-brand/50 hover:bg-brand hover:text-black transition-colors">
-                                      {lang === 'zh' ? '真实认证' : 'REAL VERIFY'}
+                                      真实认证
                                   </button>
                                   <button onClick={handleMockVerify} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs font-bold border border-gray-600 hover:bg-white hover:text-black transition-colors">
-                                      {lang === 'zh' ? '模拟认证' : 'MOCK VERIFY'}
+                                      模拟认证
                                   </button>
                               </div>
                           )}
@@ -532,7 +531,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       disabled={savingProfile}
                       className="w-full py-4 bg-brand hover:bg-white text-black font-black uppercase tracking-[0.2em] text-sm transition-all disabled:opacity-50 mt-4 border border-brand relative overflow-hidden group"
                   >
-                      <span className="relative z-10">{savingProfile ? (lang === 'zh' ? '保存中...' : 'SAVING...') : (lang === 'zh' ? '保存资料' : 'SAVE PROFILE')}</span>
+                      <span className="relative z-10">{savingProfile ? '保存中...' : '保存资料'}</span>
                       <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0"></div>
                   </button>
                </div>
@@ -542,12 +541,12 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             {activeTab === 'created' && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
-                  {lang === 'zh' ? '我发起的活动' : 'INITIATED HACKATHONS'}
+                  我发起的活动
                 </h3>
                 {myCreated.length === 0 ? (
                   <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
                       <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                          无数据
                       </p>
                   </div>
                 ) : (
@@ -568,11 +567,11 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{h.title}</h3>
                           <div className="flex items-center gap-4 mt-3">
                              <p className="text-xs text-gray-500 font-mono uppercase">
-                                {lang === 'zh' ? '开始时间' : 'START'}: <span className="text-brand">{new Date(h.start_date).toLocaleDateString()}</span>
+                                开始时间: <span className="text-brand">{new Date(h.start_date).toLocaleDateString()}</span>
                              </p>
                              <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
                              <p className="text-xs text-gray-500 font-mono uppercase">
-                                {lang === 'zh' ? '状态' : 'STATUS'}: <span className="text-white">{h.status}</span>
+                                状态: <span className="text-white">{h.status}</span>
                              </p>
                           </div>
                         </div>
@@ -617,9 +616,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                     return (
                         <div key={status} className="space-y-4">
                             <h3 className="text-xl font-bold text-white mb-2 uppercase tracking-wider border-l-4 border-brand pl-4">
-                                {lang === 'zh' 
-                                    ? (status === 'registering' ? '报名中' : status === 'upcoming' ? '即将开始' : status === 'ongoing' ? '进行中' : status === 'ended' ? '已结束' : '其他') 
-                                    : (status === 'registering' ? 'REGISTERING' : status === 'upcoming' ? 'UPCOMING' : status === 'ongoing' ? 'ONGOING' : status === 'ended' ? 'ENDED' : 'OTHER')}
+                                {status === 'registering' ? '报名中' : status === 'upcoming' ? '即将开始' : status === 'ongoing' ? '进行中' : status === 'ended' ? '已结束' : '其他'}
                             </h3>
                             {filtered.map(e => (
                                 <div 
@@ -640,16 +637,16 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                                       <h3 className="font-bold text-xl text-white font-mono group-hover:text-brand transition-colors">{e.hackathon?.title || 'Unknown Hackathon'}</h3>
                                       <div className="flex items-center gap-4 mt-3">
                                          <p className="text-xs text-gray-500 font-mono uppercase">
-                                            {lang === 'zh' ? '状态' : 'STATUS'}: <span className={
+                                            状态: <span className={
                                                 status === 'registering' ? 'text-green-500 animate-pulse' :
                                                 status === 'ongoing' ? 'text-blue-500 animate-pulse' :
                                                 status === 'upcoming' ? 'text-yellow-500' : 
                                                 status === 'other' ? 'text-purple-500' : 'text-gray-500'
-                                            }>{status === 'other' ? (lang === 'zh' ? '未分类' : 'GENERAL') : status}</span>
+                                            }>{status === 'other' ? '未分类' : status}</span>
                                          </p>
                                          <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
                                          <p className="text-xs text-gray-500 font-mono uppercase">
-                                            {lang === 'zh' ? '报名时间' : 'JOINED'}: <span className="text-white">{e.joined_at ? new Date(e.joined_at).toLocaleDateString() : 'N/A'}</span>
+                                            报名时间: <span className="text-white">{e.joined_at ? new Date(e.joined_at).toLocaleDateString() : 'N/A'}</span>
                                          </p>
                                       </div>
                                     </div>
@@ -666,7 +663,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                 {myJoined.length === 0 && (
                   <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
                       <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                          无数据
                       </p>
                   </div>
                 )}
@@ -677,12 +674,12 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             {activeTab === 'projects' && (
               <div className="space-y-4">
                 <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
-                  {lang === 'zh' ? '我的项目' : 'MY PROJECTS'}
+                  我的项目
                 </h3>
                 {myProjects.length === 0 ? (
                   <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
                       <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
-                          {lang === 'zh' ? '无数据' : 'NO SIGNAL DETECTED'}
+                          无数据
                       </p>
                   </div>
                 ) : (
@@ -706,11 +703,11 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                           <p className="text-sm text-gray-400 mt-2 line-clamp-2 max-w-xl">{p.description}</p>
                           <div className="flex items-center gap-4 mt-4">
                             <p className="text-xs text-gray-500 font-mono uppercase">
-                                {lang === 'zh' ? '提交时间' : 'CREATED'}: <span className="text-gray-300">{new Date(p.created_at).toLocaleDateString()}</span>
+                                提交时间: <span className="text-gray-300">{new Date(p.created_at).toLocaleDateString()}</span>
                             </p>
                             {p.team && (
                                 <p className="text-xs text-gray-500 font-mono uppercase">
-                                    {lang === 'zh' ? '团队' : 'TEAM'}: <span className="text-brand">{p.team.name}</span>
+                                    团队: <span className="text-brand">{p.team.name}</span>
                                 </p>
                             )}
                           </div>
@@ -731,7 +728,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
       <AIResumeModal
         isOpen={isAIResumeOpen}
         onClose={() => setIsAIResumeOpen(false)}
-        lang={lang}
         onSave={handleSaveResume}
       />
     </div>

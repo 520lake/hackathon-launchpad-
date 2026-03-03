@@ -44,21 +44,17 @@ function LoadingBar() {
   )
 }
 
-interface LayoutProps {
-  lang: 'zh' | 'en'
-  setLang: (lang: 'zh' | 'en') => void
-}
-
-function getCookie(name: string) {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift();
-  return null;
-}
-
-export default function Layout({ lang, setLang }: LayoutProps) {
+export default function Layout() {
   const location = useLocation()
   const navigate = useNavigate()
+
+  const getCookie = (name: string) => {
+    const value = `; ${document.cookie}`;
+    const parts = value.split(`; ${name}=`);
+    if (parts.length === 2) return parts.pop()?.split(';').shift();
+    return null;
+  };
+
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
 
@@ -126,8 +122,6 @@ export default function Layout({ lang, setLang }: LayoutProps) {
         onLogoutClick={handleLogout}
         onDashboardClick={() => navigate('/profile')}
         onAdminClick={() => {}}
-        lang={lang}
-        setLang={setLang}
       />
 
       {/* Main Content with Page Transition */}
@@ -139,7 +133,7 @@ export default function Layout({ lang, setLang }: LayoutProps) {
           exit={{ opacity: 0, y: -8 }}
           transition={{ duration: 0.25, ease: 'easeInOut' }}
         >
-          <Outlet context={{ isLoggedIn, currentUser, fetchCurrentUser, lang }} />
+          <Outlet context={{ isLoggedIn, currentUser, fetchCurrentUser }} />
         </motion.main>
       </AnimatePresence>
     </div>

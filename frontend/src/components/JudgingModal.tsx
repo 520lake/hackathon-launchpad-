@@ -6,7 +6,6 @@ interface JudgingModalProps {
   onClose: () => void;
   hackathonId: number;
   hackathonTitle: string;
-  lang: 'zh' | 'en';
 }
 
 interface Project {
@@ -24,7 +23,7 @@ interface ScoringDimension {
   weight: number;
 }
 
-export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTitle, lang }: JudgingModalProps) {
+export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTitle }: JudgingModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
@@ -106,13 +105,13 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
             headers: { Authorization: `Bearer ${token}` }
         });
         
-        alert(lang === 'zh' ? '评分提交成功' : 'Score submitted successfully');
+        alert('评分提交成功');
         setSelectedProject(null);
         setScores({});
         setComment('');
     } catch (err) {
         console.error(err);
-        alert(lang === 'zh' ? '评分提交失败' : 'Submission failed');
+        alert('评分提交失败');
     } finally {
         setSubmitting(false);
     }
@@ -129,9 +128,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
         }, {} as {[key: string]: number});
         
         setScores(mockScores);
-        setComment(lang === 'zh' 
-            ? "【AI 分析报告】\n该项目展现了极高的完整度。技术架构清晰，UI设计符合现代审美（Brutalist风格）。\n\n优点：\n1. 创新性：将AI与传统工作流结合得很好。\n2. 完成度：核心功能均已实现，Demo运行流畅。\n\n建议：\n可以增加更多的用户引导流程。" 
-            : "[AI Analysis Report]\nThe project demonstrates high completeness. Technical architecture is clear, UI fits modern aesthetics (Brutalist).\n\nPros:\n1. Innovation: Good combination of AI and workflow.\n2. Completeness: Core features implemented, Demo runs smoothly.\n\nSuggestions:\nConsider adding more user onboarding flows.");
+        setComment("【AI 分析报告】\n该项目展现了极高的完整度。技术架构清晰，UI设计符合现代审美（Brutalist风格）。\n\n优点：\n1. 创新性：将AI与传统工作流结合得很好。\n2. 完成度：核心功能均已实现，Demo运行流畅。\n\n建议：\n可以增加更多的用户引导流程。");
         setLoading(false);
     }, 1500);
   };
@@ -144,7 +141,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b-2 border-brand bg-black">
           <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-            {lang === 'zh' ? '评审终端' : 'JUDGING TERMINAL'}: <span className="text-brand">{hackathonTitle}</span>
+            评审终端: <span className="text-brand">{hackathonTitle}</span>
           </h2>
           <button onClick={onClose} className="text-brand hover:text-white font-mono font-bold text-xl">[X]</button>
         </div>
@@ -153,10 +150,10 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
             {/* Project List */}
             <div className="w-1/3 border-r-2 border-brand overflow-y-auto p-4 bg-black/20 custom-scrollbar">
                 <h3 className="font-mono font-bold text-brand mb-4 uppercase tracking-widest border-b border-brand/20 pb-2">
-                    {lang === 'zh' ? '待评审项目' : 'PENDING PROJECTS'}
+                    待评审项目
                 </h3>
                 {loading ? (
-                    <div className="font-mono text-gray-500 animate-pulse">{lang === 'zh' ? '加载数据中...' : 'LOADING DATA...'}</div>
+                    <div className="font-mono text-gray-500 animate-pulse">加载数据中...</div>
                 ) : (
                     <div className="space-y-3">
                         {projects.map(p => (
@@ -175,7 +172,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                         ))}
                         {projects.length === 0 && (
                             <div className="text-gray-500 font-mono text-sm border border-dashed border-gray-700 p-4 text-center">
-                                {lang === 'zh' ? '暂无项目提交' : 'NO PROJECTS SUBMITTED'}
+                                暂无项目提交
                             </div>
                         )}
                     </div>
@@ -215,7 +212,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                         <div className="border-t-2 border-brand/20 pt-8">
                             <div className="flex justify-between items-center mb-6">
                                 <h4 className="font-mono font-bold text-brand uppercase tracking-widest text-lg">
-                                    {lang === 'zh' ? '评分系统' : 'SCORING SYSTEM'}
+                                    评分系统
                                 </h4>
                                 <button
                                     onClick={handleAIReview}
@@ -227,7 +224,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                     ) : (
                                         <>
                                             <span>⚡</span>
-                                            {lang === 'zh' ? 'AI 辅助评审' : 'AI ASSISTANT'}
+                                            AI 辅助评审
                                         </>
                                     )}
                                 </button>
@@ -259,25 +256,25 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                     ))}
                                     
                                     <div className="flex justify-between items-center p-6 bg-brand/10 border border-brand/30 mt-8">
-                                        <span className="font-mono font-bold text-brand uppercase text-xl">{lang === 'zh' ? '总分 (加权)' : 'TOTAL SCORE (WEIGHTED)'}</span>
+                                        <span className="font-mono font-bold text-brand uppercase text-xl">总分 (加权)</span>
                                         <span className="text-4xl font-black text-white">{calculateTotal()}</span>
                                     </div>
                                 </div>
                             ) : (
                                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/50 text-yellow-500 font-mono">
-                                    WARNING: {lang === 'zh' ? '未配置评分维度，请直接打分 (0-100)' : 'No scoring dimensions configured.'}
+                                    WARNING: 未配置评分维度，请直接打分 (0-100)
                                 </div>
                             )}
                             
                             <div className="mt-8">
                                 <label className="block text-sm font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                                    {lang === 'zh' ? '评委意见' : 'JUDGE COMMENTS'}
+                                    评委意见
                                 </label>
                                 <textarea 
                                     className="w-full bg-black/50 border border-brand/30 text-white px-4 py-3 focus:border-brand focus:outline-none font-mono placeholder-gray-700 h-32" 
                                     value={comment} 
                                     onChange={e => setComment(e.target.value)} 
-                                    placeholder={lang === 'zh' ? "写下你的评价..." : "Enter your comments..."}
+                                    placeholder={'写下你的评价...'}
                                 />
                             </div>
 
@@ -287,7 +284,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                     disabled={submitting}
                                     className="px-10 py-4 bg-brand text-black font-black uppercase tracking-wider hover:bg-white border-2 border-brand shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all disabled:opacity-50"
                                 >
-                                    {submitting ? (lang === 'zh' ? '提交中...' : 'SUBMITTING...') : (lang === 'zh' ? '提交评分' : 'SUBMIT SCORE')}
+                                    {submitting ? '提交中...' : '提交评分'}
                                 </button>
                             </div>
                         </div>
@@ -295,7 +292,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                 ) : (
                     <div className="h-full flex flex-col items-center justify-center text-gray-600 font-mono">
                         <div className="text-6xl mb-4 opacity-20">←</div>
-                        <p className="uppercase tracking-widest">{lang === 'zh' ? '请选择一个项目开始评审' : 'SELECT A PROJECT TO BEGIN'}</p>
+                        <p className="uppercase tracking-widest">请选择一个项目开始评审</p>
                     </div>
                 )}
             </div>

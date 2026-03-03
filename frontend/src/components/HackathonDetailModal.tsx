@@ -734,25 +734,21 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         existingProject={myProject}
         initialDescription={refinedDescription}
         initialData={initialProjectData}
-        lang={lang}
       />
       <JudgingModal
         isOpen={isJudgingOpen}
         onClose={() => setIsJudgingOpen(false)}
         hackathonId={hackathonId}
         hackathonTitle={hackathon?.title || ''}
-        lang={lang}
       />
       <ResultPublishModal
         isOpen={isResultPublishOpen}
         onClose={() => { setIsResultPublishOpen(false); fetchHackathon(); }}
         hackathonId={hackathonId}
-        lang={lang}
       />
       <AIResumeModal
         isOpen={isAIResumeOpen}
         onClose={() => setIsAIResumeOpen(false)}
-        lang={lang}
         onSave={handleSaveResume}
       />
 
@@ -1305,7 +1301,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                         {/* AI Project Assistant */}
                                         <div className="mt-8">
                                             <AIProjectAssistant 
-                                                lang={lang}
                                                 currentDescription={myProject?.description}
                                                 mode="idea"
                                                 onIdeaSelect={(idea) => {
@@ -1320,7 +1315,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                             />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                                 <AIProjectAssistant 
-                                                    lang={lang}
                                                     currentDescription={myProject?.description}
                                                     mode="recruitment"
                                                     onRecruitmentGenerate={(recruitments) => {
@@ -1338,7 +1332,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                     }}
                                                 />
                                                 <AIProjectAssistant 
-                                                    lang={lang}
                                                     currentDescription={myProject?.description}
                                                     mode="refine"
                                                     onRefineDescription={(refined) => {

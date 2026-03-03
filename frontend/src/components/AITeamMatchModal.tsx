@@ -5,7 +5,6 @@ import gsap from 'gsap';
 interface AITeamMatchModalProps {
   isOpen: boolean;
   onClose: () => void;
-  lang: 'zh' | 'en';
   hackathonId: number | null;
 }
 
@@ -19,7 +18,7 @@ interface MatchResult {
   match_score: number;
 }
 
-export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }: AITeamMatchModalProps) {
+export default function AITeamMatchModal({ isOpen, onClose, hackathonId }: AITeamMatchModalProps) {
   const [requirements, setRequirements] = useState('');
   const [matches, setMatches] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -79,7 +78,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
     try {
       const token = localStorage.getItem('token');
       if (!selectedId) {
-        alert(lang === 'zh' ? '未选择活动' : 'No hackathon selected');
+        alert('未选择活动');
         setLoading(false);
         setAnalyzing(false);
         return;
@@ -95,7 +94,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
       setMatches(res.data.matches);
     } catch (err) {
       console.error(err);
-      alert(lang === 'zh' ? '匹配失败，请稍后重试' : 'Matching failed, please try again later');
+      alert('匹配失败，请稍后重试');
     } finally {
       setLoading(false);
       setAnalyzing(false);
@@ -129,10 +128,10 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
           <div className="relative z-10">
             <h2 className="text-2xl lg:text-4xl font-black text-white tracking-tighter uppercase italic">
               <span className="text-brand mr-2">⚡</span> 
-              {lang === 'zh' ? 'AI 灵感组队' : 'AI TEAM MATCH'}
+              AI 灵感组队
             </h2>
             <p className="text-brand/60 font-mono text-xs lg:text-sm mt-2 uppercase tracking-widest">
-              {lang === 'zh' ? '基于深度思维模型的智能匹配系统' : 'Intelligent Matching System Powered by Deep Reasoning'}
+              基于深度思维模型的智能匹配系统
             </p>
           </div>
           <button 
@@ -150,7 +149,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                 {!hackathonId && (
                     <div className="mb-6">
                         <label className="block text-sm font-bold text-brand mb-2 uppercase tracking-widest font-mono">
-                            {lang === 'zh' ? '选择活动' : 'SELECT HACKATHON'}
+                            选择活动
                         </label>
                         {fetchingHackathons ? (
                             <div className="text-gray-500 text-xs font-mono animate-pulse">Loading...</div>
@@ -166,7 +165,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                             </select>
                         ) : (
                             <div className="p-3 border border-red-500/30 bg-red-500/10 text-red-400 text-xs font-mono">
-                                {lang === 'zh' ? '未找到进行中的活动 (需先报名)' : 'NO ONGOING HACKATHONS FOUND (REGISTER FIRST)'}
+                                未找到进行中的活动 (需先报名)
                             </div>
                         )}
                     </div>
@@ -174,18 +173,16 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
 
                 <div className="mb-6">
                     <label className="block text-sm font-bold text-brand mb-4 uppercase tracking-widest font-mono">
-                        {lang === 'zh' ? '描述你的想法 / 需求' : 'DESCRIBE YOUR IDEA / NEEDS'}
+                        描述你的想法 / 需求
                     </label>
                     <textarea
                         value={requirements}
                         onChange={(e) => setRequirements(e.target.value)}
-                        placeholder={lang === 'zh' 
-                            ? "我想做一个基于AI的法律助手，需要懂法律的前端和擅长RAG的后端..." 
-                            : "I want to build an AI legal assistant, need a frontend dev who knows law and a backend dev good at RAG..."}
+                        placeholder="我想做一个基于AI的法律助手，需要懂法律的前端和擅长RAG的后端..."
                         className="w-full h-32 lg:h-64 bg-black/50 border border-brand/30 text-white p-4 font-mono text-sm focus:border-brand focus:outline-none transition-all resize-none mb-4"
                     />
                     <div className="text-xs text-gray-500 font-mono mb-6">
-                        {lang === 'zh' ? '* AI 将分析你的语义并匹配最互补的队友' : '* AI will analyze semantics to match complementary teammates'}
+                        * AI 将分析你的语义并匹配最互补的队友
                     </div>
                 </div>
 
@@ -201,12 +198,12 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                         {loading ? (
                             <>
                                 <span className="animate-spin">⟳</span> 
-                                {lang === 'zh' ? '深度思考中...' : 'DEEP THINKING...'}
+                                深度思考中...
                             </>
                         ) : (
                             <>
                                 <span>⚡</span> 
-                                {lang === 'zh' ? '开始匹配' : 'INITIATE MATCH'}
+                                开始匹配
                             </>
                         )}
                     </span>
@@ -230,7 +227,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                 {analyzing && (
                     <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/80 backdrop-blur-sm">
                         <div className="text-brand font-mono text-2xl animate-pulse mb-4">
-                            {lang === 'zh' ? '正在分析性格与技能...' : 'ANALYZING PERSONALITY & SKILLS...'}
+                            正在分析性格与技能...
                         </div>
                         <div className="w-64 h-1 bg-gray-800 overflow-hidden">
                             <div className="h-full bg-brand animate-progress"></div>
@@ -247,7 +244,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                     <div className="h-full flex flex-col items-center justify-center text-gray-600 opacity-50">
                         <div className="text-6xl mb-4">🔮</div>
                         <p className="font-mono text-lg uppercase tracking-widest">
-                            {lang === 'zh' ? '等待输入指令...' : 'AWAITING INPUT...'}
+                            等待输入指令...
                         </p>
                     </div>
                 )}
@@ -298,10 +295,10 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
                             </div>
 
                             <button 
-                                onClick={() => alert(lang === 'zh' ? '邀请已发送！' : 'Invitation Sent!')}
+                                onClick={() => alert('邀请已发送！')}
                                 className="w-full py-3 border border-brand text-brand font-bold uppercase tracking-widest hover:bg-brand hover:text-black transition-colors text-sm"
                             >
-                                {lang === 'zh' ? '发起邀请' : 'SEND INVITATION'}
+                                发起邀请
                             </button>
                         </div>
                     ))}

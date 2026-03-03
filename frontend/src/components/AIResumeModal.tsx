@@ -7,10 +7,9 @@ interface AIResumeModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave?: (bio: string, skills: string[]) => void;
-  lang: 'zh' | 'en';
 }
 
-export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResumeModalProps) {
+export default function AIResumeModal({ isOpen, onClose, onSave }: AIResumeModalProps) {
   const [step, setStep] = useState<'input' | 'generating' | 'result'>('input');
   const [keywords, setKeywords] = useState('');
   const [role, setRole] = useState('');
@@ -40,8 +39,7 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
         const token = localStorage.getItem('token');
         const res = await axios.post('/api/v1/ai/generate-resume', { 
             keywords, 
-            role,
-            lang 
+            role
         }, {
             headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
@@ -87,8 +85,8 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
         <div className="p-6 border-b border-brand/20 flex justify-between items-center bg-black/40 relative z-10">
             <h3 className="text-xl font-black text-white italic uppercase flex items-center gap-2">
                 <span className="text-brand">⚡</span>
-                <span className="text-glitch" data-text={lang === 'zh' ? 'AI 简历生成器' : 'AI RESUME GENERATOR'}>
-                   {lang === 'zh' ? 'AI 简历生成器' : 'AI RESUME GENERATOR'}
+                <span className="text-glitch" data-text={'AI 简历生成器'}>
+                   {'AI 简历生成器'}
                 </span>
             </h3>
             <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">✕</button>
@@ -100,24 +98,24 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
                 <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4">
                     <div>
                         <label className="block text-xs font-mono text-gray-500 uppercase mb-2">
-                            {lang === 'zh' ? '目标角色' : 'TARGET ROLE'}
+                            {'目标角色'}
                         </label>
                         <input 
                             type="text" 
                             value={role}
                             onChange={e => setRole(e.target.value)}
-                            placeholder={lang === 'zh' ? "例如：前端开发、产品经理、UI设计师" : "e.g. Frontend Dev, PM, UI Designer"}
+                            placeholder={'例如：前端开发、产品经理、UI设计师'}
                             className="w-full bg-black/50 border border-white/20 p-4 text-white focus:border-brand outline-none font-mono"
                         />
                     </div>
                     <div>
                         <label className="block text-xs font-mono text-gray-500 uppercase mb-2">
-                            {lang === 'zh' ? '关键词 / 经历' : 'KEYWORDS / EXPERIENCE'}
+                            {'关键词 / 经历'}
                         </label>
                         <textarea 
                             value={keywords}
                             onChange={e => setKeywords(e.target.value)}
-                            placeholder={lang === 'zh' ? "输入你的技能、经历或兴趣，AI 将为你生成专业的个人简介..." : "Enter your skills, experience, or interests..."}
+                            placeholder={'输入你的技能、经历或兴趣，AI 将为你生成专业的个人简介...'}
                             className="w-full h-32 bg-black/50 border border-white/20 p-4 text-white focus:border-brand outline-none font-mono resize-none"
                         />
                     </div>
@@ -126,7 +124,7 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
                         disabled={!keywords.trim() || loading}
                         className="w-full bg-brand text-black font-black uppercase tracking-[0.2em] py-4 text-lg hover:bg-white transition-all disabled:opacity-50 relative overflow-hidden group clip-path-polygon"
                     >
-                        <span className="relative z-10">{loading ? 'PROCESSING...' : (lang === 'zh' ? '开始生成' : 'GENERATE')}</span>
+                        <span className="relative z-10">{loading ? 'PROCESSING...' : '开始生成'}</span>
                         <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300 z-0"></div>
                     </button>
                 </div>
@@ -148,14 +146,14 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
                         <div className="absolute top-0 right-0 bg-brand text-black text-xs font-bold px-2 py-1">AI GENERATED</div>
                         
                         <div className="mb-6">
-                            <label className="text-xs text-gray-500 uppercase font-mono mb-2 block">{lang === 'zh' ? '个人简介' : 'BIO'}</label>
+                            <label className="text-xs text-gray-500 uppercase font-mono mb-2 block">{'个人简介'}</label>
                             <div className="prose prose-invert max-w-none text-gray-200">
                                 <ReactMarkdown>{generatedBio}</ReactMarkdown>
                             </div>
                         </div>
 
                         <div>
-                            <label className="text-xs text-gray-500 uppercase font-mono mb-2 block">{lang === 'zh' ? '技能标签' : 'SKILLS'}</label>
+                            <label className="text-xs text-gray-500 uppercase font-mono mb-2 block">{'技能标签'}</label>
                             <div className="flex flex-wrap gap-2">
                                 {generatedSkills.map((skill, i) => (
                                     <span key={i} className="px-3 py-1 bg-brand/10 border border-brand/30 text-brand text-sm font-mono">
@@ -171,13 +169,13 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
                             onClick={() => setStep('input')}
                             className="flex-1 py-3 border border-brand/30 text-brand hover:bg-brand/10 font-mono uppercase tracking-wider transition-all"
                         >
-                            {lang === 'zh' ? '重新生成' : 'REGENERATE'}
+                            {'重新生成'}
                         </button>
                         <button 
                             onClick={handleSave}
                             className="flex-1 bg-brand text-black font-bold uppercase tracking-wider py-3 hover:bg-white transition-all clip-path-polygon"
                         >
-                            {lang === 'zh' ? '保存至个人资料' : 'SAVE TO PROFILE'}
+                            {'保存至个人资料'}
                         </button>
                     </div>
                 </div>

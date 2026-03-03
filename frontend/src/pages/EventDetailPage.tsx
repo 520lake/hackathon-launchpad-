@@ -90,7 +90,6 @@ interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
   fetchCurrentUser: () => void;
-  lang: 'zh' | 'en';
 }
 
 // Countdown Timer Component
@@ -135,7 +134,7 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { isLoggedIn, currentUser, fetchCurrentUser, lang } = useOutletContext<OutletContextType>()
+  const { isLoggedIn, currentUser, fetchCurrentUser } = useOutletContext<OutletContextType>()
   
   const hackathonId = id ? parseInt(id) : null
   
@@ -987,12 +986,12 @@ export default function EventDetailPage() {
       {/* Modals */}
       {hackathonId && (
         <>
-          <SubmitProjectModal isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} hackathonId={hackathonId} teamId={myTeam?.id} lang={lang} />
-          <JudgingModal isOpen={isJudgingOpen} onClose={() => setIsJudgingOpen(false)} hackathonId={hackathonId} hackathonTitle={hackathon?.title || ''} lang={lang} />
-          <ResultPublishModal isOpen={isResultPublishOpen} onClose={() => setIsResultPublishOpen(false)} hackathonId={hackathonId} lang={lang} />
+          <SubmitProjectModal isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} hackathonId={hackathonId} teamId={myTeam?.id} />
+          <JudgingModal isOpen={isJudgingOpen} onClose={() => setIsJudgingOpen(false)} hackathonId={hackathonId} hackathonTitle={hackathon?.title || ''} />
+          <ResultPublishModal isOpen={isResultPublishOpen} onClose={() => setIsResultPublishOpen(false)} hackathonId={hackathonId} />
         </>
       )}
-      <AIResumeModal isOpen={isAIResumeOpen} onClose={() => setIsAIResumeOpen(false)} lang={lang} />
+      <AIResumeModal isOpen={isAIResumeOpen} onClose={() => setIsAIResumeOpen(false)} />
     </div>
   )
 }

@@ -5,7 +5,6 @@ interface ResultPublishModalProps {
   isOpen: boolean;
   onClose: () => void;
   hackathonId: number;
-  lang: 'zh' | 'en';
 }
 
 interface Project {
@@ -22,7 +21,7 @@ interface Winner {
   comment?: string;
 }
 
-export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang }: ResultPublishModalProps) {
+export default function ResultPublishModal({ isOpen, onClose, hackathonId }: ResultPublishModalProps) {
   const [projects, setProjects] = useState<Project[]>([]);
   const [winners, setWinners] = useState<Winner[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -90,7 +89,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
   };
 
   const handlePublish = async () => {
-      if (winners.length === 0 && !window.confirm(lang === 'zh' ? "确定不设置任何奖项直接发布结果吗？" : "Publish results without any awards?")) {
+      if (winners.length === 0 && !window.confirm("确定不设置任何奖项直接发布结果吗？")) {
           return;
       }
       
@@ -104,11 +103,11 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
               headers: { Authorization: `Bearer ${token}` }
           });
           
-          alert(lang === 'zh' ? '结果发布成功！活动已结束。' : 'Results published! Hackathon ended.');
+          alert('结果发布成功！活动已结束。');
           onClose();
       } catch (err) {
           console.error(err);
-          alert(lang === 'zh' ? '发布失败' : 'Publish failed');
+          alert('发布失败');
       } finally {
           setSubmitting(false);
       }
@@ -122,7 +121,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b-2 border-brand bg-black">
           <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-            {lang === 'zh' ? '发布活动结果' : 'PUBLISH RESULTS'}
+            发布活动结果
           </h2>
           <button onClick={onClose} className="text-brand hover:text-white font-mono font-bold text-xl">[X]</button>
         </div>
@@ -134,37 +133,37 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
                 {/* Add Winner Form */}
                 <div className="bg-black/20 border border-gray-800 p-6">
                     <h3 className="font-mono font-bold text-brand uppercase mb-4 tracking-widest border-b border-gray-800 pb-2">
-                        {lang === 'zh' ? '添加获奖名单' : 'ADD WINNERS'}
+                        添加获奖名单
                     </h3>
                     <div className="space-y-4">
                         <div>
-                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '选择作品' : 'SELECT PROJECT'}</label>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">选择作品</label>
                             <select 
                                 className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono"
                                 value={selectedProjectId || ''}
                                 onChange={e => setSelectedProjectId(Number(e.target.value))}
                             >
-                                <option value="">{lang === 'zh' ? '请选择...' : 'Select...'}</option>
+                                <option value="">请选择...</option>
                                 {projects.map(p => (
                                     <option key={p.id} value={p.id}>{p.name}</option>
                                 ))}
                             </select>
                         </div>
                         <div>
-                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '奖项名称' : 'AWARD NAME'}</label>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">奖项名称</label>
                             <input 
                                 type="text" 
                                 className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono"
-                                placeholder={lang === 'zh' ? "例如：一等奖" : "e.g., First Place"}
+                                placeholder="例如：一等奖"
                                 value={awardName}
                                 onChange={e => setAwardName(e.target.value)}
                             />
                         </div>
                         <div>
-                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">{lang === 'zh' ? '评语 (可选)' : 'COMMENTS (OPTIONAL)'}</label>
+                            <label className="block text-sm font-mono text-gray-500 mb-1 uppercase">评语 (可选)</label>
                             <textarea 
                                 className="w-full bg-black border border-gray-700 text-white px-4 py-2 focus:border-brand focus:outline-none font-mono h-20"
-                                placeholder={lang === 'zh' ? "获奖理由..." : "Reason..."}
+                                placeholder="获奖理由..."
                                 value={comment}
                                 onChange={e => setComment(e.target.value)}
                             />
@@ -174,7 +173,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
                             disabled={!selectedProjectId || !awardName}
                             className="w-full py-3 bg-white/5 border border-white/20 text-white font-mono uppercase hover:bg-brand hover:text-black hover:border-brand transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            {lang === 'zh' ? '添加至名单' : 'ADD TO LIST'}
+                            添加至名单
                         </button>
                     </div>
                 </div>
@@ -183,7 +182,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
                 {winners.length > 0 && (
                     <div>
                         <h3 className="font-mono font-bold text-white uppercase mb-4 tracking-widest">
-                            {lang === 'zh' ? '已添加名单' : 'WINNERS LIST'} ({winners.length})
+                            已添加名单 ({winners.length})
                         </h3>
                         <div className="space-y-3">
                             {winners.map((w, idx) => (
@@ -214,14 +213,14 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
                 onClick={onClose} 
                 className="px-6 py-3 bg-white/10 text-white font-mono uppercase hover:bg-white hover:text-black transition-all"
             >
-                {lang === 'zh' ? '取消' : 'CANCEL'}
+                取消
             </button>
             <button 
                 onClick={handlePublish} 
                 disabled={submitting}
                 className="px-8 py-3 bg-brand text-black font-black uppercase tracking-wider hover:bg-white border-2 border-brand shadow-[4px_4px_0px_0px_#000] hover:translate-x-[2px] hover:translate-y-[2px] hover:shadow-[2px_2px_0px_0px_#000] transition-all disabled:opacity-50"
             >
-                {submitting ? (lang === 'zh' ? '发布中...' : 'PUBLISHING...') : (lang === 'zh' ? '确认发布结果' : 'CONFIRM & PUBLISH')}
+                {submitting ? '发布中...' : '确认发布结果'}
             </button>
         </div>
       </div>

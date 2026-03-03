@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
 
 interface NavbarProps {
     isLoggedIn: boolean;
@@ -7,6 +6,7 @@ interface NavbarProps {
     onLoginClick: () => void;
     onRegisterClick: () => void;
     onLogoutClick: () => void;
+    onDashboardClick: () => void;
     onAdminClick: () => void;
     lang: 'zh' | 'en';
     setLang: (lang: 'zh' | 'en') => void;
@@ -18,12 +18,12 @@ export default function Navbar({
     onLoginClick, 
     onRegisterClick, 
     onLogoutClick, 
+    onDashboardClick, 
     onAdminClick,
     lang,
     setLang
 }: NavbarProps) {
     const [scrolled, setScrolled] = useState(false);
-    const navigate = useNavigate();
 
     useEffect(() => {
         const handleScroll = () => {
@@ -37,31 +37,34 @@ export default function Navbar({
         <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-void/90 border-brand/20 backdrop-blur-md py-4' : 'bg-transparent border-transparent py-6'}`}>
             <div className="container mx-auto px-6 flex justify-between items-center">
                 {/* Logo */}
-                <Link to="/" className="flex items-center gap-2 group cursor-pointer">
+                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
                     <div className="w-3 h-3 bg-brand group-hover:animate-pulse" />
                     <span className="text-xl font-black tracking-tighter text-ink font-mono">AURATHON</span>
-                </Link>
+                </div>
 
                 {/* Actions */}
                 <div className="flex items-center gap-6 font-mono text-sm">
-                    {/* Navigation Links */}
-                    <Link to="/hackathons" className="text-gray-500 hover:text-brand transition-colors text-xs font-mono uppercase">
-                        [ 探索赛事 ]
-                    </Link>
+                    {/* Language Switcher */}
+                    <button 
+                        onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
+                        className="text-gray-500 hover:text-brand transition-colors text-xs"
+                    >
+                        [{lang.toUpperCase()}]
+                    </button>
 
                     {isLoggedIn ? (
                         <>
                             {currentUser?.is_superuser && (
                                 <button onClick={onAdminClick} className="text-brand hover:text-white transition-colors">
-                                    [ 管理 ]
+                                    [ {lang === 'zh' ? '管理' : 'ADMIN'} ]
                                 </button>
                             )}
-                            <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
+                            <button onClick={onDashboardClick} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
                                 <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || '用户'}
+                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || (lang === 'zh' ? '用户' : 'USER')}
                             </button>
                             <button onClick={onLogoutClick} className="text-gray-500 hover:text-red-500 transition-colors">
-                                // 退出
+                                // {lang === 'zh' ? '退出' : 'EXIT'}
                             </button>
                         </>
                     ) : (

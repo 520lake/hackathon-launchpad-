@@ -4,19 +4,17 @@ import axios from 'axios';
 interface LoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: (token: string) => void;
-  onRegisterClick?: () => void;
   lang?: 'zh' | 'en';
 }
 
 type AuthMethod = 'wechat' | 'email_code' | 'password';
 
-export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegisterClick, lang = 'zh' }: LoginModalProps) {
-  const [activeTab, setActiveTab] = useState<AuthMethod>('password');
+export default function LoginModal({ isOpen, onClose, lang = 'zh' }: LoginModalProps) {
+  const [activeTab, setActiveTab] = useState<AuthMethod>('wechat');
   
-  // Form states - Pre-filled with demo credentials
-  const [email, setEmail] = useState('admin@aura.com');
-  const [password, setPassword] = useState('admin123');
+  // Form states
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
   
   // UI states
@@ -53,7 +51,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
   const loadWeChatQr = async () => {
       try {
           setLoading(true);
-          const res = await axios.get('/api/v1/wechat/qr');
+          const res = await axios.get('api/v1/wechat/qr');
           setQrUrl(res.data.qr_url);
           setSceneId(res.data.scene_id);
           startPolling(res.data.scene_id);
@@ -69,9 +67,9 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
       stopPolling();
       pollTimerRef.current = window.setInterval(async () => {
           try {
-              const res = await axios.get(`/api/v1/wechat/poll?scene_id=${sid}`);
+              const res = await axios.get(`api/v1/wechat/poll?scene_id=${sid}`);
               if (res.data.status === 'success') {
-                  handleLoginSuccessInternal(res.data.access_token);
+                  handleLoginSuccess(res.data.access_token);
               }
           } catch (err) {
               // ignore poll errors
@@ -79,12 +77,15 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
       }, 3000);
   };
 
-  const handleLoginSuccessInternal = (token: string) => {
+  const handleLoginSuccess = (token: string) => {
       stopPolling();
+      localStorage.setItem('token', token);
       // Set cookie as backup for ModelScope iframe/proxy scenarios
+      // MUST use SameSite=None; Secure for cross-site iframes (ModelScope)
       document.cookie = `access_token=${token}; path=/; max-age=864000; SameSite=None; Secure`;
-      // alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
-      onLoginSuccess(token);
+      alert(lang === 'zh' ? '登录成功！' : 'Login Success!');
+      onClose();
+      window.location.reload();
   };
 
   const handleSendCode = async () => {
@@ -93,7 +94,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
           return;
       }
       try {
-          const res = await axios.post('/api/v1/email-code', { email });
+          const res = await axios.post('api/v1/email-code', { email });
           setCountDown(60);
           const timer = setInterval(() => {
               setCountDown(prev => {
@@ -119,8 +120,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
   const handleEmailLogin = async (e: React.FormEvent) => {
       e.preventDefault();
       try {
-          const res = await axios.post('/api/v1/login/email', { email, code });
-          handleLoginSuccessInternal(res.data.access_token);
+          const res = await axios.post('api/v1/login/email', { email, code });
+          handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
           console.error('Login error:', err);
           let msg = '登录失败';
@@ -135,14 +136,14 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
       }
   };
 
-  const handlePasswordLogin = async (e?: React.FormEvent) => {
-      if (e) e.preventDefault();
+  const handlePasswordLogin = async (e: React.FormEvent) => {
+      e.preventDefault();
       try {
           const params = new URLSearchParams();
           params.append('username', email);
           params.append('password', password);
-          const res = await axios.post('/api/v1/login/access-token', params);
-          handleLoginSuccessInternal(res.data.access_token);
+          const res = await axios.post('api/v1/login/access-token', params);
+          handleLoginSuccess(res.data.access_token);
       } catch (err: any) {
           console.error('Password login error:', err);
           let msg = '登录失败';
@@ -157,13 +158,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
       }
   };
 
-  // Auto-login function for demo
-  const handleQuickLogin = () => {
-      setEmail('admin@aura.com');
-      setPassword('admin123');
-      handlePasswordLogin();
-  };
-
   if (!isOpen) return null;
 
   return (
@@ -173,70 +167,36 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
             onClick={onClose} 
             className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
         >✕</button>
-
+        
         <div className="mb-8 text-center">
             <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
-            {lang === 'zh' ? '系统接入' : 'SYSTEM ACCESS'}
+            LOGIN <span className="text-brand">AURA</span>
             </h2>
-            <div className="flex justify-center gap-4 text-xs font-mono text-gray-500 uppercase tracking-widest mt-4">
-                <button 
-                    onClick={() => setActiveTab('password')}
-                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'password' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
-                >
-                    {lang === 'zh' ? '密码登录' : 'PASSWORD'}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('email_code')}
-                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'email_code' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
-                >
-                    {lang === 'zh' ? '验证码' : 'CODE'}
-                </button>
-                <button 
-                    onClick={() => setActiveTab('wechat')}
-                    className={`pb-1 border-b-2 transition-colors ${activeTab === 'wechat' ? 'text-brand border-brand' : 'border-transparent hover:text-white'}`}
-                >
-                    {lang === 'zh' ? '微信' : 'WECHAT'}
-                </button>
-            </div>
-            {onRegisterClick && (
-                <div className="mt-4">
-                    <button onClick={onRegisterClick} className="text-xs text-gray-500 hover:text-brand underline">
-                        {lang === 'zh' ? '没有账号？注册' : 'No account? Register'}
-                    </button>
-                </div>
-            )}
+            <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
+                {lang === 'zh' ? '身份验证' : 'AUTHENTICATION'}
+            </p>
         </div>
 
-        {activeTab === 'password' && (
-            <div className="mb-6">
-                <form onSubmit={handlePasswordLogin} className="space-y-4">
-                     <input 
-                        type="email" required 
-                        placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
-                        value={email} onChange={e => setEmail(e.target.value)}
-                        className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
-                    />
-                    <input 
-                        type="password" required 
-                        placeholder={lang === 'zh' ? "密码" : "Password"} 
-                        value={password} onChange={e => setPassword(e.target.value)}
-                        className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
-                    />
-                    <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
-                        {lang === 'zh' ? '登录' : 'LOGIN'}
-                    </button>
-                    
-                    {/* Quick Login Button for Demo */}
-                    <button 
-                        type="button" 
-                        onClick={handleQuickLogin}
-                        className="w-full py-2 border border-brand/30 text-brand font-mono text-xs hover:bg-brand/10 transition-colors flex items-center justify-center gap-2"
-                    >
-                        <span>⚡</span> {lang === 'zh' ? '一键演示登录' : 'QUICK DEMO LOGIN'}
-                    </button>
-                </form>
-            </div>
-        )}
+        <div className="flex justify-center mb-6 border-b border-brand/10">
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'wechat' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('wechat')}
+            >
+                {lang === 'zh' ? '微信扫码' : 'WECHAT'}
+            </button>
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'email_code' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('email_code')}
+            >
+                {lang === 'zh' ? '邮箱验证' : 'EMAIL_CODE'}
+            </button>
+            <button 
+                className={`pb-2 px-4 font-mono text-sm transition-colors ${activeTab === 'password' ? 'border-b-2 border-brand text-brand' : 'text-gray-500 hover:text-ink'}`}
+                onClick={() => setActiveTab('password')}
+            >
+                {lang === 'zh' ? '密码登录' : 'PASSWORD'}
+            </button>
+        </div>
 
         {error && (
             <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
@@ -259,11 +219,7 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
                             {lang === 'zh' ? '请使用微信扫一扫登录' : 'Scan via WeChat to Login'}
                         </p>
                         <p className="text-xs text-gray-400 mt-4 font-mono">
-                            [DEV_MODE]: {sceneId ? (
-                                <a href={`${window.location.protocol}//${window.location.hostname}:8000/api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
-                            ) : (
-                                <span className="text-gray-600">MOCK_SCAN (WAITING_ID...)</span>
-                            )}
+                            [DEV_MODE]: <a href={`api/v1/wechat-mock-scan/${sceneId}`} target="_blank" rel="noopener noreferrer" className="text-brand hover:underline">MOCK_SCAN &gt;&gt;</a>
                         </p>
                     </>
                 )}
@@ -294,6 +250,26 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
                 </div>
                 <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
                     {lang === 'zh' ? '登录 / 注册' : 'LOGIN / REGISTER'}
+                </button>
+            </form>
+        )}
+
+        {activeTab === 'password' && (
+            <form onSubmit={handlePasswordLogin} className="space-y-4">
+                 <input 
+                    type="email" required 
+                    placeholder={lang === 'zh' ? "邮箱地址" : "Email Address"} 
+                    value={email} onChange={e => setEmail(e.target.value)}
+                    className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+                />
+                <input 
+                    type="password" required 
+                    placeholder={lang === 'zh' ? "密码" : "Password"} 
+                    value={password} onChange={e => setPassword(e.target.value)}
+                    className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+                />
+                <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
+                    {lang === 'zh' ? '登录' : 'LOGIN'}
                 </button>
             </form>
         )}

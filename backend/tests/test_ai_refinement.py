@@ -2,19 +2,19 @@
 import pytest
 from unittest.mock import MagicMock, patch
 from fastapi.testclient import TestClient
-from aura_server.main import app
-from aura_server.api.v1.endpoints import ai
+from app.main import app
+from app.api.v1.endpoints import ai
 
 client = TestClient(app)
 
 # Mock user dependency
 async def mock_get_current_user():
-    from aura_server.models.user import User
+    from app.models.user import User
     return User(id=1, email="test@example.com", is_verified=True)
 
 app.dependency_overrides[ai.deps.get_current_user] = mock_get_current_user
 
-@patch("aura_server.api.v1.endpoints.ai.client.chat.completions.create")
+@patch("app.api.v1.endpoints.ai.client.chat.completions.create")
 def test_ai_generate_refinement(mock_create):
     # Mock OpenAI response
     mock_response = MagicMock()

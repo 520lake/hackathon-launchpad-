@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, Wand2 } from 'lucide-react';
+import { Sparkles, Send, Loader2, Lightbulb, UserPlus, Wand2 } from 'lucide-react';
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 interface AIProjectAssistantProps {
     onIdeaSelect?: (idea: any) => void;
@@ -10,7 +10,6 @@ interface AIProjectAssistantProps {
     onRefineDescription?: (description: string) => void;
     currentDescription?: string;
     mode: 'idea' | 'recruitment' | 'refine';
-    lang: 'zh' | 'en';
 }
 
 const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({ 
@@ -18,8 +17,7 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
     onRecruitmentGenerate, 
     onRefineDescription,
     currentDescription,
-    mode,
-    lang: _lang
+    mode 
 }) => {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);

@@ -3,8 +3,8 @@ import os
 sys.path.append(os.getcwd())
 
 from datetime import timedelta
-from aura_server.core.config import settings
-from aura_server.core import security
+from app.core.config import settings
+from app.core import security
 from jose import jwt, JWTError
 
 print("--- REPRODUCTION SCRIPT ---")

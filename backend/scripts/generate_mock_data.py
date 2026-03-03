@@ -8,11 +8,11 @@ import random
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlmodel import create_engine, Session, select
-from aura_server.models.user import User
-from aura_server.models.hackathon import Hackathon, HackathonStatus, HackathonFormat, RegistrationType
-from aura_server.models.team_project import Team, TeamMember, Project, ProjectStatus
-from aura_server.models.judge import Judge
-from aura_server.core.config import settings
+from app.models.user import User
+from app.models.hackathon import Hackathon, HackathonStatus, HackathonFormat, RegistrationType
+from app.models.team_project import Team, TeamMember, Project, ProjectStatus
+from app.models.judge import Judge
+from app.core.config import settings
 
 # Database Setup
 db_url = settings.DATABASE_URL

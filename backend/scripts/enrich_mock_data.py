@@ -8,10 +8,10 @@ from sqlmodel import create_engine, Session, select
 # Add backend directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from aura_server.models.user import User
-from aura_server.models.hackathon import Hackathon, HackathonStatus
-from aura_server.models.enrollment import Enrollment
-from aura_server.core.config import settings
+from app.models.user import User
+from app.models.hackathon import Hackathon, HackathonStatus
+from app.models.enrollment import Enrollment
+from app.core.config import settings
 from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")

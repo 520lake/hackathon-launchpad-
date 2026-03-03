@@ -41,7 +41,7 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
       const token = localStorage.getItem('token');
       console.log('[Admin] Fetching users with token:', token?.substring(0, 10));
       // Remove trailing slash to match backend @router.get("")
-      const res = await axios.get('/api/v1/users', {
+      const res = await axios.get('api/v1/users', {
         headers: { Authorization: `Bearer ${token}` }
       });
       console.log('[Admin] Users fetched:', res.data);
@@ -66,7 +66,7 @@ export default function AdminDashboardModal({ isOpen, onClose, lang }: AdminDash
       // Optimistic update
       setUsers(users.map(u => u.id === user.id ? { ...u, [field]: newValue } : u));
 
-      await axios.put(`/api/v1/users/${user.id}`, {
+      await axios.put(`api/v1/users/${user.id}`, {
         [field]: newValue
       }, {
         headers: { Authorization: `Bearer ${token}` }

@@ -4,12 +4,10 @@ import axios from 'axios';
 interface RegisterModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onRegisterSuccess: () => void;
-  onLoginClick: () => void;
   lang?: 'zh' | 'en';
 }
 
-export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLoginClick, lang = 'zh' }: RegisterModalProps) {
+export default function RegisterModal({ isOpen, onClose, lang = 'zh' }: RegisterModalProps) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [fullName, setFullName] = useState('');
@@ -24,14 +22,13 @@ export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLo
     setError('');
 
     try {
-      await axios.post('/api/v1/register', {
+      await axios.post('api/v1/register', {
         email,
         password,
         full_name: fullName,
       });
-      // alert('注册成功！请登录。');
-      // onClose();
-      onRegisterSuccess();
+      alert('注册成功！请登录。');
+      onClose();
     } catch (err: any) {
       console.error(err);
       if (err.response && err.response.data && err.response.data.detail) {
@@ -58,7 +55,7 @@ export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLo
         
         <div className="mb-8 text-center">
             <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
-            JOIN <span className="text-brand">AURATHON</span>
+            JOIN <span className="text-brand">AURA</span>
             </h2>
             <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
                 {lang === 'zh' ? '初始序列' : 'Initial Sequence'}
@@ -121,16 +118,6 @@ export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLo
           >
             {loading ? (lang === 'zh' ? '处理中...' : 'PROCESSING...') : (lang === 'zh' ? '加入网络' : 'JOIN_NETWORK')}
           </button>
-          
-          <div className="mt-4 text-center">
-            <button 
-              type="button" 
-              onClick={onLoginClick}
-              className="text-xs text-gray-500 hover:text-brand font-mono underline"
-            >
-              {lang === 'zh' ? '已有账号？登录' : 'Already have an account? Login'}
-            </button>
-          </div>
         </form>
       </div>
     </div>

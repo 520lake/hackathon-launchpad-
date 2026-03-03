@@ -42,12 +42,12 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
     try {
       const token = localStorage.getItem('token');
       // Fetch projects
-      const resProjects = await axios.get(`/api/v1/projects?hackathon_id=${hackathonId}`, {
+      const resProjects = await axios.get(`api/v1/projects?hackathon_id=${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
       // Fetch existing results if any
-      const resHackathon = await axios.get(`/api/v1/hackathons/${hackathonId}`, {
+      const resHackathon = await axios.get(`api/v1/hackathons/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       
@@ -97,7 +97,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId, lang 
       setSubmitting(true);
       try {
           const token = localStorage.getItem('token');
-          await axios.patch(`/api/v1/hackathons/${hackathonId}`, {
+          await axios.patch(`api/v1/hackathons/${hackathonId}`, {
               results_detail: JSON.stringify(winners),
               status: 'ended' // Auto set to ended
           }, {

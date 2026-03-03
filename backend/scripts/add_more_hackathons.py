@@ -8,9 +8,9 @@ from datetime import datetime, timedelta
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlmodel import create_engine, Session, select
-from aura_server.models.user import User
-from aura_server.models.hackathon import Hackathon, HackathonStatus, HackathonFormat, RegistrationType
-from aura_server.core.config import settings
+from app.models.user import User
+from app.models.hackathon import Hackathon, HackathonStatus, HackathonFormat, RegistrationType
+from app.core.config import settings
 
 # Database Setup
 db_url = settings.DATABASE_URL

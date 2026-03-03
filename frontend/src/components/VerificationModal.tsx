@@ -22,7 +22,7 @@ export default function VerificationModal({ isOpen, onClose, onSuccess, lang }: 
       const token = localStorage.getItem('token');
       // Virtual verification: Just call the backend to set is_verified=True
       // We ignore the name/idNumber in this mock implementation, but sending them would be real-world-like
-      await axios.post('/api/v1/users/me/verify', {}, {
+      await axios.post('api/v1/users/me/verify', {}, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

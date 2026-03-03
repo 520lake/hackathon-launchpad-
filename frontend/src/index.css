@@ -5,10 +5,8 @@
   --color-brand-dim: #8B5E3C;
   --color-brand-glow: #FFD6A5;
   --color-void: #0A0A0A;
-  --color-void-light: #18181b;
   --color-surface: #1A1A1A;
   --color-ink: #E5E5E5;
-  --color-ink-light: #a1a1aa;
 
   --font-sans: "JetBrains Mono", "Inter", sans-serif;
   --font-mono: "JetBrains Mono", monospace;
@@ -159,9 +157,5 @@
       0 100%, 
       0 10px
     );
-  }
-
-  .clip-path-slant {
-    clip-path: polygon(0 0, 100% 0, 100% 80%, 95% 100%, 0 100%);
   }
 }

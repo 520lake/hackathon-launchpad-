@@ -39,37 +39,29 @@ export default function Navbar({
                 {/* Logo */}
                 <Link to="/" className="flex items-center gap-2 group cursor-pointer">
                     <div className="w-3 h-3 bg-brand group-hover:animate-pulse" />
-                    <span className="text-xl font-black tracking-tighter text-ink font-mono">AURA</span>
+                    <span className="text-xl font-black tracking-tighter text-ink font-mono">AURATHON</span>
                 </Link>
 
                 {/* Actions */}
                 <div className="flex items-center gap-6 font-mono text-sm">
                     {/* Navigation Links */}
-                    <Link to="/hackathons" className="text-ink hover:text-brand transition-colors text-xs hidden md:block">
-                        [ {lang === 'zh' ? '探索赛事' : 'EXPLORE'} ]
+                    <Link to="/hackathons" className="text-gray-500 hover:text-brand transition-colors text-xs font-mono uppercase">
+                        [ 探索赛事 ]
                     </Link>
-
-                    {/* Language Switcher */}
-                    <button 
-                        onClick={() => setLang(lang === 'zh' ? 'en' : 'zh')}
-                        className="text-gray-500 hover:text-brand transition-colors text-xs"
-                    >
-                        [{lang.toUpperCase()}]
-                    </button>
 
                     {isLoggedIn ? (
                         <>
                             {currentUser?.is_superuser && (
                                 <button onClick={onAdminClick} className="text-brand hover:text-white transition-colors">
-                                    [ {lang === 'zh' ? '管理' : 'ADMIN'} ]
+                                    [ 管理 ]
                                 </button>
                             )}
                             <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
                                 <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || (lang === 'zh' ? '用户' : 'USER')}
+                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || '用户'}
                             </button>
                             <button onClick={onLogoutClick} className="text-gray-500 hover:text-red-500 transition-colors">
-                                // {lang === 'zh' ? '退出' : 'EXIT'}
+                                // 退出
                             </button>
                         </>
                     ) : (

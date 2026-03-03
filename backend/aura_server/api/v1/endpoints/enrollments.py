@@ -103,21 +103,6 @@ def read_my_enrollments(*, session: Session = Depends(get_session), current_user
         
     return enrollments_with_hackathon
 
-@router.get("/{hackathon_id}/me", response_model=EnrollmentRead)
-def read_my_hackathon_enrollment(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_user)):
-    """
-    Get current user's enrollment for a specific hackathon.
-    """
-    enrollment = session.exec(select(Enrollment).where(
-        Enrollment.hackathon_id == hackathon_id,
-        Enrollment.user_id == current_user.id
-    )).first()
-    
-    if not enrollment:
-        raise HTTPException(status_code=404, detail="Enrollment not found")
-        
-    return enrollment
-
 @router.get("/{hackathon_id}", response_model=List[EnrollmentRead])
 def read_hackathon_enrollments(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_user)):
     """

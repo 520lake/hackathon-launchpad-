@@ -107,8 +107,8 @@ export function About({ lang }: { lang: 'zh' | 'en' }) {
                     </h2>
                     <p className="text-xl text-gray-400 mb-6 leading-relaxed max-w-2xl">
                         {lang === 'zh' ? 
-                            'Aura 不是另一个竞赛平台。它是思想的粒子加速器。我们通过 AI 消除技术壁垒，让每一行代码都成为改变现实的杠杆。' : 
-                            'Aura is not just another hackathon platform. It is a particle accelerator for ideas. We remove technical barriers through AI, making every line of code a lever to change reality.'}
+                            'Aurathon 不是另一个竞赛平台。它是思想的粒子加速器。我们通过 AI 消除技术壁垒，让每一行代码都成为改变现实的杠杆。' : 
+                            'Aurathon is not just another hackathon platform. It is a particle accelerator for ideas. We remove technical barriers through AI, making every line of code a lever to change reality.'}
                     </p>
                     <p className="text-lg text-gray-500 font-mono">
                         &gt; 01. {lang === 'zh' ? 'AI 社区洞察' : 'AI Community Insights'} <br />
@@ -257,128 +257,35 @@ export function Schedule({ lang }: { lang: 'zh' | 'en' }) {
 // --- 5. Footer ---
 export function Footer({ lang }: { lang: 'zh' | 'en' }) {
     return (
-        <footer className="w-full flex flex-col items-start pt-0 pb-6 gap-6 bg-surface border-t border-brand/10">
-            {/* Divider */}
-            <div className="w-full h-px bg-[#333333] self-stretch flex-none order-0" />
-
-            {/* Container: Main Content */}
-            <div className="w-full max-w-[1200px] mx-auto flex flex-row items-start gap-20 border-b border-[rgba(0,0,0,0.02)] pb-4 flex-none order-1 self-center">
-                
-                {/* Left Column: Logo & Description */}
-                <div className="flex flex-col items-start gap-4 w-[709px] h-[172px] flex-none order-0 grow">
-                    {/* Logo */}
-                    <div className="flex flex-row items-center gap-2 w-[107px] h-[22px] flex-none order-0">
-                        <div className="w-5 h-5 bg-white rounded flex-none order-0" />
-                        <span className="w-[79px] h-[22px] font-[Inter] font-normal text-lg leading-[22px] text-white flex-none order-1">AURA</span>
-                    </div>
-
-                    {/* Description Paragraph */}
-                    <div className="flex flex-col justify-center items-start py-[1px] gap-[10px] w-full h-12 flex-none order-1">
-                        <p className="w-full h-[46px] font-[Inter] font-normal text-sm leading-[23px] tracking-[-0.15px] text-[#717182]">
-                            {lang === 'zh' 
-                                ? 'AURA 是一个自 AI 驱动的赛事协作平台发展问题，用更强' 
-                                : 'AURA is an AI-driven competition collaboration platform for development issues, with stronger capabilities.'}
-                        </p>
-                    </div>
-
-                    {/* QR Codes Container */}
-                    <div className="flex flex-row items-start gap-4 w-full h-[70px] flex-none order-2">
-                        {/* QR Code 1 */}
-                        <div className="flex flex-row justify-center items-center w-[70px] h-[70px] bg-[rgba(236,236,240,0.1)] border border-[rgba(0,0,0,0.02)] rounded flex-none order-0 relative">
-                            <span className="absolute top-[1px] left-0 w-9 h-4 font-[Inter] font-normal text-xs leading-4 text-[rgba(113,113,130,0.5)] transform translate-x-4 translate-y-6">
-                                二维码
-                            </span>
-                        </div>
-                        {/* QR Code 2 */}
-                        <div className="flex flex-row justify-center items-center w-[70px] h-[70px] bg-[rgba(236,236,240,0.1)] border border-[rgba(0,0,0,0.02)] rounded flex-none order-1 relative">
-                            <span className="absolute top-[1px] left-0 w-9 h-4 font-[Inter] font-normal text-xs leading-4 text-[rgba(113,113,130,0.5)] transform translate-x-4 translate-y-6">
-                                二维码
-                            </span>
-                        </div>
-                    </div>
+        <footer className="bg-surface border-t border-brand/10 py-20">
+            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
+                <div className="col-span-1 md:col-span-2">
+                    <h2 className="text-4xl font-black text-ink mb-6">AURATHON</h2>
+                    <p className="text-gray-500 max-w-sm">
+                        {lang === 'zh' 
+                            ? '通过算法透明度和智能协作重新定义黑客松格局。' 
+                            : 'Redefining the hackathon landscape through algorithmic transparency and intelligent collaboration.'}
+                    </p>
                 </div>
-
-                {/* Right Column: Links */}
-                <div className="flex flex-row items-start gap-20 w-[410px] h-[172px] flex-none order-1">
-                    
-                    {/* Column 1: I want to host */}
-                    <div className="flex flex-col items-start gap-4 w-[94px] h-[172px] flex-none order-0">
-                        <h3 className="w-[94px] h-6 font-[Inter] font-medium text-base leading-6 tracking-[-0.31px] text-white flex-none order-0">
-                            {lang === 'zh' ? '我要举办' : 'Host'}
-                        </h3>
-                        <div className="flex flex-col items-start gap-3 w-[94px] h-[132px] flex-none order-1">
-                            <a href="#" className="w-[94px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '创建黑客松' : 'Create Hackathon'}
-                            </a>
-                            <a href="#" className="w-[94px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '寻求资源' : 'Resources'}
-                            </a>
-                            <a href="#" className="w-[94px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '组织者手册' : 'Organizer Guide'}
-                            </a>
-                            <a href="#" className="w-[94px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '如何办好黑客松' : 'Best Practices'}
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Column 2: I want to join */}
-                    <div className="flex flex-col items-start gap-4 w-[67px] h-[136px] flex-none order-1">
-                        <h3 className="w-[67px] h-6 font-[Inter] font-medium text-base leading-6 tracking-[-0.31px] text-white flex-none order-0">
-                            {lang === 'zh' ? '我要参加' : 'Join'}
-                        </h3>
-                        <div className="flex flex-col items-start gap-3 w-[67px] h-[96px] flex-none order-1">
-                            <a href="#" className="w-[67px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '探索黑客松' : 'Explore'}
-                            </a>
-                            <a href="#" className="w-[67px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '寻找队友' : 'Find Team'}
-                            </a>
-                            <a href="#" className="w-[67px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '参赛者手册' : 'Hacker Guide'}
-                            </a>
-                        </div>
-                    </div>
-
-                    {/* Column 3: More */}
-                    <div className="flex flex-col items-start gap-4 w-[90px] h-[172px] flex-none order-2">
-                        <h3 className="w-[90px] h-6 font-[Inter] font-medium text-base leading-6 tracking-[-0.31px] text-white flex-none order-0">
-                            {lang === 'zh' ? '更多' : 'More'}
-                        </h3>
-                        <div className="flex flex-col items-start gap-3 w-[90px] h-[132px] flex-none order-1">
-                            <a href="#" className="w-[90px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '关于 Aurathon' : 'About Aura'}
-                            </a>
-                            <a href="#" className="w-[90px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '合作沟通' : 'Contact'}
-                            </a>
-                            <a href="#" className="w-[90px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '隐私协议' : 'Privacy'}
-                            </a>
-                            <a href="#" className="w-[90px] h-6 font-[Inter] font-normal text-sm leading-5 tracking-[-0.15px] text-[#717182] hover:text-brand transition-colors">
-                                {lang === 'zh' ? '服务条款' : 'Terms'}
-                            </a>
-                        </div>
-                    </div>
+                <div>
+                    <h4 className="font-mono text-brand text-sm mb-6">{lang === 'zh' ? '链接' : 'LINKS'}</h4>
+                    <ul className="space-y-4 text-gray-400 text-sm">
+                        <li><a href="#" className="hover:text-brand transition-colors">{lang === 'zh' ? '文档' : 'Documentation'}</a></li>
+                        <li><a href="#" className="hover:text-brand transition-colors">{lang === 'zh' ? 'API 状态' : 'API Status'}</a></li>
+                        <li><a href="#" className="hover:text-brand transition-colors">{lang === 'zh' ? '源代码' : 'Source Code'}</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h4 className="font-mono text-brand text-sm mb-6">{lang === 'zh' ? '法律' : 'LEGAL'}</h4>
+                    <ul className="space-y-4 text-gray-400 text-sm">
+                        <li><a href="#" className="hover:text-brand transition-colors">{lang === 'zh' ? '隐私协议' : 'Privacy Protocol'}</a></li>
+                        <li><a href="#" className="hover:text-brand transition-colors">{lang === 'zh' ? '服务条款' : 'Terms of Service'}</a></li>
+                    </ul>
                 </div>
             </div>
-
-            {/* Divider */}
-            <div className="w-full h-px bg-[#333333] self-stretch flex-none order-2" />
-
-            {/* Bottom Bar: ICP & Security */}
-            <div className="w-full max-w-[1200px] mx-auto flex flex-row justify-center items-center gap-4 h-4 flex-none order-3">
-                <span className="w-[107px] h-4 font-[Inter] font-normal text-xs leading-4 text-[rgba(113,113,130,0.7)] flex-none order-0">
-                    ICP备 1234567890
-                </span>
-                <div className="w-px h-4 bg-[#333333] flex-none order-1" />
-                <span className="w-[122px] h-4 font-[Inter] font-normal text-xs leading-4 text-[rgba(113,113,130,0.7)] flex-none order-2">
-                    公网安备 1234567890
-                </span>
-                <div className="w-px h-4 bg-[#333333] flex-none order-3" />
-                <span className="w-[122px] h-4 font-[Inter] font-normal text-xs leading-4 text-[rgba(113,113,130,0.7)] flex-none order-4">
-                    © 2026 AURA
-                </span>
+            <div className="container mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-600">
+                <span>© 2026 AURATHON NETWORK</span>
+                <span>SYSTEM_STATUS: ONLINE [v1.0.2-fix]</span>
             </div>
         </footer>
     );

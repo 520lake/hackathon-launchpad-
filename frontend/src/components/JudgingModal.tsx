@@ -237,7 +237,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                     ) : (
                                         <>
                                             <span>⚡</span>
-                                            {lang === 'zh' ? 'AI 辅助评审' : 'AI ASSISTANT'}
+                                            AI 辅助评审
                                         </>
                                     )}
                                 </button>
@@ -249,14 +249,16 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                         <div key={idx} className="bg-black/20 border border-gray-800 p-6 hover:border-brand/50 transition-colors">
                                             <div className="flex justify-between items-end mb-4">
                                                 <div>
-                                                    <span className="font-bold text-white uppercase tracking-wider block mb-1">{dim.name}</span>
-                                                    <span className="text-xs text-gray-500 font-mono">{dim.description}</span>
+                                                    <h4 className="font-bold text-white text-lg">{dim.name}</h4>
+                                                    <p className="text-gray-400 text-sm mt-1">{dim.description}</p>
                                                 </div>
                                                 <div className="text-right">
-                                                    <span className="text-3xl font-black text-brand">{scores[dim.name] || 0}</span>
-                                                    <span className="text-xs text-gray-500 font-mono ml-2">/ 100 (Weight: {dim.weight}%)</span>
+                                                    <span className="text-2xl font-mono text-brand">{scores[dim.name] || 0}</span>
+                                                    <span className="text-gray-500 text-sm ml-1">/ 100</span>
+                                                    <div className="text-xs text-gray-500 mt-1">权重: {dim.weight}%</div>
                                                 </div>
                                             </div>
+                                            
                                             <input 
                                                 type="range" 
                                                 min="0" 
@@ -269,7 +271,7 @@ export default function JudgingModal({ isOpen, onClose, hackathonId, hackathonTi
                                     ))}
                                     
                                     <div className="flex justify-between items-center p-6 bg-brand/10 border border-brand/30 mt-8">
-                                        <span className="font-mono font-bold text-brand uppercase text-xl">{lang === 'zh' ? '总分 (加权)' : 'TOTAL SCORE (WEIGHTED)'}</span>
+                                        <span className="font-mono font-bold text-brand uppercase text-xl">总分 (加权)</span>
                                         <span className="text-4xl font-black text-white">{calculateTotal()}</span>
                                     </div>
                                 </div>

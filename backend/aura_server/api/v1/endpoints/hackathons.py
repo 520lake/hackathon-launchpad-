@@ -35,7 +35,6 @@ def read_hackathons(
     status: Optional[HackathonStatus] = None,
     format: Optional[HackathonFormat] = None,
     location: Optional[str] = None,
-    timezone: Optional[str] = None, # Added timezone filter
     search: Optional[str] = None
 ):
     query = select(Hackathon)
@@ -46,8 +45,6 @@ def read_hackathons(
         query = query.where(Hackathon.format == format)
     if location:
         query = query.where(Hackathon.location.contains(location))
-    if timezone: # Added timezone filter logic
-        query = query.where(Hackathon.timezone == timezone)
     if search:
         query = query.where(
             (Hackathon.title.contains(search)) | 

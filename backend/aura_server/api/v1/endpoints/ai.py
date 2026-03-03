@@ -547,15 +547,65 @@ async def generate_recruitment(req: RecruitmentGenRequest):
         if "```json" in content:
             content = content.split("```json")[1].split("```")[0].strip()
             
+        return json.loads(content)
+    except Exception as e:
+        print(f"Generate Recruitment Error: {e}")
+        return []
+
+class RefineProjectRequest(BaseModel):
+    description: str
+
+class RefineProjectResponse(BaseModel):
+    refined_description: str
+
+@router.post("/refine-project", response_model=RefineProjectResponse)
+async def refine_project(req: RefineProjectRequest):
+    try:
+        system_prompt = """
+        You are a Professional Tech Editor.
+        Refine the project description to be more professional, exciting, and clear for a hackathon submission.
+        Keep it concise but impactful.
+        
+        Return STRICT JSON:
+        {
+            "refined_description": "..."
+        }
+        """
+        
+        user_prompt = f"Original Description: {req.description}"
+        
+        response = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        content = response.choices[0].message.content
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+            
+        return json.loads(content)
+    except Exception as e:
+        print(f"Refine Project Error: {e}")
+        return {"refined_description": req.description}
+
+        content = response.choices[0].message.content
+        if "```json" in content:
+            content = content.split("```json")[1].split("```")[0].strip()
+            
         data = json.loads(content)
         # Handle if AI returns object with key "roles" or direct list
         if isinstance(data, dict) and "roles" in data:
             return data["roles"]
         if isinstance(data, list):
             return data
-        return []
+        return [] # Fallback
+        
     except Exception as e:
-        print(f"Generate Recruitment Error: {e}")
+        print(f"Gen Recruitment Error: {e}")
         return []
 
 class RefineProjectRequest(BaseModel):
@@ -583,6 +633,4 @@ async def refine_project(req: RefineProjectRequest):
         
         return {"refined_description": response.choices[0].message.content.strip()}
     except Exception as e:
-        print(f"Refine Project Error: {e}")
         return {"refined_description": req.description} # Fallback to original
-

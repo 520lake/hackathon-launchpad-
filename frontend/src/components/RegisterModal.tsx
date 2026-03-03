@@ -58,7 +58,7 @@ export default function RegisterModal({ isOpen, onClose, onRegisterSuccess, onLo
         
         <div className="mb-8 text-center">
             <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
-            JOIN <span className="text-brand">AURA</span>
+            JOIN <span className="text-brand">AURATHON</span>
             </h2>
             <p className="text-xs font-mono text-gray-500 uppercase tracking-widest">
                 {lang === 'zh' ? '初始序列' : 'Initial Sequence'}

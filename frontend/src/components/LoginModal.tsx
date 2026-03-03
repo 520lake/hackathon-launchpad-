@@ -14,7 +14,7 @@ type AuthMethod = 'wechat' | 'email_code' | 'password';
 export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegisterClick, lang = 'zh' }: LoginModalProps) {
   const [activeTab, setActiveTab] = useState<AuthMethod>('password');
   
-  // Form states
+  // Form states - Pre-filled with demo credentials
   const [email, setEmail] = useState('admin@aura.com');
   const [password, setPassword] = useState('admin123');
   const [code, setCode] = useState('');
@@ -135,8 +135,8 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
       }
   };
 
-  const handlePasswordLogin = async (e: React.FormEvent) => {
-      e.preventDefault();
+  const handlePasswordLogin = async (e?: React.FormEvent) => {
+      if (e) e.preventDefault();
       try {
           const params = new URLSearchParams();
           params.append('username', email);
@@ -155,6 +155,13 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
           }
           setError(msg);
       }
+  };
+
+  // Auto-login function for demo
+  const handleQuickLogin = () => {
+      setEmail('admin@aura.com');
+      setPassword('admin123');
+      handlePasswordLogin();
   };
 
   if (!isOpen) return null;
@@ -202,15 +209,6 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
 
         {activeTab === 'password' && (
             <div className="mb-6">
-                <div className="mb-4 p-3 bg-brand/5 border border-brand/20 rounded-sm">
-                    <p className="text-xs text-brand font-bold mb-1 font-mono uppercase">
-                        {lang === 'zh' ? '评委专用账号' : 'JUDGE ACCESS'}
-                    </p>
-                    <p className="text-[10px] text-gray-500 font-mono">
-                        Account: <span className="text-ink">admin@aura.com</span><br/>
-                        Password: <span className="text-ink">admin123</span>
-                    </p>
-                </div>
                 <form onSubmit={handlePasswordLogin} className="space-y-4">
                      <input 
                         type="email" required 
@@ -226,6 +224,15 @@ export default function LoginModal({ isOpen, onClose, onLoginSuccess, onRegister
                     />
                     <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
                         {lang === 'zh' ? '登录' : 'LOGIN'}
+                    </button>
+                    
+                    {/* Quick Login Button for Demo */}
+                    <button 
+                        type="button" 
+                        onClick={handleQuickLogin}
+                        className="w-full py-2 border border-brand/30 text-brand font-mono text-xs hover:bg-brand/10 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <span>⚡</span> {lang === 'zh' ? '一键演示登录' : 'QUICK DEMO LOGIN'}
                     </button>
                 </form>
             </div>

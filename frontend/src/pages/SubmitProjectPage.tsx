@@ -1,26 +1,27 @@
 import { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import Button from './ui/Button';
-import Input from './ui/Input';
-import Card from './ui/Card';
-import AIProjectAssistant from './AIProjectAssistant';
+import { useAuth } from '../contexts/AuthContext';
+import { useUI } from '../contexts/UIContext';
+import Button from '../components/ui/Button';
+import Input from '../components/ui/Input';
+import Card from '../components/ui/Card';
+import AIProjectAssistant from '../components/AIProjectAssistant';
+import type { Hackathon, Team, Project, TeamReadWithMembers } from '../types';
 
-interface SubmitProjectModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  hackathonId: number;
-  teamId?: number;
-  existingProject?: any;
-  initialDescription?: string;
-  initialData?: {
-    title?: string;
-    description?: string;
-    tech_stack?: string;
-  };
-  lang: 'zh' | 'en';
-}
+export default function SubmitProjectPage() {
+  const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const { user, login } = useAuth(); // login needed if token refresh?
+  const { lang } = useUI();
 
-export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, initialDescription, initialData, lang }: SubmitProjectModalProps) {
+  // State
+  const [hackathon, setHackathon] = useState<Hackathon | null>(null);
+  const [team, setTeam] = useState<TeamReadWithMembers | null>(null); // Use specific type if possible, or any
+  const [existingProject, setExistingProject] = useState<any | null>(null);
+  const [loadingData, setLoadingData] = useState(true);
+  
+  // Form State
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [techStack, setTechStack] = useState('');
@@ -29,49 +30,74 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
   const [videoUrl, setVideoUrl] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
   const [coverImage, setCoverImage] = useState('');
-  const [loading, setLoading] = useState(false);
+  
+  const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
-
-  // AI Assistance
   const [showAiRefine, setShowAiRefine] = useState(false);
 
   useEffect(() => {
-    if (existingProject) {
-      setTitle(existingProject.title);
-      setDescription(initialDescription || existingProject.description);
-      setTechStack(existingProject.tech_stack || '');
-      setRepoUrl(existingProject.repo_url || '');
-      setDemoUrl(existingProject.demo_url || '');
-      setVideoUrl(existingProject.video_url || '');
-      setAttachmentUrl(existingProject.attachment_url || '');
-      setCoverImage(existingProject.cover_image || '');
-    } else if (initialData) {
-      setTitle(initialData.title || '');
-      setDescription(initialDescription || initialData.description || '');
-      setTechStack(initialData.tech_stack || '');
-      setRepoUrl('');
-      setDemoUrl('');
-      setVideoUrl('');
-      setAttachmentUrl('');
-      setCoverImage('');
-    } else {
-      // Reset if new
-      setTitle('');
-      setDescription(initialDescription || '');
-      setTechStack('');
-      setRepoUrl('');
-      setDemoUrl('');
-      setVideoUrl('');
-      setAttachmentUrl('');
-      setCoverImage('');
+    if (id && user) {
+      fetchData();
+    } else if (!user) {
+       // If not logged in, redirect or show message
+       // But App.tsx might handle protection or we check here
     }
-  }, [existingProject, isOpen, initialDescription, initialData]);
+  }, [id, user]);
+
+  const fetchData = async () => {
+    setLoadingData(true);
+    try {
+      // 1. Fetch Hackathon
+      const hackRes = await axios.get(`http://localhost:8000/api/hackathons/${id}`);
+      setHackathon(hackRes.data);
+
+      // 2. Fetch My Teams to find the team for this hackathon
+      const token = localStorage.getItem('token');
+      const teamsRes = await axios.get(`http://localhost:8000/api/v1/teams/me`, {
+          headers: { Authorization: `Bearer ${token}` }
+      });
+      
+      const myTeams = teamsRes.data;
+      const currentTeam = myTeams.find((t: any) => t.hackathon_id === parseInt(id!));
+      
+      if (currentTeam) {
+          setTeam(currentTeam);
+          
+          // 3. Fetch My Projects to see if we already submitted
+          const projectsRes = await axios.get(`http://localhost:8000/api/v1/projects/me`, {
+              headers: { Authorization: `Bearer ${token}` }
+          });
+          
+          // Check if any project belongs to this team
+          const project = projectsRes.data.find((p: any) => p.team_id === currentTeam.id);
+          
+          if (project) {
+              setExistingProject(project);
+              // Populate Form
+              setTitle(project.title);
+              setDescription(project.description);
+              setTechStack(project.tech_stack || '');
+              setRepoUrl(project.repo_url || '');
+              setDemoUrl(project.demo_url || '');
+              setVideoUrl(project.video_url || '');
+              setAttachmentUrl(project.attachment_url || '');
+              setCoverImage(project.cover_image || '');
+          }
+      }
+
+    } catch (err) {
+      console.error("Failed to fetch data", err);
+      setError("Failed to load project data. Please try again.");
+    } finally {
+      setLoadingData(false);
+    }
+  };
 
   const uploadImage = async (file: File) => {
     const formData = new FormData();
     formData.append('file', file);
     const token = localStorage.getItem('token');
-    const res = await axios.post('/api/v1/upload/image', formData, {
+    const res = await axios.post('http://localhost:8000/api/v1/upload/image', formData, {
         headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}` 
@@ -94,8 +120,14 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setLoading(true);
+    setSubmitting(true);
     setError('');
+
+    if (!team) {
+        setError("You must join a team first!");
+        setSubmitting(false);
+        return;
+    }
 
     // Basic URL validation
     const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
@@ -103,8 +135,8 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
         (demoUrl && !urlPattern.test(demoUrl)) || 
         (videoUrl && !urlPattern.test(videoUrl)) ||
         (attachmentUrl && !urlPattern.test(attachmentUrl))) {
-        setError(lang === 'zh' ? '请输入有效的 URL (http/https)' : 'Please enter valid URLs (http/https)');
-        setLoading(false);
+        setError('请输入有效的 URL (http/https)');
+        setSubmitting(false);
         return;
     }
 
@@ -112,81 +144,112 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
       const token = localStorage.getItem('token');
       const headers = { Authorization: `Bearer ${token}` };
       const payload = {
-                    title,
-                    description,
-                    tech_stack: techStack,
-                    repo_url: repoUrl,
-                    demo_url: demoUrl,
-                    video_url: videoUrl,
-                    attachment_url: attachmentUrl,
-                    cover_image: coverImage,
-                };
+            title,
+            description,
+            tech_stack: techStack,
+            repo_url: repoUrl,
+            demo_url: demoUrl,
+            video_url: videoUrl,
+            attachment_url: attachmentUrl,
+            cover_image: coverImage,
+        };
 
       if (existingProject) {
-        await axios.patch(`/api/v1/projects/${existingProject.id}`, payload, { headers });
+        await axios.patch(`http://localhost:8000/api/v1/projects/${existingProject.id}`, payload, { headers });
       } else {
-        if (!teamId) {
-             throw new Error("Team ID is missing");
-        }
-        await axios.post(`/api/v1/projects/?team_id=${teamId}`, payload, { headers });
+        await axios.post(`http://localhost:8000/api/v1/projects/?team_id=${team.id}`, payload, { headers });
       }
       
-      alert(lang === 'zh' ? '作品提交成功！' : 'Project submitted successfully!');
-      onClose();
+      alert('作品提交成功！');
+      navigate(`/hackathons/${id}`);
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || (lang === 'zh' ? '提交失败' : 'Submission failed'));
+      setError(err.response?.data?.detail || '提交失败');
     } finally {
-      setLoading(false);
+      setSubmitting(false);
     }
   };
 
-  if (!isOpen) return null;
+  if (loadingData) {
+    return (
+        <div className="min-h-screen bg-void flex items-center justify-center pt-24">
+            <div className="animate-spin w-8 h-8 border-2 border-brand border-t-transparent rounded-full"></div>
+        </div>
+    );
+  }
+
+  if (!user) {
+      return (
+          <div className="min-h-screen bg-void flex items-center justify-center pt-24">
+              <div className="text-center">
+                  <h2 className="text-xl text-white mb-4">Please login to submit a project.</h2>
+                  <Button onClick={() => navigate('/')}>Go Home</Button>
+              </div>
+          </div>
+      );
+  }
+
+  if (!team) {
+      return (
+          <div className="min-h-screen bg-void flex items-center justify-center pt-24">
+              <Card className="max-w-md w-full p-8 text-center border-brand/50">
+                  <h2 className="text-xl font-bold text-white mb-4">Team Required</h2>
+                  <p className="text-ink-light mb-6">You must join or create a team to submit a project for this hackathon.</p>
+                  <Button onClick={() => navigate(`/hackathons/${id}`)}>Back to Hackathon</Button>
+              </Card>
+          </div>
+      );
+  }
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-void/90 backdrop-blur-sm p-4">
-      <Card className="w-full max-w-4xl max-h-[90vh] flex flex-col p-0 overflow-hidden border-2 border-brand shadow-[8px_8px_0px_0px_rgba(212,163,115,0.5)]">
-        
-        {/* Header */}
-        <div className="flex justify-between items-center p-6 border-b border-ink/10 bg-void">
-          <h2 className="text-2xl font-black text-ink uppercase tracking-tighter">
-            {existingProject ? (lang === 'zh' ? '编辑项目' : 'EDIT PROJECT') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
-          </h2>
-          <button onClick={onClose} className="text-ink/50 hover:text-brand font-mono font-bold text-xl">[X]</button>
+    <div className="min-h-screen bg-void text-ink pt-24 pb-20 px-4">
+      <div className="max-w-4xl mx-auto">
+        <div className="mb-8 flex items-center justify-between">
+            <div>
+                <h1 className="text-3xl font-black text-white uppercase tracking-tighter mb-2">
+                    {existingProject ? '编辑项目' : '提交项目'}
+                </h1>
+                <p className="text-ink-light">
+                    {hackathon?.title} • {team.name}
+                </p>
+            </div>
+            <Button variant="outline" onClick={() => navigate(`/hackathons/${id}`)}>
+                返回
+            </Button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto custom-scrollbar p-6 bg-void">
+
+        <Card className="p-0 overflow-hidden border-2 border-brand shadow-[8px_8px_0px_0px_rgba(212,163,115,0.5)] bg-void">
             {error && (
-                <div className="mb-6 p-4 bg-red-500/10 border border-red-500 text-red-500 font-mono text-sm">
+                <div className="p-4 bg-red-500/10 border-b border-red-500 text-red-500 font-mono text-sm">
                     ERROR: {error}
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            <div className="p-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Form */}
                 <div className="lg:col-span-2 space-y-6">
                     <div>
                         <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                            {lang === 'zh' ? '项目名称' : 'PROJECT TITLE'}
+                            项目名称
                         </label>
                         <Input 
                             value={title} 
                             onChange={(e) => setTitle(e.target.value)} 
-                            placeholder={lang === 'zh' ? "给你的杰作起个名字..." : "Name your masterpiece..."}
+                            placeholder="给你的杰作起个名字..."
                         />
                     </div>
 
                     <div>
                         <div className="flex justify-between items-center mb-2">
                             <label className="block text-xs font-bold text-brand font-mono uppercase tracking-widest">
-                                {lang === 'zh' ? '项目简介' : 'DESCRIPTION'}
+                                项目简介
                             </label>
                             <button 
                                 type="button"
                                 onClick={() => setShowAiRefine(!showAiRefine)}
                                 className="text-xs font-mono text-brand hover:underline flex items-center gap-1"
                             >
-                                ✨ {lang === 'zh' ? 'AI 润色' : 'AI Refine'}
+                                ✨ AI 润色
                             </button>
                         </div>
                         
@@ -207,14 +270,14 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                         <textarea 
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
-                            className="w-full h-40 bg-ink/5 border border-ink/20 p-4 text-ink focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all font-mono text-sm resize-none"
-                            placeholder={lang === 'zh' ? "详细描述你的项目解决了什么问题，以及它是如何工作的..." : "Describe what problem your project solves and how it works..."}
+                            className="w-full h-40 bg-ink/5 border border-ink/20 p-4 text-ink focus:border-brand focus:ring-1 focus:ring-brand outline-none transition-all font-mono text-sm resize-none rounded-md"
+                            placeholder="详细描述你的项目解决了什么问题，以及它是如何工作的..."
                         />
                     </div>
 
                     <div>
                         <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                            {lang === 'zh' ? '技术栈' : 'TECH STACK'}
+                            技术栈
                         </label>
                         <Input 
                             value={techStack} 
@@ -251,9 +314,9 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                 <div className="space-y-6">
                     <div>
                         <label className="block text-xs font-bold text-brand font-mono mb-2 uppercase tracking-widest">
-                            {lang === 'zh' ? '封面图片' : 'COVER IMAGE'}
+                            封面图片
                         </label>
-                        <div className="relative w-full aspect-video bg-ink/5 border border-dashed border-ink/20 flex items-center justify-center overflow-hidden group hover:border-brand transition-colors cursor-pointer">
+                        <div className="relative w-full aspect-video bg-ink/5 border border-dashed border-ink/20 flex items-center justify-center overflow-hidden group hover:border-brand transition-colors cursor-pointer rounded-md">
                             {coverImage ? (
                                 <img src={coverImage} alt="Cover" className="w-full h-full object-cover" />
                             ) : (
@@ -281,21 +344,16 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                             placeholder="Youtube / Bilibili Link"
                         />
                     </div>
+
+                    <div className="pt-8">
+                         <Button onClick={handleSubmit} disabled={submitting} className="w-full h-12 text-lg font-bold">
+                            {submitting ? '提交中...' : '提交项目'}
+                        </Button>
+                    </div>
                 </div>
             </div>
-        </div>
-
-        {/* Footer Actions */}
-        <div className="p-6 border-t border-ink/10 bg-ink/5 flex justify-end gap-4">
-            <Button variant="outline" onClick={onClose}>
-                {lang === 'zh' ? '取消' : 'CANCEL'}
-            </Button>
-            <Button onClick={handleSubmit} disabled={loading}>
-                {loading ? (lang === 'zh' ? '提交中...' : 'SUBMITTING...') : (lang === 'zh' ? '提交项目' : 'SUBMIT PROJECT')}
-            </Button>
-        </div>
-
-      </Card>
+        </Card>
+      </div>
     </div>
   );
 }

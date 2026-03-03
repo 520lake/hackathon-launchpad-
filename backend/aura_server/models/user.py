@@ -25,6 +25,8 @@ class UserBase(SQLModel):
     phone: Optional[str] = None
     personality: Optional[str] = None # MBTI or description
     bio: Optional[str] = None # Self-intro
+    organization: Optional[str] = None
+    title: Optional[str] = None # Job Title
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -43,6 +45,8 @@ class UserUpdate(SQLModel):
     phone: Optional[str] = None
     personality: Optional[str] = None
     bio: Optional[str] = None
+    organization: Optional[str] = None
+    title: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None

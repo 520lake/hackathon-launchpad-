@@ -10,6 +10,7 @@ import HomePage from './pages/HomePage';
 import HackathonListPage from './pages/HackathonListPage';
 import DashboardPage from './pages/DashboardPage';
 import HackathonDetailPage from './pages/HackathonDetailPage';
+import SubmitProjectPage from './pages/SubmitProjectPage';
 
 // Modals
 import RegisterModal from './components/RegisterModal';
@@ -37,7 +38,7 @@ function App() {
 
   // Debug version log
   useEffect(() => {
-    console.log("Aura Frontend Version: 2026-03-03-REFACTORED-v2.1 (Pages)");
+    console.log("Aurathon Frontend Version: 2026-03-03-REFACTORED-v2.1 (Pages)");
   }, []);
 
   const handleLoginSuccess = async (token: string) => {
@@ -68,6 +69,7 @@ function App() {
         <Route path="/hackathons" element={<HackathonListPage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/hackathons/:id" element={<HackathonDetailPage />} />
+        <Route path="/hackathons/:id/submit" element={<SubmitProjectPage />} />
       </Routes>
 
       <Footer lang={lang} />

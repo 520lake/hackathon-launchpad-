@@ -30,8 +30,8 @@ interface UIContextType {
   closeDetail: () => void;
 
   // Language
-  lang: 'zh' | 'en';
-  setLang: (lang: 'zh' | 'en') => void;
+  lang: 'zh';
+  setLang: (lang: 'zh') => void;
 }
 
 const UIContext = createContext<UIContextType | undefined>(undefined);
@@ -46,7 +46,7 @@ export const UIProvider = ({ children }: { children: ReactNode }) => {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [selectedHackathonId, setSelectedHackathonId] = useState<number | null>(null);
-  const [lang, setLang] = useState<'zh' | 'en'>('zh');
+  const [lang, setLang] = useState<'zh'>('zh');
 
   const openDetail = (id: number) => {
     setSelectedHackathonId(id);

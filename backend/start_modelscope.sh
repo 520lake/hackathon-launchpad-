@@ -1,59 +1,53 @@
 #!/bin/bash
+set -e
 
-# 确保持久化目录存在
-mkdir -p /mnt/workspace
+# ModelScope Persistence Volume
+PERSISTENT_DIR="/mnt/workspace"
 
-# 设置默认数据库路径（如果未设置）
-if [ -z "$DATABASE_URL" ]; then
-    # 检查是否有持久化挂载目录
-    if [ -d "/mnt/workspace" ]; then
-        echo "Found /mnt/workspace, using it for database persistence..."
-        export DATABASE_URL="sqlite:////mnt/workspace/vibebuild.db"
-    else
-        echo "No persistent volume found, using default local sqlite..."
-        export DATABASE_URL="sqlite:///./vibebuild.db"
-    fi
+# Ensure persistence directory exists
+if [ ! -d "$PERSISTENT_DIR" ]; then
+    echo "Creating persistent directory at $PERSISTENT_DIR"
+    mkdir -p "$PERSISTENT_DIR"
 fi
 
-echo "Using database: $DATABASE_URL"
+# Set Database URL
+if [ -z "$DATABASE_URL" ]; then
+    export DATABASE_URL="sqlite:///$PERSISTENT_DIR/vibebuild.db"
+    echo "Using persistent database: $DATABASE_URL"
+else
+    echo "Using custom DATABASE_URL: $DATABASE_URL"
+fi
 
-# 检查DB文件状态
-DB_FILE=$(echo $DATABASE_URL | sed 's/sqlite:\/\/\///')
-echo "Checking DB file: $DB_FILE"
-ls -l $DB_FILE || echo "File not found (yet)"
+# Run Database Migrations
+echo "Running Alembic migrations..."
+alembic upgrade head || echo "Warning: Alembic upgrade failed. Attempting schema fix..."
 
-# 运行数据库迁移 (允许失败，后续脚本会强制修复)
-echo "Running migrations..."
-alembic upgrade head || echo "WARNING: Alembic upgrade failed. Proceeding to manual fix..."
+# Force fix schema if needed
+if [ -f "../scripts/fix_db_schema.py" ]; then
+    echo "Running schema fix script..."
+    python ../scripts/fix_db_schema.py
+else
+    echo "Warning: Schema fix script not found at ../scripts/fix_db_schema.py"
+fi
 
-# 强制修复数据库Schema (防止Alembic失效)
-echo "Force fixing DB schema..."
-python ../scripts/fix_db_schema.py
+# Initial Data Seeding
+echo "Seeding initial data..."
+python -m aura_server.initial_data || echo "Initial data seeding failed or already exists."
 
-# 再次检查DB文件状态
-echo "DB file status after fix:"
-ls -l $DB_FILE || echo "File not found"
+# Seed Mock Hackathons
+if [ -f "../scripts/seed_hackathons.py" ]; then
+    echo "Seeding hackathons..."
+    python ../scripts/seed_hackathons.py || echo "Hackathon seeding failed."
+fi
 
-# 创建初始数据（管理员账号）
-echo "Creating initial data..."
-python -m aura_server.initial_data
+# Populate Mock Data
+if [ -f "../scripts/populate_mock_data.py" ]; then
+    echo "Populating mock data..."
+    python ../scripts/populate_mock_data.py || echo "Mock data population failed."
+fi
 
-# 创建Mock Hackathons (如果不存在)
-echo "Seeding Hackathons..."
-python ../scripts/seed_hackathons.py
-
-# 创建Mock Teams/Projects (如果不存在)
-echo "Populating Mock Data..."
-python ../scripts/populate_mock_data.py
-
-# 再次运行修复脚本，防止seed脚本引入旧schema问题（不太可能，但保险起见）
-echo "Running schema fix one last time..."
-python ../scripts/fix_db_schema.py
-
-# 调试：检查管理员账号状态
-echo "DEBUG: Checking admin account status..."
-python scripts/debug_login.py || echo "Debug script failed (non-fatal)"
-
-# 启动应用
-echo "Starting application on port 7860..."
-python -m uvicorn aura_server.main:app --host 0.0.0.0 --port 7860
+# Start Uvicorn Server
+# ModelScope/Hugging Face Spaces default port is 7860
+PORT=${PORT:-7860}
+echo "Starting application on port $PORT..."
+exec python -m uvicorn aura_server.main:app --host 0.0.0.0 --port $PORT --workers 1

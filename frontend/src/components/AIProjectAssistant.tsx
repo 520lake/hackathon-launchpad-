@@ -35,16 +35,16 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
             let payload = {};
 
             if (mode === 'idea') {
-                endpoint = '/api/v1/ai/generate-project-idea';
+                endpoint = '/ai/generate-project-idea';
                 payload = { keywords: input };
             } else if (mode === 'recruitment') {
-                endpoint = '/api/v1/ai/generate-recruitment';
+                endpoint = '/ai/generate-recruitment';
                 payload = { 
                     project_name: input, // User can input project name or we can pass it via props
                     project_description: currentDescription || input 
                 };
             } else if (mode === 'refine') {
-                endpoint = '/api/v1/ai/refine-project';
+                endpoint = '/ai/refine-project';
                 payload = { description: currentDescription };
             }
 

@@ -71,7 +71,7 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
     const formData = new FormData();
     formData.append('file', file);
     const token = localStorage.getItem('token');
-    const res = await axios.post('http://localhost:8000/api/v1/upload/image', formData, {
+    const res = await axios.post('/api/v1/upload/image', formData, {
         headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}` 
@@ -123,12 +123,12 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                 };
 
       if (existingProject) {
-        await axios.patch(`http://localhost:8000/api/v1/projects/${existingProject.id}`, payload, { headers });
+        await axios.patch(`/api/v1/projects/${existingProject.id}`, payload, { headers });
       } else {
         if (!teamId) {
              throw new Error("Team ID is missing");
         }
-        await axios.post(`http://localhost:8000/api/v1/projects/?team_id=${teamId}`, payload, { headers });
+        await axios.post(`/api/v1/projects/?team_id=${teamId}`, payload, { headers });
       }
       
       alert(lang === 'zh' ? '作品提交成功！' : 'Project submitted successfully!');

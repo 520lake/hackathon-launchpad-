@@ -20,6 +20,7 @@ export interface Hackathon {
   format?: 'online' | 'offline';
   registration_type?: 'individual' | 'team';
   location?: string;
+  timezone?: string; // Added timezone field
   contact_info?: string; // JSON string
   requirements?: string;
   awards_detail?: string; // JSON string

@@ -111,7 +111,7 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
       
       // Mock API call if backend not ready, otherwise use real endpoint
       // Assuming endpoint exists based on legacy code
-      const res = await axios.post('http://localhost:8000/api/v1/ai/brainstorm-ideas', {
+      const res = await axios.post('/api/v1/ai/brainstorm-ideas', {
         theme: hackathon.theme_tags || hackathon.title,
         skills: skills,
         interests: interests,
@@ -155,7 +155,7 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
     setLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const res = await axios.post('http://localhost:8000/api/v1/ai/generate-pitch-deck', {
+      const res = await axios.post('/api/v1/ai/generate-pitch-deck', {
         project_name: selectedIdea?.title || "My Hackathon Project",
         project_description: projectDesc,
         lang: lang
@@ -184,7 +184,7 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
         const desc = projectDesc || (ideas.length > 0 ? ideas[0].description : "");
         const skills = Array.isArray(user.skills) ? user.skills.join(', ') : (user.skills || "General Programming");
         
-        const res = await axios.post('http://localhost:8000/api/v1/ai/generate-roadmap', {
+        const res = await axios.post('/api/v1/ai/generate-roadmap', {
             project_description: desc,
             team_skills: skills,
             lang: lang
@@ -210,7 +210,7 @@ const AIParticipantTools: React.FC<AIParticipantToolsProps> = ({ user, hackathon
 
       try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('http://localhost:8000/api/v1/ai/team-match', {
+        const res = await axios.post('/api/v1/ai/team-match', {
           hackathon_id: hackathon.id,
           requirements: teamRequirements
         }, {

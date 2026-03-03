@@ -29,6 +29,7 @@ class HackathonBase(SQLModel):
     registration_type: RegistrationType = Field(default=RegistrationType.TEAM)
     format: HackathonFormat = Field(default=HackathonFormat.ONLINE)
     location: Optional[str] = None
+    timezone: Optional[str] = Field(default="Asia/Shanghai") # Added timezone field
     
     # Organizer Info
     organizer_name: Optional[str] = None
@@ -75,6 +76,7 @@ class HackathonUpdate(SQLModel):
     registration_type: Optional[RegistrationType] = None
     format: Optional[HackathonFormat] = None
     location: Optional[str] = None
+    timezone: Optional[str] = None # Added timezone field
     organizer_name: Optional[str] = None
     contact_info: Optional[str] = None
     requirements: Optional[str] = None

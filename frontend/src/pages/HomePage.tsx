@@ -32,7 +32,7 @@ export default function HomePage() {
   const fetchLatestHackathons = async () => {
     try {
       // Mock data if backend fails or empty
-      const res = await axios.get('http://localhost:8000/api/hackathons/?skip=0&limit=3');
+      const res = await axios.get('/api/v1/hackathons/?skip=0&limit=3');
       if (res.data && Array.isArray(res.data)) {
         setLatestHackathons(res.data);
       }

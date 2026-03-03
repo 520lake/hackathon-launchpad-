@@ -103,8 +103,6 @@ function App() {
         initialData={editingHackathon}
       />
 
-      {/* Refactored Modals Removed from App.tsx */}
-
       <VerificationModal 
         isOpen={isVerificationOpen} 
         onClose={() => setIsVerificationOpen(false)}

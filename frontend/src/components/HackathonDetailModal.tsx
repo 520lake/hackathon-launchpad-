@@ -337,7 +337,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             const payload = JSON.parse(atob(token.split('.')[1]));
             setCurrentUserId(payload.sub ? parseInt(payload.sub) : null);
             
-            const res = await axios.get('api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
+            const res = await axios.get('/api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
             setIsVerified(res.data.is_verified);
             setCurrentUser(res.data);
         } catch (e) {
@@ -352,7 +352,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (!hackathonId) return;
     setLoading(true);
     try {
-        const res = await axios.get(`api/v1/hackathons/${hackathonId}`);
+        const res = await axios.get(`/api/v1/hackathons/${hackathonId}`);
         const h = res.data;
         setHackathon(h);
         
@@ -365,7 +365,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
         // Fetch Judges
         try {
-            const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`);
+            const resJudges = await axios.get(`/api/v1/hackathons/${hackathonId}/judges`);
             setJudges(resJudges.data);
         } catch(e) { setJudges([]); }
 
@@ -374,7 +374,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
         if (token) {
             try {
                 // Enrollment
-                const resEnroll = await axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
+                const resEnroll = await axios.get('/api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } });
                 const myEnroll = resEnroll.data.find((e: any) => Number(e.hackathon_id) === Number(hackathonId));
                 
                 // Fix: Don't overwrite enrollment with null if we just enrolled (handled in handleRegister)
@@ -385,13 +385,13 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                 }
 
                 // My Team
-                const resTeams = await axios.get('api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
+                const resTeams = await axios.get('/api/v1/teams/me', { headers: { Authorization: `Bearer ${token}` } });
                 const myTeamFound = resTeams.data.find((t: any) => Number(t.hackathon_id) === Number(hackathonId));
                 setMyTeam(myTeamFound || null);
 
                 // My Project (via Team)
                 if (myTeamFound) {
-                    const resProj = await axios.get('api/v1/projects', { 
+                    const resProj = await axios.get('/api/v1/projects', { 
                         params: { hackathon_id: hackathonId },
                         headers: { Authorization: `Bearer ${token}` } 
                     });
@@ -403,7 +403,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
                 // Judge Check
                 try {
-                   const resJudges = await axios.get(`api/v1/hackathons/${hackathonId}/judges`, { headers: { Authorization: `Bearer ${token}` } });
+                   const resJudges = await axios.get(`/api/v1/hackathons/${hackathonId}/judges`, { headers: { Authorization: `Bearer ${token}` } });
                    setIsJudge(resJudges.data.some((j: any) => j.user_id === parseInt(JSON.parse(atob(token.split('.')[1])).sub)));
                 } catch(e) {}
             } catch (e) { console.error(e); }
@@ -418,11 +418,11 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchTeams = async () => {
       if (!hackathonId) return;
       try {
-          const res = await axios.get(`api/v1/teams?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/teams?hackathon_id=${hackathonId}`);
           setTeams(res.data);
           
           // Fetch Individual Participants
-          const resPart = await axios.get(`api/v1/enrollments/public/${hackathonId}`);
+          const resPart = await axios.get(`/api/v1/enrollments/public/${hackathonId}`);
           setParticipants(resPart.data);
       } catch (e) { console.error(e); }
   };
@@ -430,7 +430,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchGallery = async () => {
       if (!hackathonId) return;
       try {
-          const res = await axios.get(`api/v1/projects?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/projects?hackathon_id=${hackathonId}`);
           setGalleryProjects(res.data);
       } catch (e) { console.error(e); }
   };
@@ -441,7 +441,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     
     setRegisterLoading(true);
     try {
-        const response = await axios.post('api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
+        const response = await axios.post('/api/v1/enrollments/', { hackathon_id: hackathonId, user_id: 0 }, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         
@@ -485,7 +485,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       if (!newTeamName.trim()) return;
       setCreatingTeam(true);
       try {
-          await axios.post('api/v1/teams', { name: newTeamName }, {
+          await axios.post('/api/v1/teams', { name: newTeamName }, {
               params: { hackathon_id: hackathonId },
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
@@ -500,7 +500,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleJoinTeam = async (teamId: number) => {
       try {
-          await axios.post(`api/v1/teams/${teamId}/join`, {}, {
+          await axios.post(`/api/v1/teams/${teamId}/join`, {}, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchHackathon();
@@ -517,7 +517,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       }
       if (!confirm(lang === 'zh' ? '确定要退出战队吗？' : 'Are you sure you want to leave the team?')) return;
       try {
-          await axios.delete(`api/v1/teams/${myTeam.id}/leave`, {
+          await axios.delete(`/api/v1/teams/${myTeam.id}/leave`, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchHackathon();
@@ -530,7 +530,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       // Auto-create team for individual
       try {
           // Check if already has team (should be handled by UI, but double check)
-          await axios.post('api/v1/teams', { name: `${lang === 'zh' ? '个人项目' : 'Individual Project'} - ${currentUserId}` }, {
+          await axios.post('/api/v1/teams', { name: `${lang === 'zh' ? '个人项目' : 'Individual Project'} - ${currentUserId}` }, {
               params: { hackathon_id: hackathonId },
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
@@ -623,7 +623,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
       if (!hackathonId) return;
       setIsPostsLoading(true);
       try {
-          const res = await axios.get(`api/v1/community/posts?hackathon_id=${hackathonId}`);
+          const res = await axios.get(`/api/v1/community/posts?hackathon_id=${hackathonId}`);
           setPosts(res.data);
       } catch (e) { console.error(e); }
       finally { setIsPostsLoading(false); }
@@ -632,7 +632,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const handleCreatePost = async () => {
       if (!newPostTitle || !newPostContent) return;
       try {
-          await axios.post('api/v1/community/posts', {
+          await axios.post('/api/v1/community/posts', {
               hackathon_id: hackathonId,
               title: newPostTitle,
               content: newPostContent,
@@ -649,7 +649,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleGenerateTopic = async () => {
       try {
-          await axios.post(`api/v1/community/generate?hackathon_id=${hackathonId}`, {}, {
+          await axios.post(`/api/v1/community/generate?hackathon_id=${hackathonId}`, {}, {
               headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
           });
           fetchPosts();
@@ -658,7 +658,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleLikePost = async (postId: number) => {
     try {
-        await axios.post(`api/v1/community/posts/${postId}/like`, {}, {
+        await axios.post(`/api/v1/community/posts/${postId}/like`, {}, {
             headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
         });
         setPosts(posts.map(p => p.id === postId ? { ...p, likes: p.likes + 1 } : p));
@@ -679,7 +679,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const fetchComments = async (postId: number) => {
     setLoadingComments(true);
     try {
-        const res = await axios.get(`api/v1/community/posts/${postId}/comments`);
+        const res = await axios.get(`/api/v1/community/posts/${postId}/comments`);
         setComments(prev => ({ ...prev, [postId]: res.data }));
     } catch (e) { console.error(e); }
     finally { setLoadingComments(false); }
@@ -688,7 +688,7 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const handleCreateComment = async (postId: number) => {
     if (!commentContent.trim()) return;
     try {
-        await axios.post(`api/v1/community/posts/${postId}/comments`, {
+        await axios.post(`/api/v1/community/posts/${postId}/comments`, {
             content: commentContent,
             post_id: postId
         }, {

@@ -152,7 +152,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
   const fetchHackathons = async () => {
     setLoading(true);
     try {
-      const response = await axios.get('api/v1/hackathons');
+      const response = await axios.get('/api/v1/hackathons');
       setHackathons(response.data);
     } catch (err) {
       console.error(err);
@@ -167,7 +167,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
     setAiResults(null);
     try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('api/v1/ai/search-hackathons', { query: aiQuery }, {
+        const res = await axios.post('/api/v1/ai/search-hackathons', { query: aiQuery }, {
              headers: token ? { Authorization: `Bearer ${token}` } : {}
         });
         setAiResults(res.data);
@@ -363,7 +363,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
 
                        {/* Search Input */}
                        <div className="mb-8 relative group">
-                           <div className="absolute -inset-1 bg-gradient-to-r from-brand to-purple-600 rounded-lg blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+                           <div className="absolute -inset-1 bg-gradient-to-r from-brand to-purple-600 rounded-md blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
                            <div className="relative flex">
                                <input 
                                    type="text"
@@ -484,7 +484,7 @@ export default function HackathonListModal({ isOpen, onClose, onHackathonSelect,
                           <div className="mt-4 font-mono text-brand animate-pulse">LOADING DATA_STREAM...</div>
                         </div>
                       ) : filteredHackathons.length === 0 ? (
-                        <div className="text-center py-32 border border-dashed border-gray-800 rounded-lg">
+                        <div className="text-center py-32 border border-dashed border-gray-800 rounded-md">
                             <div className="text-6xl mb-4">📡</div>
                             <p className="text-xl text-gray-500 font-mono">NO SIGNALS FOUND.</p>
                         </div>

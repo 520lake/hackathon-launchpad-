@@ -124,14 +124,14 @@ export default function ProfilePage() {
       const token = localStorage.getItem('token')
       
       // Fetch enrollments
-      const enrollRes = await axios.get('api/v1/enrollments/me', {
+      const enrollRes = await axios.get('/api/v1/enrollments/me', {
         headers: { Authorization: `Bearer ${token}` }
       })
       setEnrollments(enrollRes.data || [])
       
       // Fetch my organized hackathons
       try {
-        const hackRes = await axios.get('api/v1/hackathons/my', {
+        const hackRes = await axios.get('/api/v1/hackathons/my', {
           headers: { Authorization: `Bearer ${token}` }
         })
         setMyHackathons(hackRes.data || [])
@@ -196,7 +196,7 @@ export default function ProfilePage() {
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-lg ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-md ${
                     activeTab === item.id 
                       ? 'bg-white/[0.08] text-white' 
                       : 'text-gray-400 hover:text-white hover:bg-white/[0.03]'
@@ -223,7 +223,7 @@ export default function ProfilePage() {
                   className="space-y-6"
                 >
                   {/* User Hero Card */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
                     <div className="flex items-start gap-6">
                       {/* Avatar */}
                       <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0">
@@ -266,7 +266,7 @@ export default function ProfilePage() {
                       {/* Edit Button */}
                       <button 
                         onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-2 px-4 py-2 border border-[#333] text-gray-300 text-sm rounded-lg hover:bg-white/[0.05] transition-colors"
+                        className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-300 text-sm rounded-md hover:bg-white/[0.05] transition-colors"
                       >
                         <EditIcon />
                         编辑资料
@@ -275,7 +275,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* My Participated Hackathons */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
                         <button className="text-gray-400 hover:text-white transition-colors">
@@ -304,13 +304,13 @@ export default function ProfilePage() {
                           <div 
                             key={enroll.id}
                             onClick={() => navigate(`/events/${enroll.hackathon_id}`)}
-                            className="bg-[#111111] border border-[#1A1A1A] rounded-xl p-5 cursor-pointer hover:border-[#333] transition-all group"
+                            className="bg-[#111111] border border-[#222222] rounded-md p-5 cursor-pointer hover:border-[#333] transition-all group"
                           >
                             <div className="flex gap-5">
                               {/* Thumbnail */}
-                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-lg flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600">
+                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-md flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600">
                                 {enroll.hackathon?.cover_image ? (
-                                  <img src={enroll.hackathon.cover_image} className="w-full h-full rounded-lg object-cover" />
+                                  <img src={enroll.hackathon.cover_image} className="w-full h-full rounded-md object-cover" />
                                 ) : (
                                   enroll.hackathon?.title?.substring(0, 2) || 'TE'
                                 )}
@@ -375,7 +375,7 @@ export default function ProfilePage() {
                         <p className="mb-4">暂无参与的黑客松</p>
                         <button 
                           onClick={() => navigate('/events')}
-                          className="px-6 py-2 bg-brand text-black text-sm font-medium rounded-lg hover:bg-white transition-colors"
+                          className="px-6 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
                         >
                           探索活动
                         </button>
@@ -385,7 +385,7 @@ export default function ProfilePage() {
 
                   {/* My Organized Hackathons */}
                   {myHackathons.length > 0 && (
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                       <div className="flex items-center justify-between mb-6">
                         <div className="flex items-center gap-3">
                           <h3 className="text-white font-semibold">我举办的黑客松</h3>
@@ -399,7 +399,7 @@ export default function ProfilePage() {
                           <div 
                             key={h.id}
                             onClick={() => navigate(`/events/${h.id}`)}
-                            className="bg-[#111111] border border-[#1A1A1A] rounded-xl p-4 cursor-pointer hover:border-[#333] transition-all"
+                            className="bg-[#111111] border border-[#222222] rounded-md p-4 cursor-pointer hover:border-[#333] transition-all"
                           >
                             <h4 className="text-white font-medium mb-2">{h.title}</h4>
                             <p className="text-gray-500 text-sm">{getStatusBadge(h.status)}</p>
@@ -421,7 +421,7 @@ export default function ProfilePage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-white font-semibold text-lg">感兴趣的话题</h3>
                       <button className="text-gray-500 text-sm hover:text-brand transition-colors">
@@ -452,7 +452,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Notification Settings */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
                     <h3 className="text-white font-semibold text-lg mb-6">通知设置</h3>
                     
                     <div className="space-y-4">
@@ -486,7 +486,7 @@ export default function ProfilePage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl overflow-hidden">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden">
                     {/* User ID */}
                     <div className="flex items-center justify-between p-6 border-b border-[#222]">
                       <div>
@@ -558,7 +558,7 @@ export default function ProfilePage() {
                         <div className="text-red-400 text-sm mb-1">删除账号</div>
                         <div className="text-gray-500 text-[12px]">删除后将无法恢复，请谨慎操作</div>
                       </div>
-                      <button className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-lg hover:bg-red-500/10 transition-colors">
+                      <button className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-md hover:bg-red-500/10 transition-colors">
                         删除账号
                       </button>
                     </div>

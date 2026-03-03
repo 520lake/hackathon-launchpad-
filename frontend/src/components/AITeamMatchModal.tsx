@@ -51,8 +51,8 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
     try {
         const token = localStorage.getItem('token');
         const [enrollRes, hackRes] = await Promise.all([
-            axios.get('api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } }),
-            axios.get('api/v1/hackathons')
+            axios.get('/api/v1/enrollments/me', { headers: { Authorization: `Bearer ${token}` } }),
+            axios.get('/api/v1/hackathons')
         ]);
         
         const enrolledIds = enrollRes.data.map((e: any) => e.hackathon_id);
@@ -85,7 +85,7 @@ export default function AITeamMatchModal({ isOpen, onClose, lang, hackathonId }:
         return;
       }
 
-      const res = await axios.post('api/v1/ai/team-match', {
+      const res = await axios.post('/api/v1/ai/team-match', {
         hackathon_id: selectedId,
         requirements
       }, {

@@ -9,7 +9,6 @@ import SubmitProjectModal from '../components/SubmitProjectModal'
 import JudgingModal from '../components/JudgingModal'
 import ResultPublishModal from '../components/ResultPublishModal'
 import AIResumeModal from '../components/AIResumeModal'
-import CreateHackathonModal from '../components/CreateHackathonModal'
 
 // Interfaces
 interface Recruitment {
@@ -159,8 +158,6 @@ export default function EventDetailPage() {
   const [isJudgingOpen, setIsJudgingOpen] = useState(false)
   const [isResultPublishOpen, setIsResultPublishOpen] = useState(false)
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [editingHackathon, setEditingHackathon] = useState<any>(null)
   
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -186,7 +183,7 @@ export default function EventDetailPage() {
   const fetchHackathon = async () => {
     try {
       setLoading(true)
-      const res = await axios.get(`api/v1/hackathons/${hackathonId}`)
+      const res = await axios.get(`/api/v1/hackathons/${hackathonId}`)
       setHackathon(res.data)
     } catch (e) {
       console.error(e)
@@ -196,19 +193,24 @@ export default function EventDetailPage() {
   }
 
   const fetchTeams = async () => {
+    // 独立请求，避免一个失败导致另一个也无数据
     try {
-      const res = await axios.get(`api/v1/teams?hackathon_id=${hackathonId}`)
+      const res = await axios.get(`/api/v1/teams?hackathon_id=${hackathonId}`)
       setTeams(res.data)
-      const resPart = await axios.get(`api/v1/enrollments/public/${hackathonId}`)
+    } catch (e) {
+      console.error('获取团队失败:', e)
+    }
+    try {
+      const resPart = await axios.get(`/api/v1/enrollments/public/${hackathonId}`)
       setParticipants(resPart.data)
     } catch (e) {
-      console.error(e)
+      console.error('获取参赛者失败:', e)
     }
   }
 
   const fetchGallery = async () => {
     try {
-      const res = await axios.get(`api/v1/projects?hackathon_id=${hackathonId}`)
+      const res = await axios.get(`/api/v1/projects?hackathon_id=${hackathonId}`)
       setGalleryProjects(res.data)
     } catch (e) {
       console.error(e)
@@ -218,19 +220,19 @@ export default function EventDetailPage() {
   const fetchEnrollment = async () => {
     try {
       const token = localStorage.getItem('token')
-      const res = await axios.get(`api/v1/enrollments/my/${hackathonId}`, {
+      const res = await axios.get(`/api/v1/enrollments/my/${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setEnrollment(res.data)
       
       // Fetch my team
-      const teamRes = await axios.get(`api/v1/teams/my?hackathon_id=${hackathonId}`, {
+      const teamRes = await axios.get(`/api/v1/teams/my?hackathon_id=${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setMyTeam(teamRes.data)
       
       // Fetch my project
-      const projRes = await axios.get(`api/v1/projects/my?hackathon_id=${hackathonId}`, {
+      const projRes = await axios.get(`/api/v1/projects/my?hackathon_id=${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       })
       setMyProject(projRes.data)
@@ -245,7 +247,7 @@ export default function EventDetailPage() {
     }
     try {
       const token = localStorage.getItem('token')
-      await axios.post(`api/v1/enrollments`, 
+      await axios.post(`/api/v1/enrollments`,
         { hackathon_id: hackathonId },
         { headers: { Authorization: `Bearer ${token}` } }
       )
@@ -260,7 +262,7 @@ export default function EventDetailPage() {
   const handleJoinTeam = async (teamId: number) => {
     try {
       const token = localStorage.getItem('token')
-      await axios.post(`api/v1/teams/${teamId}/join`, {}, {
+      await axios.post(`/api/v1/teams/${teamId}/join`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       fetchTeams()
@@ -418,10 +420,7 @@ export default function EventDetailPage() {
                 ))}
                 {hackathon.organizer_id === currentUser?.id && (
                   <button
-                    onClick={() => {
-                      setEditingHackathon(hackathon)
-                      setIsCreateOpen(true)
-                    }}
+                    onClick={() => navigate(`/create?edit=${hackathon.id}`)}
                     className="ml-auto px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
                   >
                     编辑活动
@@ -686,22 +685,22 @@ export default function EventDetailPage() {
 
                   {/* 统计信息 */}
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-5">
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">总参赛者</div>
                       <div className="text-2xl font-bold text-white">{participants.length}</div>
                     </div>
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-5">
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">团队数</div>
                       <div className="text-2xl font-bold text-white">{teams.length}</div>
                     </div>
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-5">
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
                       <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">招募中</div>
                       <div className="text-2xl font-bold text-[#FBBF24]">{teams.filter(t => t.recruitments && t.recruitments.length > 0).length}</div>
                     </div>
                   </div>
 
                   {/* 团队列表 - List Row 布局 */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl overflow-hidden">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden">
                     <div className="px-6 py-4 border-b border-[#222222]">
                       <h4 className="text-sm font-medium text-white flex items-center gap-3">
                         <span className="text-[#FBBF24] font-mono">//</span>
@@ -770,62 +769,71 @@ export default function EventDetailPage() {
                   </div>
 
                   {/* 个人参赛者 - List Row 布局 */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-[#222222]">
-                      <h4 className="text-sm font-medium text-white flex items-center gap-3">
-                        <span className="text-[#FBBF24] font-mono">//</span>
-                        个人参赛者
-                        <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-md">{participants.filter(p => !p.team_id).length}</span>
-                      </h4>
-                    </div>
-                    
-                    {participants.filter(p => !p.team_id).length > 0 ? (
-                      <div>
-                        {participants.filter(p => !p.team_id).map((p, idx, arr) => (
-                          <div 
-                            key={p.id} 
-                            className={`flex items-center gap-4 px-6 py-4 hover:bg-[#111111] transition-colors duration-200 ease-in-out ${
-                              idx !== arr.length - 1 ? 'border-b border-[#222222]' : ''
-                            }`}
-                          >
-                            {/* Avatar - 纯圆形 */}
-                            <div className="w-10 h-10 rounded-full bg-[#111111] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
-                              {p.user?.avatar_url ? (
-                                <img src={p.user.avatar_url} className="w-full h-full object-cover" />
-                              ) : (
-                                <span className="text-sm font-medium text-gray-500">{p.user?.username?.[0] || '?'}</span>
-                              )}
-                            </div>
+                  {(() => {
+                    // 从团队成员中提取所有已组队的 user_id
+                    const teamMemberIds = new Set(
+                      teams.flatMap(t => t.members?.map((m: any) => m.user_id) || [])
+                    )
+                    const individualParticipants = participants.filter(p => !teamMemberIds.has(p.user_id))
+                    return (
+                      <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden">
+                        <div className="px-6 py-4 border-b border-[#222222]">
+                          <h4 className="text-sm font-medium text-white flex items-center gap-3">
+                            <span className="text-[#FBBF24] font-mono">//</span>
+                            个人参赛者
+                            <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-md">{individualParticipants.length}</span>
+                          </h4>
+                        </div>
+                        
+                        {individualParticipants.length > 0 ? (
+                          <div>
+                            {individualParticipants.map((p: any, idx: number) => (
+                              <div 
+                                key={p.user_id} 
+                                className={`flex items-center gap-4 px-6 py-4 hover:bg-[#111111] transition-colors duration-200 ease-in-out ${
+                                  idx !== individualParticipants.length - 1 ? 'border-b border-[#222222]' : ''
+                                }`}
+                              >
+                                {/* Avatar - 纯圆形 */}
+                                <div className="w-10 h-10 rounded-full bg-[#111111] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                  {p.avatar_url ? (
+                                    <img src={p.avatar_url} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-sm font-medium text-gray-500">{p.nickname?.[0] || '?'}</span>
+                                  )}
+                                </div>
 
-                            {/* Info */}
-                            <div className="flex-1 min-w-0">
-                              <div className="text-sm text-white">{p.user?.username || '匿名'}</div>
-                              <div className="text-[11px] text-gray-500">{p.user?.title || '个人参赛'}</div>
-                            </div>
+                                {/* Info */}
+                                <div className="flex-1 min-w-0">
+                                  <div className="text-sm text-white">{p.nickname || '匿名'}</div>
+                                  <div className="text-[11px] text-gray-500">{p.bio || '个人参赛'}</div>
+                                </div>
 
-                            {/* Skills */}
-                            {p.skills && p.skills.length > 0 && (
-                              <div className="flex items-center gap-1 flex-shrink-0">
-                                {p.skills.slice(0, 3).map((skill: string, i: number) => (
-                                  <span key={i} className="px-2 py-0.5 text-[10px] border border-[#333] text-gray-500 rounded-md">{skill}</span>
-                                ))}
+                                {/* Skills */}
+                                {p.skills && p.skills.length > 0 && (
+                                  <div className="flex items-center gap-1 flex-shrink-0">
+                                    {p.skills.slice(0, 3).map((skill: string, i: number) => (
+                                      <span key={i} className="px-2 py-0.5 text-[10px] border border-[#333] text-gray-500 rounded-md">{skill}</span>
+                                    ))}
+                                  </div>
+                                )}
+
+                                {/* Action */}
+                                <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-md hover:text-white hover:border-gray-500 transition-colors duration-200 flex-shrink-0">
+                                  查看
+                                </button>
                               </div>
-                            )}
-
-                            {/* Action */}
-                            <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-md hover:text-white hover:border-gray-500 transition-colors duration-200 flex-shrink-0">
-                              查看
-                            </button>
+                            ))}
                           </div>
-                        ))}
+                        ) : (
+                          <div className="text-center py-12 text-gray-600 text-sm">暂无个人参赛者</div>
+                        )}
                       </div>
-                    ) : (
-                      <div className="text-center py-12 text-gray-600 text-sm">暂无个人参赛者</div>
-                    )}
-                  </div>
+                    )
+                  })()}
 
                   {teams.length === 0 && participants.length === 0 && (
-                    <div className="text-center py-20 bg-[#0A0A0A] border border-[#222222] rounded-2xl">
+                    <div className="text-center py-20 bg-[#0A0A0A] border border-[#222222] rounded-xl">
                       <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">暂无参赛者</div>
                     </div>
                   )}
@@ -854,12 +862,12 @@ export default function EventDetailPage() {
           <div className="w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
             <div className="sticky top-24 space-y-6">
               {/* 报名按钮 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                 {!enrollment ? (
                   <>
                     <button 
                       onClick={handleRegister}
-                      className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-lg hover:bg-white transition-colors duration-200 mb-4"
+                      className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors duration-200 mb-4"
                     >
                       立即报名
                     </button>
@@ -875,13 +883,13 @@ export default function EventDetailPage() {
                     <div className="grid grid-cols-2 gap-2">
                       <button 
                         onClick={() => setActiveTab('participants')}
-                        className="py-2 border border-[#333] text-[11px] text-white rounded-lg hover:bg-[#111111] transition-colors duration-200"
+                        className="py-2 border border-white/10 text-[11px] text-white rounded-md hover:bg-[#111111] transition-colors duration-200"
                       >
                         组队广场
                       </button>
                       <button 
                         onClick={() => setIsSubmitOpen(true)}
-                        className="py-2 bg-[#FBBF24] text-black text-[11px] font-medium rounded-lg hover:bg-white transition-colors duration-200"
+                        className="py-2 bg-[#FBBF24] text-black text-[11px] font-medium rounded-md hover:bg-white transition-colors duration-200"
                       >
                         提交作品
                       </button>
@@ -891,13 +899,13 @@ export default function EventDetailPage() {
               </div>
 
               {/* 倒计时 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">活动倒计时</div>
                 <CountdownTimer targetDate={hackathon.registration_end_date || hackathon.end_date} />
               </div>
 
               {/* 时间轴 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">时间轴</div>
                 <div className="space-y-4 relative pl-4 border-l border-[#222222]">
                   <div className="relative">
@@ -932,7 +940,7 @@ export default function EventDetailPage() {
               </div>
 
               {/* 主办方信息 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">主办方</div>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[#111111] border border-[#333] rounded-full flex items-center justify-center">
@@ -948,7 +956,7 @@ export default function EventDetailPage() {
               </div>
 
               {/* 快速导航 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-2xl p-4">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-4">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-3">快速导航</div>
                 <div className="space-y-1">
                   {[
@@ -960,7 +968,7 @@ export default function EventDetailPage() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`block w-full text-left px-3 py-2 text-[12px] rounded-lg transition-colors duration-200 ${
+                      className={`block w-full text-left px-3 py-2 text-[12px] rounded-md transition-colors duration-200 ${
                         activeTab === item.id 
                           ? 'text-[#FBBF24] bg-[#FBBF24]/5' 
                           : 'text-gray-500 hover:text-white hover:bg-[#111111]'
@@ -985,7 +993,6 @@ export default function EventDetailPage() {
         </>
       )}
       <AIResumeModal isOpen={isAIResumeOpen} onClose={() => setIsAIResumeOpen(false)} lang={lang} />
-      <CreateHackathonModal isOpen={isCreateOpen} onClose={() => { setIsCreateOpen(false); setEditingHackathon(null); }} initialData={editingHackathon} lang={lang} />
     </div>
   )
 }

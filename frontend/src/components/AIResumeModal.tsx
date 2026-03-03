@@ -38,7 +38,7 @@ export default function AIResumeModal({ isOpen, onClose, onSave, lang }: AIResum
     
     try {
         const token = localStorage.getItem('token');
-        const res = await axios.post('api/v1/ai/generate-resume', { 
+        const res = await axios.post('/api/v1/ai/generate-resume', { 
             keywords, 
             role,
             lang 

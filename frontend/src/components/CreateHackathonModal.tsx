@@ -250,7 +250,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
             scoring_dimensions: scoringDimensions
         } : undefined;
 
-        const res = await axios.post('api/v1/ai/generate', {
+        const res = await axios.post('/api/v1/ai/generate', {
             prompt: aiPrompt,
             type: 'hackathon',
             context_data: contextData
@@ -328,7 +328,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
     const formData = new FormData();
     formData.append('file', file);
     const token = localStorage.getItem('token');
-    const res = await axios.post('api/v1/upload/image', formData, {
+    const res = await axios.post('/api/v1/upload/image', formData, {
         headers: { 
             'Content-Type': 'multipart/form-data',
             Authorization: `Bearer ${token}` 
@@ -365,7 +365,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
       try {
           const token = localStorage.getItem('token');
           if (token) {
-              const res = await axios.get('api/v1/users/me', {
+              const res = await axios.get('/api/v1/users/me', {
                   headers: { Authorization: `Bearer ${token}` }
               });
               setIsVerified(res.data.is_verified);
@@ -546,12 +546,12 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
       let res;
       if (initialData && initialData.id) {
           // Edit mode
-          res = await axios.patch(`api/v1/hackathons/${initialData.id}`, payload, {
+          res = await axios.patch(`/api/v1/hackathons/${initialData.id}`, payload, {
               headers: { Authorization: `Bearer ${token}` }
           });
       } else {
           // Create mode
-          res = await axios.post('api/v1/hackathons', payload, {
+          res = await axios.post('/api/v1/hackathons', payload, {
               headers: { Authorization: `Bearer ${token}` }
           });
       }
@@ -562,7 +562,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
       if (judges.length > 0 && res.data.id) {
           for (const email of judges) {
               try {
-                  await axios.post(`api/v1/hackathons/${res.data.id}/judges`, null, {
+                  await axios.post(`/api/v1/hackathons/${res.data.id}/judges`, null, {
                       params: { user_email: email },
                       headers: { Authorization: `Bearer ${token}` }
                   });

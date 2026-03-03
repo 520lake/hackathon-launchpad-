@@ -9,7 +9,6 @@ import { LatestEvents, About, Partners, Schedule, Footer } from '../components/L
 // Modals
 import RegisterModal from '../components/RegisterModal'
 import LoginModal from '../components/LoginModal'
-import CreateHackathonModal from '../components/CreateHackathonModal'
 import VerificationModal from '../components/VerificationModal'
 import UserDashboardModal from '../components/UserDashboardModal'
 import AdminDashboardModal from '../components/AdminDashboardModal'
@@ -37,13 +36,11 @@ export default function HomePage() {
   
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [isCreateHackathonOpen, setIsCreateHackathonOpen] = useState(false)
   const [isVerificationOpen, setIsVerificationOpen] = useState(false)
   const [isDashboardOpen, setIsDashboardOpen] = useState(false)
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false)
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
   const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([])
-  const [editingHackathon, setEditingHackathon] = useState<any>(null)
 
   useEffect(() => {
     fetchLatestHackathons()
@@ -51,7 +48,7 @@ export default function HomePage() {
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('api/v1/hackathons')
+      const response = await axios.get('/api/v1/hackathons')
       setLatestHackathons(response.data.slice(0, 6))
     } catch (err) {
       console.error(err)
@@ -63,17 +60,17 @@ export default function HomePage() {
       try {
         const token = localStorage.getItem('token')
         if (currentUser && currentUser.is_verified) {
-          setIsCreateHackathonOpen(true)
+          navigate('/create') // 跳转到独立的创建页面
           return
         }
 
-        const res = await axios.get('api/v1/users/me', {
+        const res = await axios.get('/api/v1/users/me', {
           headers: { Authorization: `Bearer ${token}` }
         })
         fetchCurrentUser()
         
         if (res.data.is_verified) {
-          setIsCreateHackathonOpen(true)
+          navigate('/create') // 跳转到独立的创建页面
         } else {
           setIsVerificationOpen(true)
         }
@@ -124,15 +121,6 @@ export default function HomePage() {
       {/* Modals */}
       <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} lang={lang} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} lang={lang} />
-      <CreateHackathonModal 
-        isOpen={isCreateHackathonOpen} 
-        onClose={() => {
-          setIsCreateHackathonOpen(false)
-          setEditingHackathon(null)
-        }}
-        initialData={editingHackathon}
-        lang={lang}
-      />
       <VerificationModal 
         isOpen={isVerificationOpen} 
         onClose={() => setIsVerificationOpen(false)}

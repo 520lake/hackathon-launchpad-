@@ -89,7 +89,7 @@ export default function Layout({ lang, setLang }: LayoutProps) {
           return;
         }
       }
-      const res = await axios.get('api/v1/users/me', {
+      const res = await axios.get('/api/v1/users/me', {
         headers: { Authorization: `Bearer ${token}` }
       });
       setCurrentUser(res.data);

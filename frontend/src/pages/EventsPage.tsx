@@ -39,7 +39,7 @@ export default function EventsPage() {
   const fetchHackathons = async () => {
     try {
       setLoading(true)
-      const response = await axios.get('api/v1/hackathons')
+      const response = await axios.get('/api/v1/hackathons')
       setHackathons(response.data)
     } catch (err) {
       console.error(err)
@@ -145,7 +145,7 @@ export default function EventsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜索活动..."
-                  className="w-full bg-[#0A0A0A] border border-[#222222] rounded-lg px-3 py-2.5 text-[13px] text-white placeholder-gray-600 focus:border-[#FBBF24]/50 outline-none transition-colors duration-200"
+                  className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-3 py-2.5 text-[13px] text-white placeholder-gray-600 focus:border-[#FBBF24]/50 outline-none transition-colors duration-200"
                 />
               </div>
 
@@ -157,7 +157,7 @@ export default function EventsPage() {
                     <button
                       key={cat.key}
                       onClick={() => setStatusFilter(cat.key)}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-lg transition-colors duration-200 ${
+                      className={`w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-md transition-colors duration-200 ${
                         statusFilter === cat.key 
                           ? 'bg-[#FBBF24]/10 text-[#FBBF24]' 
                           : 'text-gray-400 hover:text-white hover:bg-[#111111]'
@@ -181,7 +181,7 @@ export default function EventsPage() {
                       <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] rounded-lg transition-colors duration-200 ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] rounded-md transition-colors duration-200 ${
                           selectedTags.includes(tag)
                             ? 'bg-[#FBBF24]/10 text-[#FBBF24]'
                             : 'text-gray-500 hover:text-white hover:bg-[#111111]'
@@ -210,7 +210,7 @@ export default function EventsPage() {
                       <button
                         key={tag}
                         onClick={() => toggleTag(tag)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] rounded-lg transition-colors duration-200 ${
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] rounded-md transition-colors duration-200 ${
                           selectedTags.includes(tag)
                             ? 'bg-gray-500/20 text-white'
                             : 'text-gray-500 hover:text-white hover:bg-[#111111]'
@@ -285,10 +285,10 @@ export default function EventsPage() {
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.3, delay: idx * 0.05 }}
                     onClick={() => navigate(`/events/${hackathon.id}`)}
-                    className="group cursor-pointer bg-[#0A0A0A] border border-[#222222] rounded-2xl overflow-hidden hover:border-[#333] transition-colors duration-200"
+                    className="group cursor-pointer bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden hover:border-[#333] transition-colors duration-200"
                   >
                     {/* Cover Image */}
-                    <div className="h-36 bg-[#111111] relative overflow-hidden">
+                    <div className="h-36 bg-[#111111] relative overflow-hidden rounded-t-xl">
                       {hackathon.cover_image ? (
                         <img 
                           src={hackathon.cover_image} 
@@ -338,7 +338,7 @@ export default function EventsPage() {
 
             {/* Empty State */}
             {!loading && filteredHackathons.length === 0 && (
-              <div className="text-center py-32 bg-[#0A0A0A] border border-[#222222] rounded-2xl">
+              <div className="text-center py-32 bg-[#0A0A0A] border border-[#222222] rounded-xl">
                 <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">暂无匹配的活动</div>
                 <button
                   onClick={() => {

@@ -90,14 +90,14 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
                             mode === 'idea' ? "Enter keywords (e.g., 'Eco-friendly, Blockchain')..." :
                             "Enter project name..."
                         }
-                        className="flex-1 bg-black/50 border border-white/10 rounded-lg px-3 py-2 text-sm text-white focus:border-brand focus:outline-none"
+                        className="flex-1 bg-black/50 border border-white/10 rounded-md px-3 py-2 text-sm text-white focus:border-brand focus:outline-none"
                     />
                 )}
                 
                 <button
                     onClick={handleGenerate}
                     disabled={loading || (mode !== 'refine' && !input)}
-                    className="bg-brand text-black px-4 py-2 rounded-lg font-bold text-sm hover:bg-brand/80 disabled:opacity-50 flex items-center gap-2"
+                    className="bg-brand text-black px-4 py-2 rounded-md font-bold text-sm hover:bg-brand/80 disabled:opacity-50 flex items-center gap-2"
                 >
                     {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
                     {mode === 'refine' ? 'Refine' : 'Generate'}
@@ -106,7 +106,7 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
 
             {result && mode === 'idea' && (
                 <div className="space-y-3 animate-in fade-in slide-in-from-bottom-2">
-                    <div className="p-3 bg-white/5 rounded-lg border border-white/10">
+                    <div className="p-3 bg-white/5 rounded-md border border-white/10">
                         <h4 className="font-bold text-brand mb-1">{result.title}</h4>
                         <p className="text-sm text-gray-300 mb-2">{result.description}</p>
                         <div className="flex flex-wrap gap-1 mb-2">
@@ -129,7 +129,7 @@ const AIProjectAssistant: React.FC<AIProjectAssistantProps> = ({
             )}
             
             {result && mode === 'refine' && (
-                 <div className="p-3 bg-white/5 rounded-lg border border-white/10 animate-in fade-in">
+                 <div className="p-3 bg-white/5 rounded-md border border-white/10 animate-in fade-in">
                     <p className="text-sm text-gray-300">{result.refined_description}</p>
                  </div>
             )}

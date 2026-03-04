@@ -1,11 +1,13 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlmodel import Session, select
 from typing import List
+from datetime import datetime
 
 from app.api import deps
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.db.session import get_session
-from app.models.user import User, UserCreate, UserRead, UserUpdate, UserUpdateAdmin
+from app.models.user import User, UserCreate, UserRead, UserUpdate, UserUpdateAdmin, InvitationCode
+from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -86,4 +88,94 @@ def update_user(
     session.commit()
     session.refresh(user)
     return user
+
+@router.post("/activate-organizer", response_model=UserRead)
+def activate_organizer(
+    *,
+    session: Session = Depends(get_session),
+    code: str,
+    current_user: User = Depends(deps.get_current_user),
+):
+    if current_user.can_create_hackathon:
+        return current_user
+    
+    invitation = session.exec(
+        select(InvitationCode).where(InvitationCode.code == code)
+    ).first()
+    
+    if not invitation:
+        raise HTTPException(status_code=404, detail="Invalid invitation code")
+    
+    if invitation.is_used:
+        raise HTTPException(status_code=400, detail="Invitation code already used")
+    
+    if invitation.expires_at and invitation.expires_at < datetime.utcnow():
+        raise HTTPException(status_code=400, detail="Invitation code expired")
+    
+    invitation.is_used = True
+    invitation.used_by_user_id = current_user.id
+    
+    current_user.can_create_hackathon = True
+    
+    session.add(invitation)
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    
+    return current_user
+
+@router.get("/invitation-codes", response_model=List[dict])
+def get_invitation_codes(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(deps.get_current_active_superuser),
+):
+    codes = session.exec(select(InvitationCode).order_by(InvitationCode.created_at.desc())).all()
+    return [code.model_dump() for code in codes]
+
+@router.post("/generate-invite-code", response_model=dict)
+def generate_invite_code(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(deps.get_current_active_superuser),
+):
+    import secrets
+    code = secrets.token_hex(4).upper()
+    invitation = InvitationCode(code=code)
+    session.add(invitation)
+    session.commit()
+    session.refresh(invitation)
+    return {"code": code, "id": invitation.id}
+
+class ChangePasswordRequest(BaseModel):
+    current_password: str
+    new_password: str
+
+@router.post("/me/change-password")
+def change_password(
+    *,
+    session: Session = Depends(get_session),
+    req: ChangePasswordRequest,
+    current_user: User = Depends(deps.get_current_user),
+):
+    if not current_user.hashed_password:
+        raise HTTPException(status_code=400, detail="User has no password set")
+    
+    if not verify_password(req.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    current_user.hashed_password = get_password_hash(req.new_password)
+    session.add(current_user)
+    session.commit()
+    return {"message": "Password changed successfully"}
+
+@router.delete("/me")
+def delete_user_me(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(deps.get_current_user),
+):
+    session.delete(current_user)
+    session.commit()
+    return {"message": "User deleted successfully"}
 

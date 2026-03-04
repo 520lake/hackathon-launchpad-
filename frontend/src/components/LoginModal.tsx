@@ -270,6 +270,9 @@ export default function LoginModal({ isOpen, onClose }: LoginModalProps) {
                 <button type="submit" className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors">
                     登录
                 </button>
+                <div className="text-center text-xs text-gray-500 pt-2">
+                    测试账号: <span className="text-brand">admin@aura.com</span> / <span className="text-brand">admin123</span>
+                </div>
             </form>
         )}
       </div>

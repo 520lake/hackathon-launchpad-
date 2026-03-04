@@ -8,7 +8,12 @@ class UserBase(SQLModel):
     full_name: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
-    is_verified: bool = False  # Real-name verification status
+    is_verified: bool = False
+    
+    # New fields for the platform
+    can_create_hackathon: bool = Field(default=False)  # Organizer permission
+    theme_preference: str = Field(default='dark')  # 'dark' or 'light'
+    skills_vector: Optional[str] = None  # For AI matching (stored as text for now)
     
     # WeChat fields
     wx_openid: Optional[str] = Field(default=None, unique=True, index=True)
@@ -19,16 +24,17 @@ class UserBase(SQLModel):
     avatar_url: Optional[str] = None
     
     # AI Matching fields
-    skills: Optional[str] = None # JSON string or comma-separated
-    interests: Optional[str] = None # JSON string or comma-separated
-    city: Optional[str] = None # Province + City
+    skills: Optional[str] = None
+    interests: Optional[str] = None
+    city: Optional[str] = None
     phone: Optional[str] = None
-    personality: Optional[str] = None # MBTI or description
-    bio: Optional[str] = None # Self-intro
+    personality: Optional[str] = None
+    bio: Optional[str] = None
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_password: Optional[str] = None # Password optional for WeChat login
+    notifications: List["Notification"] = Relationship(back_populates="user")
 
 class UserCreate(UserBase):
     password: Optional[str] = None
@@ -43,6 +49,9 @@ class UserUpdate(SQLModel):
     phone: Optional[str] = None
     personality: Optional[str] = None
     bio: Optional[str] = None
+    can_create_hackathon: Optional[bool] = None
+    theme_preference: Optional[str] = None
+    skills_vector: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None
@@ -59,4 +68,12 @@ class VerificationCode(SQLModel, table=True):
     expires_at: datetime
     created_at: datetime = Field(default_factory=datetime.utcnow)
     is_used: bool = Field(default=False)
+
+class InvitationCode(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    code: str = Field(unique=True, index=True)
+    is_used: bool = Field(default=False)
+    used_by_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+    expires_at: Optional[datetime] = None
 

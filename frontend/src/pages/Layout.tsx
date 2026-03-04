@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Landing/Navbar'
 import Footer from '../components/Layout/Footer'
+import LoginModal from '../components/LoginModal'
 import axios from 'axios'
 
 // Loading Progress Bar Component
@@ -58,6 +59,7 @@ export default function Layout() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
 
   useEffect(() => {
     let token = localStorage.getItem('token');
@@ -118,12 +120,15 @@ export default function Layout() {
       <Navbar 
         isLoggedIn={isLoggedIn}
         currentUser={currentUser}
-        onLoginClick={() => {}}
-        onRegisterClick={() => {}}
+        onLoginClick={() => setIsLoginOpen(true)}
+        onRegisterClick={() => setIsLoginOpen(true)}
         onLogoutClick={handleLogout}
         onDashboardClick={() => navigate('/profile')}
-        onAdminClick={() => {}}
+        onAdminClick={() => navigate('/admin')}
       />
+
+      {/* Login Modal */}
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
 
       {/* Main Content with Page Transition */}
       <AnimatePresence mode="wait">

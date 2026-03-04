@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate, HackathonStatus, HackathonFormat
 from app.db.session import get_session
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, get_current_organizer
 from app.models.user import User, UserRead
 from app.models.judge import Judge, JudgeCreate, JudgeRead
 from app.models.enrollment import Enrollment
@@ -14,7 +14,7 @@ from app.models.score import Score
 router = APIRouter()
 
 @router.post("", response_model=HackathonRead)
-def create_hackathon(*, session: Session = Depends(get_session), hackathon: HackathonCreate, current_user: User = Depends(get_current_user)):
+def create_hackathon(*, session: Session = Depends(get_session), hackathon: HackathonCreate, current_user: User = Depends(get_current_organizer)):
     try:
         hackathon_data = hackathon.dict()
         db_hackathon = Hackathon(**hackathon_data, organizer_id=current_user.id)
@@ -114,7 +114,7 @@ def get_hackathon_status(*, session: Session = Depends(get_session), hackathon_i
     }
 
 @router.patch("/{hackathon_id}", response_model=HackathonRead)
-def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, hackathon_in: HackathonUpdate, current_user: User = Depends(get_current_user)):
+def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, hackathon_in: HackathonUpdate, current_user: User = Depends(get_current_organizer)):
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
@@ -131,7 +131,7 @@ def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: i
     return db_hackathon
 
 @router.delete("/{hackathon_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_user)):
+def delete_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_organizer)):
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
@@ -183,7 +183,7 @@ def delete_hackathon(*, session: Session = Depends(get_session), hackathon_id: i
 
 # Judges Management
 @router.post("/{hackathon_id}/judges", response_model=JudgeRead)
-def add_judge(*, session: Session = Depends(get_session), hackathon_id: int, user_email: str, current_user: User = Depends(get_current_user)):
+def add_judge(*, session: Session = Depends(get_session), hackathon_id: int, user_email: str, current_user: User = Depends(get_current_organizer)):
     """
     Appoint a judge by email.
     """

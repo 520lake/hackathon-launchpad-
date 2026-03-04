@@ -7,7 +7,7 @@ interface OutletContextType {
   isLoggedIn: boolean
   currentUser: any
   fetchCurrentUser: () => void
-  lang: 'zh' | 'en'
+  lang?: 'zh' | 'en'
 }
 
 interface Enrollment {
@@ -96,15 +96,58 @@ const ArrowLeftIcon = () => (
   </svg>
 )
 
+const CameraIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+  </svg>
+)
+
+const CloseIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+)
+
+const BellIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+  </svg>
+)
+
 export default function ProfilePage() {
   const navigate = useNavigate()
-  const { isLoggedIn, currentUser, lang } = useOutletContext<OutletContextType>()
+  const context = useOutletContext<OutletContextType>()
+  const isLoggedIn = context?.isLoggedIn ?? false
+  const currentUser = context?.currentUser ?? null
+  const fetchCurrentUser = context?.fetchCurrentUser ?? (() => {})
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account' | 'notifications'>('profile')
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
   const [myHackathons, setMyHackathons] = useState<Hackathon[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const [saving, setSaving] = useState(false)
+  
+  // Edit form state
+  const [editForm, setEditForm] = useState({
+    full_name: '',
+    nickname: '',
+    bio: '',
+    city: '',
+    phone: '',
+    skills: '',
+    interests: '',
+    avatar_url: ''
+  })
+  
+  // Account settings state
+  const [showChangePassword, setShowChangePassword] = useState(false)
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
   
   // Preferences state
   const [selectedTopics, setSelectedTopics] = useState<string[]>(['AI', '可持续发展', 'Web3'])
@@ -116,7 +159,29 @@ export default function ProfilePage() {
       return
     }
     fetchMyData()
-  }, [isLoggedIn])
+    // Initialize edit form with current user data
+    if (currentUser) {
+      setEditForm({
+        full_name: currentUser.full_name || '',
+        nickname: currentUser.nickname || '',
+        bio: currentUser.bio || '',
+        city: currentUser.city || '',
+        phone: currentUser.phone || '',
+        skills: currentUser.skills || '',
+        interests: currentUser.interests || '',
+        avatar_url: currentUser.avatar_url || ''
+      })
+    }
+  }, [isLoggedIn, currentUser])
+
+  // Handle navigation to notifications tab
+  useEffect(() => {
+    if (activeTab === 'notifications') {
+      navigate('/notifications')
+    } else if (activeTab !== 'notifications' && window.location.pathname === '/notifications') {
+      navigate('/profile')
+    }
+  }, [activeTab])
 
   const fetchMyData = async () => {
     try {
@@ -145,6 +210,74 @@ export default function ProfilePage() {
     }
   }
 
+  const handleSaveProfile = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    setSaving(true)
+    try {
+      await axios.put('/api/v1/users/me', editForm, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      fetchCurrentUser()
+      setIsEditing(false)
+      alert('保存成功')
+    } catch (e: any) {
+      console.error(e)
+      alert(e.response?.data?.detail || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      alert('两次输入的密码不一致')
+      return
+    }
+    if (passwordForm.newPassword.length < 6) {
+      alert('新密码至少需要6位')
+      return
+    }
+    
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    try {
+      await axios.post('/api/v1/users/me/change-password', {
+        current_password: passwordForm.currentPassword,
+        new_password: passwordForm.newPassword
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      alert('密码修改成功')
+      setShowChangePassword(false)
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' })
+    } catch (e: any) {
+      console.error(e)
+      alert(e.response?.data?.detail || '密码修改失败')
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!confirm('确定要删除账号吗？此操作不可恢复！')) return
+    if (!confirm('再次确认：删除账号将清除所有数据，确定继续？')) return
+    
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    try {
+      await axios.delete('/api/v1/users/me', {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      localStorage.removeItem('token')
+      navigate('/')
+    } catch (e: any) {
+      console.error(e)
+      alert(e.response?.data?.detail || '删除失败')
+    }
+  }
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'registration':
@@ -170,6 +303,7 @@ export default function ProfilePage() {
     { id: 'profile', label: '个人资料', icon: <UserIcon /> },
     { id: 'preferences', label: '偏好设置', icon: <PreferencesIcon /> },
     { id: 'account', label: '账号设置', icon: <SettingsIcon /> },
+    { id: 'notifications', label: '通知中心', icon: <BellIcon /> },
   ]
 
   return (
@@ -224,54 +358,191 @@ export default function ProfilePage() {
                 >
                   {/* User Hero Card */}
                   <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
-                    <div className="flex items-start gap-6">
-                      {/* Avatar */}
-                      <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0">
-                        {currentUser?.avatar_url ? (
-                          <img src={currentUser.avatar_url} className="w-full h-full rounded-full object-cover" />
-                        ) : (
-                          <UserIcon />
-                        )}
-                      </div>
-
-                      {/* User Info */}
-                      <div className="flex-1">
-                        <div className="flex items-center gap-3 mb-3">
-                          <h2 className="text-2xl font-bold text-white">
-                            {currentUser?.full_name || currentUser?.nickname || currentUser?.username || 'Alex Chen'}
-                          </h2>
-                          {currentUser?.organization && (
-                            <span className="px-3 py-1 bg-white text-black text-[11px] font-medium rounded">
-                              {currentUser.organization}
-                            </span>
-                          )}
+                    {isEditing ? (
+                      // Edit Mode
+                      <div className="space-y-6">
+                        <div className="flex items-center justify-between">
+                          <h3 className="text-white font-semibold text-lg">编辑个人资料</h3>
+                          <button 
+                            onClick={() => setIsEditing(false)}
+                            className="text-gray-400 hover:text-white"
+                          >
+                            <CloseIcon />
+                          </button>
                         </div>
                         
-                        <div className="flex items-center gap-6 text-gray-400 text-sm mb-4">
-                          <span className="flex items-center gap-2">
-                            <LocationIcon />
-                            {currentUser?.location || '上海, 中国'}
-                          </span>
-                          <span className="flex items-center gap-2">
-                            <WorkIcon />
-                            {currentUser?.title || '全栈研发'}
-                          </span>
+                        {/* Avatar Upload */}
+                        <div className="flex items-center gap-4">
+                          <div className="w-20 h-20 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center overflow-hidden">
+                            {editForm.avatar_url ? (
+                              <img src={editForm.avatar_url} className="w-full h-full object-cover" />
+                            ) : (
+                              <UserIcon />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <label className="text-gray-400 text-sm mb-1 block">头像链接</label>
+                            <input
+                              type="text"
+                              value={editForm.avatar_url}
+                              onChange={e => setEditForm({...editForm, avatar_url: e.target.value})}
+                              placeholder="输入图片URL"
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            />
+                          </div>
                         </div>
 
-                        <p className="text-gray-400 text-sm leading-relaxed">
-                          {currentUser?.bio || '热情的全栈开发者，拥有超过5年的可扩展Web应用构建经验。对人工智能与可持续技术的交叉领域深感兴趣。'}
-                        </p>
-                      </div>
+                        {/* Form Fields */}
+                        <div className="grid grid-cols-2 gap-4">
+                          <div>
+                            <label className="text-gray-400 text-sm mb-1 block">姓名</label>
+                            <input
+                              type="text"
+                              value={editForm.full_name}
+                              onChange={e => setEditForm({...editForm, full_name: e.target.value})}
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm mb-1 block">昵称</label>
+                            <input
+                              type="text"
+                              value={editForm.nickname}
+                              onChange={e => setEditForm({...editForm, nickname: e.target.value})}
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm mb-1 block">城市</label>
+                            <input
+                              type="text"
+                              value={editForm.city}
+                              onChange={e => setEditForm({...editForm, city: e.target.value})}
+                              placeholder="如：上海"
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            />
+                          </div>
+                          <div>
+                            <label className="text-gray-400 text-sm mb-1 block">手机号</label>
+                            <input
+                              type="text"
+                              value={editForm.phone}
+                              onChange={e => setEditForm({...editForm, phone: e.target.value})}
+                              placeholder="+86 138****8888"
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            />
+                          </div>
+                        </div>
 
-                      {/* Edit Button */}
-                      <button 
-                        onClick={() => setIsEditing(true)}
-                        className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-300 text-sm rounded-md hover:bg-white/[0.05] transition-colors"
-                      >
-                        <EditIcon />
-                        编辑资料
-                      </button>
-                    </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">个人简介</label>
+                          <textarea
+                            value={editForm.bio}
+                            onChange={e => setEditForm({...editForm, bio: e.target.value})}
+                            rows={3}
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none resize-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">技能（用逗号分隔）</label>
+                          <input
+                            type="text"
+                            value={editForm.skills}
+                            onChange={e => setEditForm({...editForm, skills: e.target.value})}
+                            placeholder="React, Python, AI..."
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">兴趣领域（用逗号分隔）</label>
+                          <input
+                            type="text"
+                            value={editForm.interests}
+                            onChange={e => setEditForm({...editForm, interests: e.target.value})}
+                            placeholder="AI, Web3, 可持续发展..."
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+
+                        <div className="flex justify-end gap-3">
+                          <button
+                            onClick={() => setIsEditing(false)}
+                            className="px-4 py-2 border border-[#333] text-gray-400 text-sm rounded-md hover:text-white transition-colors"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={handleSaveProfile}
+                            disabled={saving}
+                            className="px-4 py-2 bg-brand text-black font-medium text-sm rounded-md hover:bg-white transition-colors disabled:opacity-50"
+                          >
+                            {saving ? '保存中...' : '保存'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      // View Mode
+                      <div className="flex items-start gap-6">
+                        {/* Avatar */}
+                        <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                          {currentUser?.avatar_url ? (
+                            <img src={currentUser.avatar_url} className="w-full h-full object-cover" />
+                          ) : (
+                            <UserIcon />
+                          )}
+                        </div>
+
+                        {/* User Info */}
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-3">
+                            <h2 className="text-2xl font-bold text-white">
+                              {currentUser?.full_name || currentUser?.nickname || '未设置姓名'}
+                            </h2>
+                            {currentUser?.can_create_hackathon && (
+                              <span className="px-3 py-1 bg-brand text-black text-[11px] font-medium rounded">
+                                组织者
+                              </span>
+                            )}
+                          </div>
+                          
+                          <div className="flex items-center gap-6 text-gray-400 text-sm mb-4">
+                            <span className="flex items-center gap-2">
+                              <LocationIcon />
+                              {currentUser?.city || '未设置城市'}
+                            </span>
+                            <span className="flex items-center gap-2">
+                              <WorkIcon />
+                              {currentUser?.skills ? currentUser.skills.split(',')[0] : '未设置技能'}
+                            </span>
+                          </div>
+
+                          <p className="text-gray-400 text-sm leading-relaxed">
+                            {currentUser?.bio || '暂无个人简介'}
+                          </p>
+                          
+                          {currentUser?.interests && (
+                            <div className="flex flex-wrap gap-2 mt-4">
+                              {currentUser.interests.split(',').map((interest: string, i: number) => (
+                                <span key={i} className="px-2 py-1 bg-[#222] text-gray-400 text-xs rounded">
+                                  {interest.trim()}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        {/* Edit Button */}
+                        <button 
+                          onClick={() => setIsEditing(true)}
+                          className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-300 text-sm rounded-md hover:bg-white/[0.05] transition-colors"
+                        >
+                          <EditIcon />
+                          编辑资料
+                        </button>
+                      </div>
+                    )}
                   </div>
 
                   {/* My Participated Hackathons */}
@@ -332,82 +603,43 @@ export default function ProfilePage() {
                                 </h4>
                                 
                                 <p className="text-gray-500 text-sm mb-3 line-clamp-1">
-                                  {enroll.hackathon?.description || 'AI服务不可用。生成离线测试模板。'}
+                                  {enroll.hackathon?.description || '暂无描述'}
                                 </p>
 
+                                {/* Meta */}
                                 <div className="flex items-center gap-4 text-gray-500 text-[12px]">
-                                  <span>主办方：</span>
-                                  <span className="px-2 py-0.5 bg-[#1A1A1A] border border-[#333] rounded text-gray-400">
-                                    {enroll.hackathon?.organizer_name || '标志'}
+                                  <span className="flex items-center gap-1">
+                                    <CalendarIcon />
+                                    {enroll.hackathon?.start_date ? new Date(enroll.hackathon.start_date).toLocaleDateString('zh-CN') : '待定'}
                                   </span>
-                                  <span>{enroll.hackathon?.organizer_name || '公司名称'}</span>
+                                  <span className="flex items-center gap-1">
+                                    <LocationIcon />
+                                    {enroll.hackathon?.location || '线上'}
+                                  </span>
                                 </div>
                               </div>
 
-                              {/* Right Info */}
-                              <div className="flex-shrink-0 text-right space-y-2">
+                              {/* Status */}
+                              <div className="flex flex-col items-end justify-between">
                                 {getStatusBadge(enroll.hackathon?.status || 'registration')}
-                                
-                                <div className="flex items-center gap-2 text-gray-400 text-[12px] justify-end">
-                                  <CalendarIcon />
-                                  {enroll.hackathon?.start_date 
-                                    ? `${new Date(enroll.hackathon.start_date).toLocaleDateString('zh-CN').replace(/\//g, '.')} - ${new Date(enroll.hackathon.end_date).toLocaleDateString('zh-CN').replace(/\//g, '.')}`
-                                    : '2025.12.20 - 2026.01.15'
-                                  }
-                                </div>
-
-                                <div className="flex items-center gap-2 text-gray-400 text-[12px] justify-end">
-                                  <LocationIcon />
-                                  {enroll.hackathon?.location || '上海市浦东新区'}
-                                </div>
-
-                                <div className="flex items-center gap-2 text-gray-400 text-[12px] justify-end">
-                                  <PrizeIcon />
-                                  ¥ 1,234,567 + 非现金奖品
-                                </div>
                               </div>
                             </div>
                           </div>
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 text-gray-600">
-                        <p className="mb-4">暂无参与的黑客松</p>
+                      <div className="text-center py-12 text-gray-500">
+                        <div className="text-4xl mb-4">🎯</div>
+                        <p>还没有参与任何黑客松</p>
                         <button 
                           onClick={() => navigate('/events')}
-                          className="px-6 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
+                          className="mt-4 px-4 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
                         >
-                          探索活动
+                          去探索活动
                         </button>
                       </div>
                     )}
                   </div>
-
-                  {/* My Organized Hackathons */}
-                  {myHackathons.length > 0 && (
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
-                      <div className="flex items-center justify-between mb-6">
-                        <div className="flex items-center gap-3">
-                          <h3 className="text-white font-semibold">我举办的黑客松</h3>
-                          <span className="px-2 py-0.5 bg-[#222] text-gray-400 text-[12px] rounded-full">
-                            {myHackathons.length}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {myHackathons.map(h => (
-                          <div 
-                            key={h.id}
-                            onClick={() => navigate(`/events/${h.id}`)}
-                            className="bg-[#111111] border border-[#222222] rounded-md p-4 cursor-pointer hover:border-[#333] transition-all"
-                          >
-                            <h4 className="text-white font-medium mb-2">{h.title}</h4>
-                            <p className="text-gray-500 text-sm">{getStatusBadge(h.status)}</p>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  )}
                 </motion.div>
               )}
 
@@ -424,8 +656,11 @@ export default function ProfilePage() {
                   <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-white font-semibold text-lg">感兴趣的话题</h3>
-                      <button className="text-gray-500 text-sm hover:text-brand transition-colors">
-                        {isEditing ? '保存' : '编辑'}
+                      <button 
+                        onClick={handleSaveProfile}
+                        className="text-brand text-sm hover:text-white transition-colors"
+                      >
+                        保存
                       </button>
                     </div>
 
@@ -493,7 +728,10 @@ export default function ProfilePage() {
                         <div className="text-gray-400 text-sm mb-1">用户 ID</div>
                         <div className="text-white font-mono">{currentUser?.id || 'USR_12345678'}</div>
                       </div>
-                      <button className="text-gray-500 text-sm hover:text-white transition-colors">
+                      <button 
+                        onClick={() => navigator.clipboard.writeText(currentUser?.id?.toString() || '')}
+                        className="text-gray-500 text-sm hover:text-white transition-colors"
+                      >
                         复制
                       </button>
                     </div>
@@ -502,15 +740,12 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between p-6 border-b border-[#222]">
                       <div>
                         <div className="text-gray-400 text-sm mb-1">邮箱</div>
-                        <div className="text-white">{currentUser?.email || 'alex@example.com'}</div>
+                        <div className="text-white">{currentUser?.email || '未设置'}</div>
                       </div>
                       <div className="flex items-center gap-3">
                         <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[11px] rounded">
                           已验证
                         </span>
-                        <button className="text-gray-500 text-sm hover:text-white transition-colors">
-                          修改
-                        </button>
                       </div>
                     </div>
 
@@ -518,16 +753,14 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between p-6 border-b border-[#222]">
                       <div>
                         <div className="text-gray-400 text-sm mb-1">手机号</div>
-                        <div className="text-white">{currentUser?.phone || '+86 138****8888'}</div>
+                        <div className="text-white">{currentUser?.phone || '未设置'}</div>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[11px] rounded">
-                          已验证
-                        </span>
-                        <button className="text-gray-500 text-sm hover:text-white transition-colors">
-                          修改
-                        </button>
-                      </div>
+                      <button 
+                        onClick={() => setActiveTab('profile')}
+                        className="text-gray-500 text-sm hover:text-white transition-colors"
+                      >
+                        修改
+                      </button>
                     </div>
 
                     {/* Password */}
@@ -536,7 +769,10 @@ export default function ProfilePage() {
                         <div className="text-gray-400 text-sm mb-1">密码</div>
                         <div className="text-white">••••••••••••</div>
                       </div>
-                      <button className="text-gray-500 text-sm hover:text-white transition-colors">
+                      <button 
+                        onClick={() => setShowChangePassword(true)}
+                        className="text-gray-500 text-sm hover:text-white transition-colors"
+                      >
                         修改密码
                       </button>
                     </div>
@@ -545,11 +781,10 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between p-6 border-b border-[#222]">
                       <div>
                         <div className="text-gray-400 text-sm mb-1">第三方登录</div>
-                        <div className="text-white text-sm">GitHub、Google</div>
+                        <div className="text-white text-sm">
+                          {currentUser?.wx_openid ? '微信已绑定' : '未绑定第三方账号'}
+                        </div>
                       </div>
-                      <button className="text-gray-500 text-sm hover:text-white transition-colors">
-                        管理
-                      </button>
                     </div>
 
                     {/* Delete Account */}
@@ -558,11 +793,73 @@ export default function ProfilePage() {
                         <div className="text-red-400 text-sm mb-1">删除账号</div>
                         <div className="text-gray-500 text-[12px]">删除后将无法恢复，请谨慎操作</div>
                       </div>
-                      <button className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-md hover:bg-red-500/10 transition-colors">
+                      <button 
+                        onClick={handleDeleteAccount}
+                        className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-md hover:bg-red-500/10 transition-colors"
+                      >
                         删除账号
                       </button>
                     </div>
                   </div>
+
+                  {/* Change Password Modal */}
+                  {showChangePassword && (
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+                      <div className="flex items-center justify-between mb-6">
+                        <h3 className="text-white font-semibold">修改密码</h3>
+                        <button 
+                          onClick={() => setShowChangePassword(false)}
+                          className="text-gray-400 hover:text-white"
+                        >
+                          <CloseIcon />
+                        </button>
+                      </div>
+                      
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">当前密码</label>
+                          <input
+                            type="password"
+                            value={passwordForm.currentPassword}
+                            onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">新密码</label>
+                          <input
+                            type="password"
+                            value={passwordForm.newPassword}
+                            onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-gray-400 text-sm mb-1 block">确认新密码</label>
+                          <input
+                            type="password"
+                            value={passwordForm.confirmPassword}
+                            onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                          />
+                        </div>
+                        <div className="flex justify-end gap-3 pt-2">
+                          <button
+                            onClick={() => setShowChangePassword(false)}
+                            className="px-4 py-2 border border-[#333] text-gray-400 text-sm rounded-md hover:text-white transition-colors"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={handleChangePassword}
+                            className="px-4 py-2 bg-brand text-black font-medium text-sm rounded-md hover:bg-white transition-colors"
+                          >
+                            确认修改
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </motion.div>
               )}
             </AnimatePresence>

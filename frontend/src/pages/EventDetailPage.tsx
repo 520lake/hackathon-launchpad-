@@ -284,7 +284,7 @@ export default function EventDetailPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="w-8 h-8 border-2 border-brand border-t-transparent rounded-full animate-spin" />
       </div>
     )
@@ -292,16 +292,16 @@ export default function EventDetailPage() {
 
   if (!hackathon) {
     return (
-      <div className="min-h-screen pt-20 flex items-center justify-center">
+      <div className="min-h-screen bg-black flex items-center justify-center">
         <div className="text-gray-500">活动不存在</div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-black pt-16" ref={containerRef}>
-      {/* Hero Banner */}
-      <div className="relative h-[45vh] min-h-[360px] overflow-hidden">
+    <div className="min-h-screen bg-black" ref={containerRef}>
+      {/* Hero Banner - Full bleed at top */}
+      <div className="relative h-[45vh] min-h-[360px] overflow-hidden -mt-16">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f2a] via-[#0d1020] to-black">
           {hackathon.cover_image && (
@@ -316,18 +316,21 @@ export default function EventDetailPage() {
 
         {/* Content */}
         <div className="relative z-10 h-full flex flex-col justify-end p-8 md:p-12 max-w-7xl mx-auto w-full">
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-3 mb-4">
+          {/* Breadcrumb - 优化返回导航 */}
+          <div className="flex items-center gap-2 mb-4">
             <button 
               onClick={() => navigate('/')}
-              className="text-gray-500 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
             >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
               首页
             </button>
             <span className="text-gray-600">/</span>
             <button 
               onClick={() => navigate('/events')}
-              className="text-gray-500 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
             >
               活动大厅
             </button>
@@ -858,7 +861,7 @@ export default function EventDetailPage() {
           </div>
 
           {/* 右侧边栏 25% */}
-          <div className="w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
+          <div className="hidden md:block w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
             <div className="sticky top-24 space-y-6">
               {/* 报名按钮 */}
               <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
@@ -992,6 +995,33 @@ export default function EventDetailPage() {
         </>
       )}
       <AIResumeModal isOpen={isAIResumeOpen} onClose={() => setIsAIResumeOpen(false)} />
+
+      {/* Mobile Fixed Bottom Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#222222] px-4 py-3 z-40">
+        {!enrollment ? (
+          <button 
+            onClick={handleRegister}
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+          >
+            立即报名
+          </button>
+        ) : (
+          <div className="flex gap-2">
+            <button 
+              onClick={() => setActiveTab('participants')}
+              className="flex-1 py-3 border border-white/10 text-white text-sm font-medium rounded-md hover:bg-[#111111]"
+            >
+              组队广场
+            </button>
+            <button 
+              onClick={() => setIsSubmitOpen(true)}
+              className="flex-1 py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white"
+            >
+              提交作品
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }

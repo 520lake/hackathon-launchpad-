@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, Globe, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Sun, Moon, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
 import { useTheme } from '../../contexts/ThemeContext';
+import NotificationBadge from '../NotificationBadge';
+import axios from 'axios';
 
 interface NavbarProps {
     isLoggedIn: boolean;
@@ -22,7 +24,28 @@ export default function Navbar({
 }: NavbarProps) {
     const [scrolled, setScrolled] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [unreadCount, setUnreadCount] = useState(0);
     const { theme, toggleTheme } = useTheme();
+
+    useEffect(() => {
+        const fetchUnreadCount = async () => {
+            if (!isLoggedIn) {
+                setUnreadCount(0);
+                return;
+            }
+            try {
+                const token = localStorage.getItem('token');
+                if (!token) return;
+                const res = await axios.get('/api/v1/notifications/unread-count', {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                setUnreadCount(res.data.unread_count || 0);
+            } catch (e) {
+                console.error('Failed to fetch unread count:', e);
+            }
+        };
+        fetchUnreadCount();
+    }, [isLoggedIn]);
 
     useEffect(() => {
         const handleScroll = () => {
@@ -76,7 +99,7 @@ export default function Navbar({
                 </div>
 
                 {/* 2. Right: Action Icons */}
-                <div className="flex items-center gap-1 sm:gap-3">
+                <div className="flex items-center gap-2 sm:gap-3">
                     
                     {/* Theme Toggle (Sun/Moon) */}
                     <button 
@@ -91,70 +114,70 @@ export default function Navbar({
                         )}
                     </button>
 
-                    {/* Language/Region (Globe) */}
-                    <button 
-                        className="p-1.5 rounded-full text-ink/80 hover:text-ink hover:bg-ink/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50"
-                        aria-label="Select region"
-                        onClick={() => console.log('Region select clicked')}
-                    >
-                        <Globe className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-                    </button>
+                    {/* Notification Badge (only for logged in users) */}
+                    {isLoggedIn && (
+                        <NotificationBadge 
+                            unreadCount={unreadCount} 
+                            onBellClick={() => {
+                                if (unreadCount > 0) {
+                                    setUnreadCount(0);
+                                }
+                            }} 
+                        />
+                    )}
 
                     {/* User Profile / Login */}
-                    <div className="relative">
-                        <button 
-                            className={`p-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50 ${
-                                isLoggedIn ? 'text-brand bg-brand/10 hover:bg-brand/20' : 'text-ink/80 hover:text-ink hover:bg-ink/10'
-                            }`}
-                            aria-label={isLoggedIn ? "User menu" : "Login"}
-                            onClick={handleUserClick}
-                        >
-                            <User className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-                        </button>
+                    <button 
+                        className={`p-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                            isLoggedIn ? 'text-brand bg-brand/10 hover:bg-brand/20' : 'text-ink/80 hover:text-ink hover:bg-ink/10'
+                        }`}
+                        aria-label={isLoggedIn ? "User menu" : "Login"}
+                        onClick={handleUserClick}
+                    >
+                        <User className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                    </button>
 
-                        {/* User Dropdown Menu */}
-                        {isLoggedIn && showUserMenu && (
-                            <div className="absolute right-0 mt-3 w-48 bg-surface border border-border-base rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
-                                <div className="px-4 py-3 border-b border-border-base">
-                                    <p className="text-sm text-ink font-medium truncate">
-                                        {currentUser?.full_name || currentUser?.nickname || 'User'}
-                                    </p>
-                                    <p className="text-xs text-ink-dim truncate mt-0.5">
-                                        {currentUser?.email}
-                                    </p>
-                                </div>
-                                
-                                {currentUser?.is_superuser && (
-                                    <button 
-                                        onClick={() => { onAdminClick(); setShowUserMenu(false); }}
-                                        className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
-                                    >
-                                        <Shield className="w-4 h-4" />
-                                        管理面板
-                                    </button>
-                                )}
-                                
+                    {/* User Dropdown Menu */}
+                    {isLoggedIn && showUserMenu && (
+                        <div className="absolute right-0 mt-3 w-48 bg-surface border border-border-base rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
+                            <div className="px-4 py-3 border-b border-border-base">
+                                <p className="text-sm text-ink font-medium truncate">
+                                    {currentUser?.full_name || currentUser?.nickname || 'User'}
+                                </p>
+                                <p className="text-xs text-ink-dim truncate mt-0.5">
+                                    {currentUser?.email}
+                                </p>
+                            </div>
+                            
+                            {currentUser?.is_superuser && (
                                 <button 
-                                    onClick={() => { onDashboardClick(); setShowUserMenu(false); }}
+                                    onClick={() => { onAdminClick(); setShowUserMenu(false); }}
                                     className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
                                 >
-                                    <LayoutDashboard className="w-4 h-4" />
-                                    个人中心
+                                    <Shield className="w-4 h-4" />
+                                    管理面板
                                 </button>
-                                
-                                <div className="h-px bg-border-base my-1" />
-                                
-                                <button 
-                                    onClick={() => { onLogoutClick(); setShowUserMenu(false); }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-ink/5 flex items-center gap-2 transition-colors"
-                                >
-                                    <LogOut className="w-4 h-4" />
-                                    退出登录
-                                </button>
-                            </div>
-                        )}
-                    </div>
-
+                            )}
+                            
+                            <button 
+                                onClick={() => { onDashboardClick(); setShowUserMenu(false); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
+                            >
+                                <LayoutDashboard className="w-4 h-4" />
+                                个人中心
+                            </button>
+                            
+                            <div className="h-px bg-border-base my-1" />
+                            
+                            <button 
+                                onClick={() => { onLogoutClick(); setShowUserMenu(false); }}
+                                className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-ink/5 flex items-center gap-2 transition-colors"
+                            >
+                                <LogOut className="w-4 h-4" />
+                                退出登录
+                            </button>
+                        </div>
+                    )}
                 </div>
             </div>
         </header>

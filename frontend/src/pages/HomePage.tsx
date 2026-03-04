@@ -13,6 +13,7 @@ import VerificationModal from '../components/VerificationModal'
 import UserDashboardModal from '../components/UserDashboardModal'
 import AdminDashboardModal from '../components/AdminDashboardModal'
 import AITeamMatchModal from '../components/AITeamMatchModal'
+import ActivateOrganizerModal from '../components/ActivateOrganizerModal'
 
 interface Hackathon {
   id: number;
@@ -39,6 +40,7 @@ export default function HomePage() {
   const [isDashboardOpen, setIsDashboardOpen] = useState(false)
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false)
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
+  const [isActivateOrganizerOpen, setIsActivateOrganizerOpen] = useState(false)
   const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([])
 
   useEffect(() => {
@@ -58,21 +60,23 @@ export default function HomePage() {
     if (isLoggedIn) {
       try {
         const token = localStorage.getItem('token')
-        if (currentUser && currentUser.is_verified) {
-          navigate('/create') // 跳转到独立的创建页面
-          return
-        }
-
+        
         const res = await axios.get('/api/v1/users/me', {
           headers: { Authorization: `Bearer ${token}` }
         })
-        fetchCurrentUser()
+        const user = res.data
         
-        if (res.data.is_verified) {
-          navigate('/create') // 跳转到独立的创建页面
-        } else {
-          setIsVerificationOpen(true)
+        if (user.can_create_hackathon) {
+          navigate('/create')
+          return
         }
+        
+        if (!user.is_verified) {
+          setIsVerificationOpen(true)
+          return
+        }
+        
+        setIsActivateOrganizerOpen(true)
       } catch (e: any) {
         if (e.response && (e.response.status === 401 || e.response.status === 403)) {
           localStorage.removeItem('token')
@@ -140,6 +144,14 @@ export default function HomePage() {
         isOpen={isTeamMatchOpen}
         onClose={() => setIsTeamMatchOpen(false)}
         hackathonId={null}
+      />
+      <ActivateOrganizerModal
+        isOpen={isActivateOrganizerOpen}
+        onClose={() => setIsActivateOrganizerOpen(false)}
+        onSuccess={() => {
+          fetchCurrentUser()
+          navigate('/create')
+        }}
       />
     </>
   )

@@ -12,12 +12,12 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:7860',
         changeOrigin: true,
         secure: false,
       },
       '/static': {
-        target: 'http://localhost:8000',
+        target: 'http://localhost:7860',
         changeOrigin: true,
         secure: false,
       },

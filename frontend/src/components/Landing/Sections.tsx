@@ -5,13 +5,17 @@ import EcosystemWall from './EcosystemWall';
 
 gsap.registerPlugin(ScrollTrigger);
 
-// --- 1. Latest Events ---
+// --- 1. Latest Events (Bento Grid Layout) ---
 interface Hackathon {
   id: number;
   title: string;
   description: string;
   start_date: string;
+  end_date: string;
   status: string;
+  cover_image?: string;
+  theme_tags?: string;
+  participant_count?: number;
 }
 
 export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackathons: Hackathon[], onDetailClick: (id: number) => void, onViewAll: () => void }) {
@@ -27,7 +31,7 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackath
                 y: 50,
                 opacity: 0,
                 duration: 0.8,
-                stagger: 0.2,
+                stagger: 0.15,
                 ease: "power2.out"
             });
         }, containerRef);
@@ -36,10 +40,13 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackath
 
     if (hackathons.length === 0) return null;
 
+    const featured = hackathons[0];
+    const others = hackathons.slice(1, 5);
+
     return (
-        <section ref={containerRef} className="py-24 container mx-auto px-6 border-b border-border-base">
-            <div className="flex justify-between items-end mb-12">
-                <h2 className="text-4xl font-black text-ink uppercase tracking-tight">
+        <section ref={containerRef} className="py-20 container mx-auto px-4 md:px-6 border-b border-border-base">
+            <div className="flex justify-between items-end mb-10">
+                <h2 className="text-3xl md:text-4xl font-black text-ink uppercase tracking-tight">
                     <span className="text-brand mr-2">//</span>
                     最新_信号
                 </h2>
@@ -49,29 +56,61 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackath
                 </button>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                {hackathons.map((h) => (
-                    <div key={h.id} className="event-card card-brutal group relative overflow-hidden cursor-pointer bg-surface border border-border-base hover:border-brand/50 transition-colors duration-300" onClick={() => onDetailClick(h.id)}>
-                        <div className="h-48 bg-ink/5 group-hover:bg-brand/10 transition-colors flex items-center justify-center relative overflow-hidden border-b border-border-base">
-                             {/* Noise Texture on Card */}
-                             <div className="absolute inset-0 opacity-10 bg-noise mix-blend-overlay" />
-                             <span className="text-6xl font-black text-ink/5 group-hover:text-brand/20 transition-colors select-none">
-                                {h.title.substring(0, 2).toUpperCase()}
-                             </span>
+            {/* Bento Grid Layout */}
+            <div className="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-4 md:gap-6 min-h-[500px]">
+                {/* Featured Card - Spans 2 columns and 2 rows */}
+                <div 
+                    className="event-card md:col-span-2 md:row-span-2 card-brutal group relative overflow-hidden cursor-pointer bg-surface border border-border-base hover:border-brand/50 transition-all duration-300"
+                    onClick={() => onDetailClick(featured.id)}
+                >
+                    <div className="absolute inset-0 bg-gradient-to-br from-brand/20 via-transparent to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                    <div className="h-full flex flex-col justify-end p-6 relative z-10">
+                        <div className="absolute top-4 left-4">
+                            <span className="bg-brand text-void text-xs font-bold px-3 py-1 rounded-sm">
+                                FEATURED
+                            </span>
                         </div>
-                        <div className="p-6 relative">
-                            <div className="absolute top-0 right-0 p-2">
-                                <span className={`text-xs font-mono px-2 py-1 rounded-sm ${h.status === 'online' ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-ink/5 text-ink-dim border border-border-base'}`}>
+                        <div className="mt-auto">
+                            <h3 className="text-2xl md:text-3xl font-bold text-ink mb-3 group-hover:text-brand transition-colors line-clamp-2">
+                                {featured.title}
+                            </h3>
+                            <p className="text-gray-400 mb-4 line-clamp-3">{featured.description}</p>
+                            <div className="flex items-center gap-4 text-sm text-gray-500 font-mono">
+                                <span>{new Date(featured.start_date).toLocaleDateString()}</span>
+                                <span>•</span>
+                                <span className={`${featured.status === 'registration' ? 'text-green-400' : 'text-gray-400'}`}>
+                                    {featured.status === 'registration' ? '报名中' : featured.status}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Secondary Cards */}
+                {others.map((h) => (
+                    <div 
+                        key={h.id} 
+                        className="event-card card-brutal group relative overflow-hidden cursor-pointer bg-surface border border-border-base hover:border-brand/50 transition-colors duration-300"
+                        onClick={() => onDetailClick(h.id)}
+                    >
+                        <div className="h-full flex flex-col justify-between p-4">
+                            <div className="flex justify-between items-start">
+                                <span className={`text-[10px] font-mono px-2 py-1 rounded-sm ${
+                                    h.status === 'registration' ? 'bg-green-500/10 text-green-500' : 
+                                    h.status === 'ongoing' ? 'bg-blue-500/10 text-blue-500' :
+                                    'bg-gray-500/10 text-gray-500'
+                                }`}>
                                     {h.status.toUpperCase()}
                                 </span>
                             </div>
-                            <h3 className="text-xl font-bold text-ink mb-2 group-hover:text-brand transition-colors line-clamp-1">{h.title}</h3>
-                            <p className="text-ink-dim text-sm mb-6 line-clamp-2 h-10 leading-relaxed">{h.description}</p>
-                            <div className="flex justify-between items-center border-t border-border-base pt-4">
-                                <span className="font-mono text-xs text-ink-dim">{new Date(h.start_date).toLocaleDateString()}</span>
-                                <button onClick={() => onDetailClick(h.id)} className="text-brand text-sm font-bold hover:translate-x-1 transition-transform flex items-center gap-1">
-                                    访问 &rarr;
-                                </button>
+                            <div>
+                                <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-brand transition-colors line-clamp-1">
+                                    {h.title}
+                                </h3>
+                                <p className="text-gray-500 text-xs line-clamp-2">{h.description}</p>
+                                <div className="mt-3 text-xs text-gray-600 font-mono">
+                                    {new Date(h.start_date).toLocaleDateString()}
+                                </div>
                             </div>
                         </div>
                     </div>

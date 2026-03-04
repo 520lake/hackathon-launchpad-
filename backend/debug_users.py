@@ -5,7 +5,7 @@ import os
 sys.path.append(os.getcwd())
 
 from sqlmodel import Session, select, create_engine
-from app.models.user import User
+from aura_server.models.user import User
 
 db_url = "sqlite:///./vibebuild.db"
 print(f"Connecting to {db_url}")

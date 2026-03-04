@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Landing/Navbar'
+import Footer from '../components/Layout/Footer'
 import axios from 'axios'
 
 // Loading Progress Bar Component
@@ -104,7 +105,7 @@ export default function Layout() {
   };
 
   return (
-    <div className="min-h-screen bg-void text-ink font-sans selection:bg-brand selection:text-void">
+    <div className="min-h-screen flex flex-col bg-void text-ink font-sans selection:bg-brand selection:text-void">
       {/* Global Noise Overlay */}
       <div className="noise-overlay" />
       
@@ -127,6 +128,7 @@ export default function Layout() {
       {/* Main Content with Page Transition */}
       <AnimatePresence mode="wait">
         <motion.main
+          className="flex-grow pt-16" // Add padding top for fixed navbar
           key={location.pathname}
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
@@ -136,6 +138,8 @@ export default function Layout() {
           <Outlet context={{ isLoggedIn, currentUser, fetchCurrentUser }} />
         </motion.main>
       </AnimatePresence>
+
+      <Footer />
     </div>
   )
 }

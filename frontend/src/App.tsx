@@ -1,4 +1,5 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 // Pages
 import Layout from './pages/Layout'
@@ -11,15 +12,17 @@ import CreateHackathonPage from './pages/CreateHackathonPage'
 function App() {
   return (
     <BrowserRouter>
-      <Routes>
-        <Route element={<Layout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/events" element={<EventsPage />} />
-          <Route path="/events/:id" element={<EventDetailPage />} />
-          <Route path="/profile" element={<ProfilePage />} />
-          <Route path="/create" element={<CreateHackathonPage />} />
-        </Route>
-      </Routes>
+      <ThemeProvider>
+        <Routes>
+          <Route element={<Layout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/events" element={<EventsPage />} />
+            <Route path="/events/:id" element={<EventDetailPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/create" element={<CreateHackathonPage />} />
+          </Route>
+        </Routes>
+      </ThemeProvider>
     </BrowserRouter>
   )
 }

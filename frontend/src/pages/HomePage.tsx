@@ -4,7 +4,7 @@ import axios from 'axios'
 
 // Landing Components
 import Hero from '../components/Landing/Hero'
-import { LatestEvents, About, Partners, Schedule, Footer } from '../components/Landing/Sections'
+import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
 
 // Modals
 import RegisterModal from '../components/RegisterModal'
@@ -112,8 +112,6 @@ export default function HomePage() {
       />
       
       <Schedule />
-      <Partners />
-      <Footer />
 
       {/* Modals */}
       <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />

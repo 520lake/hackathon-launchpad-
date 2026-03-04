@@ -105,8 +105,8 @@ export default function EventsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-20">
-      <div className="max-w-7xl mx-auto w-full px-6 py-8">
+    <div className="min-h-screen bg-void pt-24 pb-12">
+      <div className="max-w-7xl mx-auto w-full px-4 sm:px-6">
         {/* Page Header */}
         <div className="mb-8">
           <motion.div
@@ -114,28 +114,28 @@ export default function EventsPage() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.4 }}
           >
-            <div className="flex items-center gap-3 mb-4">
+            <div className="flex items-center gap-4 mb-6 py-2">
               <button 
                 onClick={() => navigate('/')}
-                className="text-gray-500 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
+                className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-surface rounded-md"
               >
-                ← 返回首页
+                <span>←</span> 返回首页
               </button>
-              <span className="text-gray-600">/</span>
-              <span className="text-[#FBBF24] text-[12px] tracking-wide">活动大厅</span>
+              <span className="text-ink-dim/30">/</span>
+              <span className="text-brand text-sm font-bold tracking-wide px-2 py-1 bg-brand/5 rounded-md">活动大厅</span>
             </div>
-            <h1 className="text-3xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span className="text-[#FBBF24] font-mono">//</span>
+            <h1 className="text-3xl font-bold text-ink tracking-tight flex items-center gap-2">
+              <span className="text-brand font-mono">//</span>
               活动大厅
             </h1>
-            <p className="text-gray-400 mt-2 text-[14px]">探索正在进行的黑客松活动，找到适合你的挑战</p>
+            <p className="text-ink-dim mt-2 text-[14px]">探索正在进行的黑客松活动，找到适合你的挑战</p>
           </motion.div>
         </div>
 
         {/* 左右分栏布局 */}
-        <div className="flex gap-8">
+        <div className="flex flex-col lg:flex-row gap-8">
           {/* 左侧分类导航 20% */}
-          <div className="w-56 flex-shrink-0">
+          <div className="w-full lg:w-56 flex-shrink-0">
             <div className="sticky top-24 space-y-6">
               {/* 搜索框 */}
               <div>
@@ -144,13 +144,13 @@ export default function EventsPage() {
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="搜索活动..."
-                  className="w-full bg-[#0A0A0A] border border-[#222222] rounded-md px-3 py-2.5 text-[13px] text-white placeholder-gray-600 focus:border-[#FBBF24]/50 outline-none transition-colors duration-200"
+                  className="w-full bg-surface border border-border-base rounded-md px-3 py-2.5 text-[13px] text-ink placeholder-ink-dim/50 focus:border-brand/50 outline-none transition-colors duration-200"
                 />
               </div>
 
               {/* 活动状态分类 */}
               <div>
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-3 px-1">活动状态</div>
+                <div className="text-[10px] text-ink-dim uppercase tracking-wider mb-3 px-1">活动状态</div>
                 <div className="space-y-1">
                   {statusCategories.map(cat => (
                     <button
@@ -158,12 +158,12 @@ export default function EventsPage() {
                       onClick={() => setStatusFilter(cat.key)}
                       className={`w-full flex items-center justify-between px-3 py-2 text-[13px] rounded-md transition-colors duration-200 ${
                         statusFilter === cat.key 
-                          ? 'bg-[#FBBF24]/10 text-[#FBBF24]' 
-                          : 'text-gray-400 hover:text-white hover:bg-[#111111]'
+                          ? 'bg-brand/10 text-brand' 
+                          : 'text-ink-dim hover:text-ink hover:bg-surface'
                       }`}
                     >
                       <span>{cat.label}</span>
-                      <span className={`text-[11px] font-mono ${statusFilter === cat.key ? 'text-[#FBBF24]' : 'text-gray-600'}`}>
+                      <span className={`text-[11px] font-mono ${statusFilter === cat.key ? 'text-brand' : 'text-ink-dim'}`}>
                         {cat.count}
                       </span>
                     </button>
@@ -174,7 +174,7 @@ export default function EventsPage() {
               {/* 主题标签分类 */}
               {allThemeTags.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-3 px-1">主题标签</div>
+                  <div className="text-[10px] text-ink-dim uppercase tracking-wider mb-3 px-1">主题标签</div>
                   <div className="space-y-1">
                     {allThemeTags.map(tag => (
                       <button
@@ -182,14 +182,14 @@ export default function EventsPage() {
                         onClick={() => toggleTag(tag)}
                         className={`w-full flex items-center gap-2 px-3 py-2 text-[12px] rounded-md transition-colors duration-200 ${
                           selectedTags.includes(tag)
-                            ? 'bg-[#FBBF24]/10 text-[#FBBF24]'
-                            : 'text-gray-500 hover:text-white hover:bg-[#111111]'
+                            ? 'bg-brand/10 text-brand'
+                            : 'text-ink-dim hover:text-ink hover:bg-surface'
                         }`}
                       >
                         <span className={`w-3 h-3 border rounded flex items-center justify-center text-[8px] ${
                           selectedTags.includes(tag) 
-                            ? 'border-[#FBBF24] bg-[#FBBF24] text-black' 
-                            : 'border-[#333]'
+                            ? 'border-brand bg-brand text-void' 
+                            : 'border-border-base'
                         }`}>
                           {selectedTags.includes(tag) && '✓'}
                         </span>

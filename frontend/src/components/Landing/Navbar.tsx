@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Sun, Moon, Globe, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { useTheme } from '../../contexts/ThemeContext';
 
 interface NavbarProps {
     isLoggedIn: boolean;
     currentUser: any;
     onLoginClick: () => void;
-    onRegisterClick: () => void;
+    onRegisterClick: () => void; // Keeping this for potential future use or mobile menu
     onLogoutClick: () => void;
     onDashboardClick: () => void;
     onAdminClick: () => void;
@@ -14,62 +16,147 @@ export default function Navbar({
     isLoggedIn, 
     currentUser, 
     onLoginClick, 
-    onRegisterClick, 
     onLogoutClick, 
     onDashboardClick, 
     onAdminClick
 }: NavbarProps) {
     const [scrolled, setScrolled] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
+    const { theme, toggleTheme } = useTheme();
 
     useEffect(() => {
         const handleScroll = () => {
-            setScrolled(window.scrollY > 50);
+            setScrolled(window.scrollY > 20);
         };
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
+    // Close user menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = () => setShowUserMenu(false);
+        if (showUserMenu) {
+            window.addEventListener('click', handleClickOutside);
+        }
+        return () => window.removeEventListener('click', handleClickOutside);
+    }, [showUserMenu]);
+
+    const handleUserClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (isLoggedIn) {
+            setShowUserMenu(!showUserMenu);
+        } else {
+            onLoginClick();
+        }
+    };
+
     return (
-        <nav className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b ${scrolled ? 'bg-void/90 border-brand/20 backdrop-blur-md py-4' : 'bg-transparent border-transparent py-6'}`}>
-            <div className="container mx-auto px-6 flex justify-between items-center">
-                {/* Logo */}
-                <div className="flex items-center gap-2 group cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
-                    <div className="w-3 h-3 bg-brand group-hover:animate-pulse" />
-                    <span className="text-xl font-black tracking-tighter text-ink font-mono">AURATHON</span>
+        <header 
+            className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 border-b ${
+                scrolled 
+                    ? 'bg-void/90 border-border-base/50 backdrop-blur-md py-2 shadow-sm' 
+                    : 'bg-void border-transparent py-3'
+            }`}
+        >
+            <div className="container mx-auto px-4 sm:px-6 flex justify-between items-center h-full">
+                
+                {/* 1. Left: Brand / Logo */}
+                <div 
+                    className="flex items-center gap-2 cursor-pointer group" 
+                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                >
+                    {/* Rounded Rectangle Logo Placeholder */}
+                    <div className="w-7 h-7 rounded-md bg-ink group-hover:bg-brand transition-colors duration-300 flex items-center justify-center">
+                         <div className="w-2.5 h-2.5 bg-void rounded-sm" />
+                    </div>
+                    
+                    <span className="text-lg font-bold tracking-tight text-ink font-sans group-hover:text-brand transition-colors duration-300">
+                        Aurathon
+                    </span>
                 </div>
 
-                {/* Actions */}
-                <div className="flex items-center gap-6 font-mono text-sm">
-                    {isLoggedIn ? (
-                        <>
-                            {currentUser?.is_superuser && (
-                                <button onClick={onAdminClick} className="text-brand hover:text-white transition-colors">
-                                    [ 管理 ]
+                {/* 2. Right: Action Icons */}
+                <div className="flex items-center gap-1 sm:gap-3">
+                    
+                    {/* Theme Toggle (Sun/Moon) */}
+                    <button 
+                        className="p-1.5 rounded-full text-ink/80 hover:text-ink hover:bg-ink/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                        aria-label="Toggle theme"
+                        onClick={toggleTheme}
+                    >
+                        {theme === 'dark' ? (
+                            <Sun className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                        ) : (
+                            <Moon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                        )}
+                    </button>
+
+                    {/* Language/Region (Globe) */}
+                    <button 
+                        className="p-1.5 rounded-full text-ink/80 hover:text-ink hover:bg-ink/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                        aria-label="Select region"
+                        onClick={() => console.log('Region select clicked')}
+                    >
+                        <Globe className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                    </button>
+
+                    {/* User Profile / Login */}
+                    <div className="relative">
+                        <button 
+                            className={`p-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+                                isLoggedIn ? 'text-brand bg-brand/10 hover:bg-brand/20' : 'text-ink/80 hover:text-ink hover:bg-ink/10'
+                            }`}
+                            aria-label={isLoggedIn ? "User menu" : "Login"}
+                            onClick={handleUserClick}
+                        >
+                            <User className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                        </button>
+
+                        {/* User Dropdown Menu */}
+                        {isLoggedIn && showUserMenu && (
+                            <div className="absolute right-0 mt-3 w-48 bg-surface border border-border-base rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
+                                <div className="px-4 py-3 border-b border-border-base">
+                                    <p className="text-sm text-ink font-medium truncate">
+                                        {currentUser?.full_name || currentUser?.nickname || 'User'}
+                                    </p>
+                                    <p className="text-xs text-ink-dim truncate mt-0.5">
+                                        {currentUser?.email}
+                                    </p>
+                                </div>
+                                
+                                {currentUser?.is_superuser && (
+                                    <button 
+                                        onClick={() => { onAdminClick(); setShowUserMenu(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
+                                    >
+                                        <Shield className="w-4 h-4" />
+                                        管理面板
+                                    </button>
+                                )}
+                                
+                                <button 
+                                    onClick={() => { onDashboardClick(); setShowUserMenu(false); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
+                                >
+                                    <LayoutDashboard className="w-4 h-4" />
+                                    个人中心
                                 </button>
-                            )}
-                            <button onClick={onDashboardClick} className="flex items-center gap-2 text-ink hover:text-brand transition-colors">
-                                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                                {currentUser?.full_name || currentUser?.nickname || currentUser?.name || '用户'}
-                            </button>
-                            <button onClick={onLogoutClick} className="text-gray-500 hover:text-red-500 transition-colors">
-                                // 退出
-                            </button>
-                        </>
-                    ) : (
-                        <>
-                            <button onClick={onLoginClick} className="text-ink hover:text-brand transition-colors">
-                                登录
-                            </button>
-                            <button 
-                                onClick={onRegisterClick}
-                                className="px-4 py-2 bg-white/5 border border-white/10 text-brand hover:bg-brand hover:text-void transition-all"
-                            >
-                                加入网络
-                            </button>
-                        </>
-                    )}
+                                
+                                <div className="h-px bg-border-base my-1" />
+                                
+                                <button 
+                                    onClick={() => { onLogoutClick(); setShowUserMenu(false); }}
+                                    className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-ink/5 flex items-center gap-2 transition-colors"
+                                >
+                                    <LogOut className="w-4 h-4" />
+                                    退出登录
+                                </button>
+                            </div>
+                        )}
+                    </div>
+
                 </div>
             </div>
-        </nav>
+        </header>
     );
 }

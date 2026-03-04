@@ -5,9 +5,8 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from sqlmodel import create_engine, Session, select
-from app.models.user import User
-
-from app.core.config import settings
+from aura_server.models.user import User
+from aura_server.core.config import settings
 
 # Determine DB URL
 # If it's a relative SQLite path, make it absolute relative to project root

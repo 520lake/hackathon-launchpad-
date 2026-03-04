@@ -37,38 +37,39 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackath
     if (hackathons.length === 0) return null;
 
     return (
-        <section ref={containerRef} className="py-24 container mx-auto px-6 border-b border-brand/10">
+        <section ref={containerRef} className="py-24 container mx-auto px-6 border-b border-border-base">
             <div className="flex justify-between items-end mb-12">
                 <h2 className="text-4xl font-black text-ink uppercase tracking-tight">
                     <span className="text-brand mr-2">//</span>
                     最新_信号
                 </h2>
-                <button onClick={onViewAll} className="text-brand font-mono text-sm hover:underline underline-offset-4">
-                    查看_全部_日志 &rarr;
+                <button onClick={onViewAll} className="group flex items-center gap-2 px-4 py-2 border border-brand text-brand font-mono text-sm hover:bg-brand hover:text-void transition-all duration-300 rounded-sm">
+                    查看_全部_日志
+                    <span className="group-hover:translate-x-1 transition-transform">&rarr;</span>
                 </button>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                 {hackathons.map((h) => (
-                    <div key={h.id} className="event-card card-brutal group relative overflow-hidden cursor-pointer" onClick={() => onDetailClick(h.id)}>
-                        <div className="h-48 bg-white/5 group-hover:bg-brand/10 transition-colors flex items-center justify-center relative overflow-hidden">
+                    <div key={h.id} className="event-card card-brutal group relative overflow-hidden cursor-pointer bg-surface border border-border-base hover:border-brand/50 transition-colors duration-300" onClick={() => onDetailClick(h.id)}>
+                        <div className="h-48 bg-ink/5 group-hover:bg-brand/10 transition-colors flex items-center justify-center relative overflow-hidden border-b border-border-base">
                              {/* Noise Texture on Card */}
                              <div className="absolute inset-0 opacity-10 bg-noise mix-blend-overlay" />
-                             <span className="text-6xl font-black text-white/5 group-hover:text-brand/20 transition-colors">
+                             <span className="text-6xl font-black text-ink/5 group-hover:text-brand/20 transition-colors select-none">
                                 {h.title.substring(0, 2).toUpperCase()}
                              </span>
                         </div>
                         <div className="p-6 relative">
                             <div className="absolute top-0 right-0 p-2">
-                                <span className={`text-xs font-mono px-2 py-1 ${h.status === 'online' ? 'bg-green-500/20 text-green-400' : 'bg-white/10 text-gray-400'}`}>
+                                <span className={`text-xs font-mono px-2 py-1 rounded-sm ${h.status === 'online' ? 'bg-green-500/10 text-green-600 border border-green-500/20' : 'bg-ink/5 text-ink-dim border border-border-base'}`}>
                                     {h.status.toUpperCase()}
                                 </span>
                             </div>
                             <h3 className="text-xl font-bold text-ink mb-2 group-hover:text-brand transition-colors line-clamp-1">{h.title}</h3>
-                            <p className="text-gray-500 text-sm mb-6 line-clamp-2 h-10">{h.description}</p>
-                            <div className="flex justify-between items-center border-t border-white/5 pt-4">
-                                <span className="font-mono text-xs text-gray-600">{new Date(h.start_date).toLocaleDateString()}</span>
-                                <button onClick={() => onDetailClick(h.id)} className="text-brand text-sm font-bold hover:translate-x-1 transition-transform">
+                            <p className="text-ink-dim text-sm mb-6 line-clamp-2 h-10 leading-relaxed">{h.description}</p>
+                            <div className="flex justify-between items-center border-t border-border-base pt-4">
+                                <span className="font-mono text-xs text-ink-dim">{new Date(h.start_date).toLocaleDateString()}</span>
+                                <button onClick={() => onDetailClick(h.id)} className="text-brand text-sm font-bold hover:translate-x-1 transition-transform flex items-center gap-1">
                                     访问 &rarr;
                                 </button>
                             </div>
@@ -126,31 +127,7 @@ export function About() {
     );
 }
 
-// --- 3. Partners (Ticker) ---
-export function Partners() {
-    return (
-        <section className="py-12 border-y border-brand/10 bg-surface/50 overflow-hidden">
-             <div className="container mx-auto px-6 mb-8">
-                <span className="font-mono text-xs text-gray-500 uppercase tracking-widest">Strategic_Partners //</span>
-             </div>
-             <div className="flex overflow-hidden whitespace-nowrap">
-                <div className="animate-marquee flex gap-16 items-center">
-                    {/* Repeat logos twice for seamless loop (simplified with text for now) */}
-                    {[1,2,3,4,5,6,7,8].map((i) => (
-                        <span key={i} className="text-2xl font-black text-gray-700 uppercase tracking-tighter">
-                            PARTNER_ORG_{i}
-                        </span>
-                    ))}
-                    {[1,2,3,4,5,6,7,8].map((i) => (
-                        <span key={`dup-${i}`} className="text-2xl font-black text-gray-700 uppercase tracking-tighter">
-                            PARTNER_ORG_{i}
-                        </span>
-                    ))}
-                </div>
-             </div>
-        </section>
-    );
-}
+
 
 // --- 4. Schedule ---
 export function Schedule() {
@@ -183,37 +160,4 @@ export function Schedule() {
     );
 }
 
-// --- 5. Footer ---
-export function Footer() {
-    return (
-        <footer className="bg-surface border-t border-brand/10 py-20">
-            <div className="container mx-auto px-6 grid grid-cols-1 md:grid-cols-4 gap-12">
-                <div className="col-span-1 md:col-span-2">
-                    <h2 className="text-4xl font-black text-ink mb-6">AURATHON</h2>
-                    <p className="text-gray-500 max-w-sm">
-                        通过算法透明度和智能协作重新定义黑客松格局。
-                    </p>
-                </div>
-                <div>
-                    <h4 className="font-mono text-brand text-sm mb-6">链接</h4>
-                    <ul className="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#" className="hover:text-brand transition-colors">文档</a></li>
-                        <li><a href="#" className="hover:text-brand transition-colors">API 状态</a></li>
-                        <li><a href="#" className="hover:text-brand transition-colors">源代码</a></li>
-                    </ul>
-                </div>
-                <div>
-                    <h4 className="font-mono text-brand text-sm mb-6">法律</h4>
-                    <ul className="space-y-4 text-gray-400 text-sm">
-                        <li><a href="#" className="hover:text-brand transition-colors">隐私协议</a></li>
-                        <li><a href="#" className="hover:text-brand transition-colors">服务条款</a></li>
-                    </ul>
-                </div>
-            </div>
-            <div className="container mx-auto px-6 mt-20 pt-8 border-t border-white/5 flex justify-between items-center text-xs font-mono text-gray-600">
-                <span>© 2026 AURATHON NETWORK</span>
-                <span>SYSTEM_STATUS: ONLINE [v1.0.2-fix]</span>
-            </div>
-        </footer>
-    );
-}
+

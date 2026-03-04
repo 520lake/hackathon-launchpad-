@@ -6,9 +6,9 @@ import os
 sys.path.append(os.getcwd())
 
 from sqlmodel import Session, select, create_engine
-from app.models.user import User
-from app.core.config import settings
-from app.core.security import verify_password, get_password_hash
+from aura_server.models.user import User
+from aura_server.core.config import settings
+from aura_server.core.security import verify_password, get_password_hash
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)

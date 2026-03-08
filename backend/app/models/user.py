@@ -8,17 +8,20 @@ class UserBase(SQLModel):
     full_name: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
-    is_verified: bool = False
     
-    # New fields for the platform
+    # New Fields for the platform
     can_create_hackathon: bool = Field(default=False)  # Organizer permission
     theme_preference: str = Field(default='dark')  # 'dark' or 'light'
     skills_vector: Optional[str] = None  # For AI matching (stored as text for now)
+    invitation_code: Optional[str] = Field(default=None, index=True)  # 邀请码
     
     # WeChat fields
     wx_openid: Optional[str] = Field(default=None, unique=True, index=True)
     wx_unionid: Optional[str] = Field(default=None, index=True)
     wx_test_openid: Optional[str] = Field(default=None, unique=True, index=True)
+    
+    # GitHub fields
+    github_id: Optional[str] = Field(default=None, unique=True, index=True)
     
     nickname: Optional[str] = None
     avatar_url: Optional[str] = None
@@ -30,6 +33,9 @@ class UserBase(SQLModel):
     phone: Optional[str] = None
     personality: Optional[str] = None
     bio: Optional[str] = None
+    
+    # Notification preferences
+    notification_settings: Optional[str] = Field(default='{"activity_reminder": true, "new_hackathon_push": true, "system_announcement": true, "general_notification": true}')
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -52,6 +58,8 @@ class UserUpdate(SQLModel):
     can_create_hackathon: Optional[bool] = None
     theme_preference: Optional[str] = None
     skills_vector: Optional[str] = None
+    notification_settings: Optional[str] = None
+    invitation_code: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None

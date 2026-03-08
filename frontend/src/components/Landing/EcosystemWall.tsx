@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 
 // Mock Data for Testimonials (Chinese)
@@ -24,6 +25,7 @@ export default function EcosystemWall() {
     const track2Ref = useRef<HTMLDivElement>(null);
     const tl1 = useRef<gsap.core.Tween | null>(null);
     const tl2 = useRef<gsap.core.Tween | null>(null);
+    const navigate = useNavigate();
 
     // Setup scrolling animations
     useEffect(() => {
@@ -59,7 +61,10 @@ export default function EcosystemWall() {
         >
             {/* Title Section */}
             <div className="text-center mb-8 relative z-30">
-                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-2">
+                <h2 
+                    className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-2 cursor-pointer hover:text-brand transition-colors"
+                    onClick={() => navigate('/')}
+                >
                     Loved by <span className="text-brand text-shadow-brand">Hackathon</span>
                 </h2>
                 <div className="w-24 h-1 bg-brand mx-auto mb-4"></div>

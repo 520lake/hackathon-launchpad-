@@ -7,8 +7,8 @@ interface User {
   email?: string;
   full_name?: string;
   is_active: boolean;
-  is_verified: boolean;
   is_superuser: boolean;
+  can_create_hackathon?: boolean;
   created_at?: string;
 }
 
@@ -55,7 +55,7 @@ export default function AdminDashboardModal({ isOpen, onClose }: AdminDashboardM
     }
   };
 
-  const toggleUserStatus = async (user: User, field: 'is_active' | 'is_verified' | 'is_superuser') => {
+  const toggleUserStatus = async (user: User, field: 'is_active' | 'is_superuser' | 'can_create_hackathon') => {
     try {
       const token = localStorage.getItem('token');
       const newValue = !user[field];
@@ -141,8 +141,8 @@ export default function AdminDashboardModal({ isOpen, onClose }: AdminDashboardM
                     <td className="p-4">
                       <span className={`px-2 py-1 text-xs font-mono font-bold uppercase border ${
                           user.is_active 
-                          ? 'bg-green-500/10 text-green-500 border-green-500/30' 
-                          : 'bg-red-500/10 text-red-500 border-red-500/30'
+                            ? 'bg-green-500/10 text-green-500 border-green-500/30'
+                            : 'bg-red-500/10 text-red-500 border-red-500/30'
                       }`}>
                         {user.is_active 
                             ? '正常' 
@@ -152,13 +152,13 @@ export default function AdminDashboardModal({ isOpen, onClose }: AdminDashboardM
                     </td>
                     <td className="p-4">
                       <span className={`px-2 py-1 text-xs font-mono font-bold uppercase border ${
-                          user.is_verified 
-                          ? 'bg-blue-500/10 text-blue-500 border-blue-500/30' 
+                          user.can_create_hackathon 
+                          ? 'bg-brand/10 text-brand border-brand/30' 
                           : 'bg-gray-500/10 text-gray-500 border-gray-500/30'
                       }`}>
-                        {user.is_verified 
-                            ? '已认证' 
-                            : '未认证'
+                        {user.can_create_hackathon 
+                            ? '可创建' 
+                            : '不可创建'
                         }
                       </span>
                     </td>
@@ -167,12 +167,12 @@ export default function AdminDashboardModal({ isOpen, onClose }: AdminDashboardM
                     </td>
                     <td className="p-4 flex gap-2 opacity-60 group-hover:opacity-100 transition-opacity">
                       <button 
-                        onClick={() => toggleUserStatus(user, 'is_verified')}
-                        className="text-xs px-3 py-1 border border-white/20 text-gray-300 hover:border-blue-500 hover:text-blue-500 transition font-mono uppercase"
+                        onClick={() => toggleUserStatus(user, 'can_create_hackathon')}
+                        className="text-xs px-3 py-1 border border-white/20 text-gray-300 hover:border-brand hover:text-brand transition font-mono uppercase"
                       >
-                        {user.is_verified 
-                            ? '取消认证' 
-                            : '通过认证'
+                        {user.can_create_hackathon 
+                            ? '取消权限' 
+                            : '授予权限'
                         }
                       </button>
                       <button 

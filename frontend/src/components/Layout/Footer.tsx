@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Footer() {
+    const navigate = useNavigate();
     const currentYear = new Date().getFullYear();
 
     return (
@@ -9,11 +10,14 @@ export default function Footer() {
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 lg:gap-8 mb-12">
                     {/* Brand Info - Left Column */}
                     <div className="lg:col-span-4 flex flex-col space-y-4">
-                        <div className="flex items-center gap-2">
-                            <div className="w-6 h-6 rounded-md bg-ink flex items-center justify-center">
+                        <div 
+                            className="flex items-center gap-2 cursor-pointer group"
+                            onClick={() => navigate('/')}
+                        >
+                            <div className="w-6 h-6 rounded-md bg-ink group-hover:bg-brand transition-colors duration-300 flex items-center justify-center">
                                 <div className="w-2 h-2 bg-void rounded-sm" />
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-ink font-sans">
+                            <span className="text-xl font-bold tracking-tight text-ink font-sans group-hover:text-brand transition-colors duration-300">
                                 Aurathon
                             </span>
                         </div>

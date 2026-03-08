@@ -2,13 +2,14 @@ import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
-import { Bell, X, Trash2, CheckCircle, AlertCircle, Info, MessageSquare } from 'lucide-react'
+import { Bell, Trash2, CheckCircle, AlertCircle, Info } from 'lucide-react'
 
 interface Notification {
   id: number
   title: string
   content: string
   type: string
+  category: string
   is_read: boolean
   created_at: string
 }
@@ -18,10 +19,13 @@ export default function NotificationCenterPage() {
   const [notifications, setNotifications] = useState<Notification[]>([])
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState<'all' | 'unread'>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     fetchNotifications()
-  }, [])
+    fetchCategoryCounts()
+  }, [categoryFilter])
 
   const fetchNotifications = async () => {
     const token = localStorage.getItem('token')
@@ -80,8 +84,31 @@ export default function NotificationCenterPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setNotifications(prev => prev.filter(n => n.id !== id))
+      fetchCategoryCounts()
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  const fetchCategoryCounts = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    try {
+      const categories = ['activity', 'system', 'promotion', 'general']
+      const counts: Record<string, number> = {}
+      
+      for (const cat of categories) {
+        const res = await axios.get('/api/v1/notifications/unread-count', {
+          headers: { Authorization: `Bearer ${token}` },
+          params: { category: cat }
+        })
+        counts[cat] = res.data.unread_count || 0
+      }
+      
+      setCategoryCounts(counts)
+    } catch (e) {
+      console.error('Failed to fetch category counts:', e)
     }
   }
 
@@ -164,7 +191,7 @@ export default function NotificationCenterPage() {
         </motion.div>
 
         {/* Filter Tabs */}
-        <div className="flex gap-2 mb-6">
+        <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => setFilter('all')}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -192,6 +219,84 @@ export default function NotificationCenterPage() {
           </button>
         </div>
 
+        {/* Category Filter Tabs */}
+        <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-800 pb-2">
+          <button
+            onClick={() => setCategoryFilter('all')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+              categoryFilter === 'all'
+                ? 'bg-white text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            全部分类
+          </button>
+          <button
+            onClick={() => setCategoryFilter('activity')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+              categoryFilter === 'activity'
+                ? 'bg-[#FBBF24] text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#FBBF24]"></span>
+            活动提醒
+            {categoryCounts['activity'] > 0 && (
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+                {categoryCounts['activity']}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setCategoryFilter('system')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+              categoryFilter === 'system'
+                ? 'bg-[#3B82F6] text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#3B82F6]"></span>
+            系统公告
+            {categoryCounts['system'] > 0 && (
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+                {categoryCounts['system']}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setCategoryFilter('promotion')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+              categoryFilter === 'promotion'
+                ? 'bg-[#10B981] text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
+            新活动推送
+            {categoryCounts['promotion'] > 0 && (
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+                {categoryCounts['promotion']}
+              </span>
+            )}
+          </button>
+          <button
+            onClick={() => setCategoryFilter('general')}
+            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+              categoryFilter === 'general'
+                ? 'bg-gray-600 text-black'
+                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+            }`}
+          >
+            <span className="w-2 h-2 rounded-full bg-gray-600"></span>
+            其他消息
+            {categoryCounts['general'] > 0 && (
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+                {categoryCounts['general']}
+              </span>
+            )}
+          </button>
+        </div>
+
         {/* Notifications List */}
         {loading ? (
           <div className="flex items-center justify-center py-20">
@@ -201,7 +306,7 @@ export default function NotificationCenterPage() {
           <div className="space-y-3">
             <AnimatePresence mode="popLayout">
               {notifications
-                .filter(n => filter === 'all' || !n.is_read)
+                .filter(n => (filter === 'all' || !n.is_read) && (categoryFilter === 'all' || n.category === categoryFilter))
                 .map((notification) => (
                   <motion.div
                     key={notification.id}

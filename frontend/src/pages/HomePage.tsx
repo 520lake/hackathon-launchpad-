@@ -9,7 +9,6 @@ import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
 // Modals
 import RegisterModal from '../components/RegisterModal'
 import LoginModal from '../components/LoginModal'
-import VerificationModal from '../components/VerificationModal'
 import UserDashboardModal from '../components/UserDashboardModal'
 import AdminDashboardModal from '../components/AdminDashboardModal'
 import AITeamMatchModal from '../components/AITeamMatchModal'
@@ -32,11 +31,10 @@ interface OutletContextType {
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { isLoggedIn, currentUser, fetchCurrentUser } = useOutletContext<OutletContextType>()
+  const { isLoggedIn, fetchCurrentUser } = useOutletContext<OutletContextType>()
   
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [isVerificationOpen, setIsVerificationOpen] = useState(false)
   const [isDashboardOpen, setIsDashboardOpen] = useState(false)
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false)
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
@@ -68,11 +66,6 @@ export default function HomePage() {
         
         if (user.can_create_hackathon) {
           navigate('/create')
-          return
-        }
-        
-        if (!user.is_verified) {
-          setIsVerificationOpen(true)
           return
         }
         
@@ -120,19 +113,10 @@ export default function HomePage() {
       {/* Modals */}
       <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-      <VerificationModal 
-        isOpen={isVerificationOpen} 
-        onClose={() => setIsVerificationOpen(false)}
-        onSuccess={() => {}} 
-      />
       <UserDashboardModal 
         isOpen={isDashboardOpen} 
         onClose={() => setIsDashboardOpen(false)}
         onHackathonSelect={openHackathonDetail}
-        onVerifyClick={() => {
-          setIsDashboardOpen(false)
-          setIsVerificationOpen(true)
-        }}
         onUserUpdate={fetchCurrentUser}
         onTeamMatchClick={() => setIsTeamMatchOpen(true)}
       />

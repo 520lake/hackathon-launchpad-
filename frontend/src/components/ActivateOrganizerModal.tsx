@@ -22,14 +22,20 @@ export default function ActivateOrganizerModal({ isOpen, onClose, onSuccess }: A
 
     try {
       const token = localStorage.getItem('token')
-      await axios.post('/api/v1/users/activate-organizer',
+      const response = await axios.post('/api/v1/users/activate-organizer',
         { code },
         { headers: { Authorization: `Bearer ${token}` } }
       )
-      onSuccess()
+      
+      // 更新用户信息到 localStorage
+      if (response.data) {
+        // 触发成功回调，让父组件更新用户状态
+        onSuccess()
+      }
+      
       onClose()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Invalid invitation code')
+      setError(err.response?.data?.detail || '邀请码无效')
     } finally {
       setLoading(false)
     }
@@ -52,10 +58,10 @@ export default function ActivateOrganizerModal({ isOpen, onClose, onSuccess }: A
             exit={{ opacity: 0, scale: 0.9, y: 20 }}
             className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md z-50"
           >
-            <div className="bg-[#1a1a1a] border border-[#333] rounded-xl p-6 shadow-2xl">
+            <div className="bg-void border border-brand/30 rounded-xl p-6 shadow-[0_0_50px_rgba(212,163,115,0.15)]">
               <div className="text-center mb-6">
-                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-purple-500 to-blue-500 flex items-center justify-center">
-                  <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-brand/20 border border-brand/50 flex items-center justify-center">
+                  <svg className="w-8 h-8 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                   </svg>
                 </div>
@@ -70,7 +76,7 @@ export default function ActivateOrganizerModal({ isOpen, onClose, onSuccess }: A
                     value={code}
                     onChange={(e) => setCode(e.target.value.toUpperCase())}
                     placeholder="输入邀请码"
-                    className="w-full px-4 py-3 bg-[#0a0a0a] border border-[#333] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500 font-mono text-center text-lg tracking-wider"
+                    className="w-full px-4 py-3 bg-black border border-white/10 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-brand focus:ring-1 focus:ring-brand font-mono text-center text-lg tracking-wider"
                     autoFocus
                   />
                   {error && (
@@ -82,14 +88,14 @@ export default function ActivateOrganizerModal({ isOpen, onClose, onSuccess }: A
                   <button
                     type="button"
                     onClick={onClose}
-                    className="flex-1 px-4 py-3 border border-[#333] text-gray-300 rounded-lg hover:bg-[#252525] transition-colors"
+                    className="flex-1 px-4 py-3 border border-white/10 text-gray-300 rounded-lg hover:bg-white/5 transition-colors"
                   >
                     取消
                   </button>
                   <button
                     type="submit"
                     disabled={loading || !code.trim()}
-                    className="flex-1 px-4 py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-lg hover:from-purple-500 hover:to-blue-500 transition-all disabled:opacity-50 disabled:cursor-not-allowed font-medium"
+                    className="flex-1 px-4 py-3 bg-brand text-black rounded-lg hover:bg-white transition-all disabled:opacity-50 disabled:cursor-not-allowed font-bold"
                   >
                     {loading ? '验证中...' : '确认激活'}
                   </button>

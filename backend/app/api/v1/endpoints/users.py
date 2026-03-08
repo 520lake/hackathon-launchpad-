@@ -33,17 +33,6 @@ def read_user_me(
 ):
     return current_user
 
-@router.post("/me/verify", response_model=UserRead)
-def verify_user_me(
-    session: Session = Depends(get_session),
-    current_user: User = Depends(deps.get_current_user),
-):
-    current_user.is_verified = True
-    session.add(current_user)
-    session.commit()
-    session.refresh(current_user)
-    return current_user
-
 @router.post("", response_model=UserRead)
 def create_user(*, session: Session = Depends(get_session), user_in: UserCreate):
     db_user = session.exec(select(User).where(User.email == user_in.email)).first()
@@ -169,6 +158,24 @@ def change_password(
     session.commit()
     return {"message": "Password changed successfully"}
 
+class UpdatePreferencesRequest(BaseModel):
+    notification_settings: dict
+
+@router.patch("/me/preferences")
+def update_preferences(
+    *,
+    session: Session = Depends(get_session),
+    req: UpdatePreferencesRequest,
+    current_user: User = Depends(deps.get_current_user),
+):
+    if req.notification_settings:
+        import json
+        current_user.notification_settings = json.dumps(req.notification_settings)
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
+    return {"message": "Preferences updated successfully"}
+
 @router.delete("/me")
 def delete_user_me(
     *,
@@ -178,4 +185,19 @@ def delete_user_me(
     session.delete(current_user)
     session.commit()
     return {"message": "User deleted successfully"}
+
+@router.post("/me/deactivate")
+def deactivate_user_me(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(deps.get_current_user),
+):
+    """
+    Deactivate the current user account.
+    Sets is_active to False, user can reactivate by logging in again.
+    """
+    current_user.is_active = False
+    session.add(current_user)
+    session.commit()
+    return {"message": "Account deactivated successfully. You can reactivate by logging in again."}
 

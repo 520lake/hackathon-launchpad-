@@ -85,13 +85,13 @@ export default function AdminPage() {
     
     setGenerating(true)
     try {
-      const res = await axios.post('/api/v1/users/generate-invite-code', {}, {
+      await axios.post('/api/v1/generate-invitation-codes', { count: 1 }, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setCodes([{ id: res.data.id, code: res.data.code, is_used: false, used_by_user_id: null, created_at: new Date().toISOString(), expires_at: null }, ...codes])
-    } catch (e) {
+      fetchData()
+    } catch (e: any) {
       console.error(e)
-      alert('生成失败')
+      alert('生成失败：' + (e.response?.data?.detail || e.message))
     } finally {
       setGenerating(false)
     }
@@ -106,9 +106,9 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       setUsers(users.map(u => u.id === userId ? { ...u, [field]: !currentValue } : u))
-    } catch (e) {
+    } catch (e: any) {
       console.error(e)
-      alert('操作失败')
+      alert('操作失败：' + (e.response?.data?.detail || e.message))
     }
   }
 

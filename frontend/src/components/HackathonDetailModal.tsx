@@ -132,7 +132,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
   const [loading, setLoading] = useState(false);
   const [currentUserId, setCurrentUserId] = useState<number | null>(null);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
-  const [isVerified, setIsVerified] = useState(false);
   
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -338,7 +337,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
             setCurrentUserId(payload.sub ? parseInt(payload.sub) : null);
             
             const res = await axios.get('/api/v1/users/me', { headers: { Authorization: `Bearer ${token}` } });
-            setIsVerified(res.data.is_verified);
             setCurrentUser(res.data);
         } catch (e) {
             console.error(e);
@@ -437,7 +435,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
 
   const handleRegister = async () => {
     if (!currentUserId) { alert(lang === 'zh' ? '请先登录' : 'Please login first'); return; }
-    if (!isVerified) { alert(lang === 'zh' ? '请先完成实名认证' : 'Please verify your identity first'); return; }
     
     setRegisterLoading(true);
     try {
@@ -565,9 +562,6 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
     if (now >= regStart && now < regEnd) {
         if (!currentUserId) {
              return <button onClick={() => alert(lang === 'zh' ? '请先登录' : 'Please Login First')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
-        }
-        if (!isVerified) {
-             return <button onClick={() => alert(lang === 'zh' ? '请前往个人中心完成实名认证' : 'Please Verify Identity')} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50">{lang === 'zh' ? '立即报名' : 'REGISTER NOW'}</button>;
         }
         return <button onClick={handleRegister} disabled={registerLoading} className="btn-primary w-full md:w-auto text-xl px-8 py-3 hover:opacity-90 active:scale-95 transition-all shadow-lg hover:shadow-brand/50 flex items-center justify-center gap-2">
             {registerLoading && <div className="w-5 h-5 border-2 border-black border-t-transparent rounded-full animate-spin" />}

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import EcosystemWall from './EcosystemWall';
@@ -123,6 +124,7 @@ export function LatestEvents({ hackathons, onDetailClick, onViewAll }: { hackath
 // --- 2. About Section ---
 export function About() {
     const textRef = useRef<HTMLDivElement>(null);
+    const navigate = useNavigate();
 
     useEffect(() => {
         gsap.from(textRef.current, {
@@ -145,7 +147,10 @@ export function About() {
                         智能 <br />
                         <span className="text-brand">创新</span>
                     </h2>
-                    <p className="text-xl text-gray-400 mb-6 leading-relaxed max-w-2xl">
+                    <p 
+                        className="text-xl text-gray-400 mb-6 leading-relaxed max-w-2xl cursor-pointer hover:text-brand transition-colors"
+                        onClick={() => navigate('/')}
+                    >
                         {'Aurathon 不是另一个竞赛平台。它是思想的粒子加速器。我们通过 AI 消除技术壁垒，让每一行代码都成为改变现实的杠杆。'}
                     </p>
                     <p className="text-lg text-gray-500 font-mono">

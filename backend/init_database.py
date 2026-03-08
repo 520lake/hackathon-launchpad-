@@ -55,9 +55,7 @@ def init_db():
                 hashed_password=get_password_hash("admin123"),
                 is_active=True,
                 is_superuser=True,
-                is_verified=True,
                 can_create_hackathon=True,
-                created_at=datetime.utcnow()
             )
             session.add(admin)
             session.commit()

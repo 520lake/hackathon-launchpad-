@@ -2,12 +2,14 @@
 import os
 os.chdir(os.path.dirname(os.path.abspath(__file__)) or '.')
 import sys
-sys.path.insert(0, '.')
+sys.path.insert(0, '..')
 
 from datetime import datetime
-from app.db.session import engine
-from sqlmodel import Session
+from sqlmodel import Session, create_engine, select
 from app.models.user import InvitationCode
+
+# 直接使用 SQLite 连接
+engine = create_engine('sqlite:///../vibebuild.db')
 
 def init_invite_codes():
     codes = [
@@ -19,9 +21,7 @@ def init_invite_codes():
     
     with Session(engine) as session:
         for code in codes:
-            existing = session.exec(
-                f"SELECT * FROM invitationcode WHERE code = '{code}'"
-            ).first()
+            existing = session.exec(select(InvitationCode).where(InvitationCode.code == code)).first()
             if not existing:
                 invite = InvitationCode(
                     code=code,

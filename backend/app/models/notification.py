@@ -8,6 +8,7 @@ class NotificationBase(SQLModel):
     title: str
     content: str
     type: str = Field(default="info", index=True)  # info, success, warning, error, system
+    category: str = Field(default="general", index=True)  # activity, system, promotion, general
     is_read: bool = Field(default=False, index=True)
     data: Optional[str] = Field(default=None)
 
@@ -24,6 +25,7 @@ class NotificationCreate(SQLModel):
     title: str
     content: str
     type: str = "info"
+    category: str = "general"
     data: Optional[str] = None
 
 class NotificationCount(SQLModel):

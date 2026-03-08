@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Navbar from '../components/Landing/Navbar'
 import Footer from '../components/Layout/Footer'
 import LoginModal from '../components/LoginModal'
+import RegisterModal from '../components/RegisterModal'
 import axios from 'axios'
 
 // Loading Progress Bar Component
@@ -60,6 +61,7 @@ export default function Layout() {
   const [isLoggedIn, setIsLoggedIn] = useState(false)
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false)
 
   useEffect(() => {
     let token = localStorage.getItem('token');
@@ -121,14 +123,31 @@ export default function Layout() {
         isLoggedIn={isLoggedIn}
         currentUser={currentUser}
         onLoginClick={() => setIsLoginOpen(true)}
-        onRegisterClick={() => setIsLoginOpen(true)}
+        onRegisterClick={() => setIsRegisterOpen(true)}
         onLogoutClick={handleLogout}
         onDashboardClick={() => navigate('/profile')}
         onAdminClick={() => navigate('/admin')}
       />
 
       {/* Login Modal */}
-      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <LoginModal 
+        isOpen={isLoginOpen} 
+        onClose={() => setIsLoginOpen(false)} 
+        onSwitchToRegister={() => {
+          setIsLoginOpen(false);
+          setIsRegisterOpen(true);
+        }}
+      />
+
+      {/* Register Modal */}
+      <RegisterModal 
+        isOpen={isRegisterOpen} 
+        onClose={() => setIsRegisterOpen(false)}
+        onSwitchToLogin={() => {
+          setIsRegisterOpen(false);
+          setIsLoginOpen(true);
+        }}
+      />
 
       {/* Main Content with Page Transition */}
       <AnimatePresence mode="wait">

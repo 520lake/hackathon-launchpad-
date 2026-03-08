@@ -61,6 +61,11 @@ class Settings(BaseSettings):
     DEEPSEEK_API_KEY: str = "sk-f6d2ee81c3b9426e94f8254c874489d4"
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL_NAME: str = "deepseek-chat"
+    
+    # GitHub OAuth
+    GITHUB_CLIENT_ID: str = ""
+    GITHUB_CLIENT_SECRET: str = ""
+    FRONTEND_URL: str = "http://localhost:5173"
 
     class Config:
         case_sensitive = True

@@ -19,17 +19,17 @@
 }
 
 .light {
-  /* Active: Light Mode */
-  --color-bg: #FFFFFF;
-  --color-text: #111827; /* gray-900 */
-  --color-text-secondary: #4B5563; /* gray-600 */
-  --color-card-bg: #F9FAFB; /* gray-50 */
-  --color-border: #E5E7EB; /* gray-200 */
-  --color-brand-primary: #D4A373; /* Keep brand color or adjust slightly */
+  /* Active: Latte Light Mode (拿铁浅色) */
+  --color-bg: #F5E6D3; /* Latte background - warm light beige */
+  --color-text: #4A3B32; /* Dark coffee text - warm dark brown */
+  --color-text-secondary: #7A6855; /* Muted coffee gray */
+  --color-card-bg: #E8D5C4; /* Latte card - softer beige */
+  --color-border: #D4C4B0; /* Latte border - warm gray */
+  --color-brand-primary: #D4A373; /* Keep brand gold */
   --color-brand-dim: #A87B51;
   
   /* Effects - Light Mode */
-  --shadow-card: 0 10px 15px -3px rgba(0, 0, 0, 0.1); /* Soft shadow */
+  --shadow-card: 0 4px 6px -1px rgba(74, 59, 50, 0.1), 0 2px 4px -1px rgba(74, 59, 50, 0.06); /* Soft warm shadow */
   --bg-pattern-opacity: 0.05;
   
   /* Layout - Compact */

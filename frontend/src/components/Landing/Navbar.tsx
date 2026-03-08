@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Sun, Moon, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
 import NotificationBadge from '../NotificationBadge';
 import axios from 'axios';
@@ -22,6 +23,7 @@ export default function Navbar({
     onDashboardClick, 
     onAdminClick
 }: NavbarProps) {
+    const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
@@ -86,7 +88,7 @@ export default function Navbar({
                 {/* 1. Left: Brand / Logo */}
                 <div 
                     className="flex items-center gap-2 cursor-pointer group" 
-                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                    onClick={() => navigate('/')}
                 >
                     {/* Rounded Rectangle Logo Placeholder */}
                     <div className="w-7 h-7 rounded-md bg-ink group-hover:bg-brand transition-colors duration-300 flex items-center justify-center">

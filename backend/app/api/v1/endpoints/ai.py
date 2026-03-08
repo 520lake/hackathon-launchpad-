@@ -93,7 +93,8 @@ async def team_match(
                 "skills": c.skills,
                 "interests": c.interests,
                 "personality": c.personality,
-                "bio": c.bio
+                "bio": c.bio,
+                "mbti_type": c.personality if c.personality and len(c.personality) == 4 else None
             })
             
         user_profile = {
@@ -101,6 +102,7 @@ async def team_match(
             "skills": current_user.skills,
             "interests": current_user.interests,
             "personality": current_user.personality,
+            "mbti_type": current_user.personality if current_user.personality and len(current_user.personality) == 4 else None,
             "bio": current_user.bio,
             "looking_for": req.requirements
         }
@@ -138,7 +140,9 @@ Candidate Users:
                     "name": candidate.nickname or candidate.full_name,
                     "avatar_url": candidate.avatar_url,
                     "skills": candidate.skills,
+                    "interests": candidate.interests,
                     "personality": candidate.personality,
+                    "mbti_type": candidate.personality if candidate.personality and len(candidate.personality) == 4 else None,
                     "bio": candidate.bio,
                     "match_score": m["match_score"],
                     "match_reason": m["match_reason"]
@@ -542,6 +546,125 @@ async def generate_project_idea(req: ProjectIdeaRequest):
             "description": "An intelligent assistant to help you build projects faster. (AI Service Unavailable)",
             "tech_stack": ["React", "FastAPI", "OpenAI"],
             "implementation_path": ["Define Idea", "Build MVP", "Demo"]
+        }
+
+# --- Community Insights Endpoint ---
+
+class CommunityInsightsRequest(BaseModel):
+    hackathon_id: int
+
+class CommunityInsightsResponse(BaseModel):
+    summary: str
+    skill_distribution: dict
+    interest_clusters: List[dict]
+    recommendations: List[str]
+    mbti_distribution: dict
+    hot_topics: List[str]
+
+@router.post("/community-insights", response_model=CommunityInsightsResponse)
+async def get_community_insights(
+    req: CommunityInsightsRequest,
+    session: Session = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    Analyze the participant pool of a hackathon to provide AI-driven insights.
+    """
+    try:
+        # 1. Fetch all participants for the hackathon
+        from app.models.enrollment import Enrollment
+        query = select(User).join(Enrollment).where(
+            Enrollment.hackathon_id == req.hackathon_id
+        )
+        participants = session.exec(query).all()
+        
+        if not participants:
+            return {
+                "summary": "暂无参赛者数据",
+                "skill_distribution": {},
+                "interest_clusters": [],
+                "recommendations": ["等待更多用户报名后查看洞察"],
+                "mbti_distribution": {},
+                "hot_topics": []
+            }
+        
+        # 2. Prepare participant data
+        participants_data = []
+        all_skills = []
+        all_interests = []
+        mbti_types = {}
+        
+        for p in participants:
+            if p.skills:
+                all_skills.extend([s.strip() for s in p.skills.split(',')])
+            if p.interests:
+                all_interests.extend([i.strip() for i in p.interests.split(',')])
+            if p.personality and len(p.personality) == 4:
+                mbti_types[p.personality] = mbti_types.get(p.personality, 0) + 1
+            
+            participants_data.append({
+                "id": p.id,
+                "skills": p.skills,
+                "interests": p.interests,
+                "personality": p.personality,
+                "bio": p.bio
+            })
+        
+        # 3. Calculate skill distribution
+        from collections import Counter
+        skill_counts = Counter(all_skills)
+        skill_distribution = dict(skill_counts.most_common(15))
+        
+        # 4. Call AI for deep analysis
+        system_prompt = get_system_prompt("participant_analysis_system")
+        user_prompt = f"""
+Analyze these hackathon participants:
+Total Participants: {len(participants)}
+
+Participants Data:
+{json.dumps(participants_data[:30], ensure_ascii=False)}
+
+Skill Distribution:
+{json.dumps(skill_distribution, ensure_ascii=False)}
+
+MBTI Distribution:
+{json.dumps(mbti_types, ensure_ascii=False)}
+"""
+        
+        completion = client.chat.completions.create(
+            model=MODEL_NAME,
+            messages=[
+                {'role': 'system', 'content': system_prompt},
+                {'role': 'user', 'content': user_prompt}
+            ],
+            response_format={"type": "json_object"}
+        )
+        
+        ai_analysis = json.loads(completion.choices[0].message.content)
+        
+        # 5. Extract hot topics from interests
+        interest_counts = Counter(all_interests)
+        hot_topics = [item for item, count in interest_counts.most_common(8) if count > 1]
+        
+        return {
+            "summary": ai_analysis.get("summary", ""),
+            "skill_distribution": skill_distribution,
+            "interest_clusters": ai_analysis.get("interest_clusters", []),
+            "recommendations": ai_analysis.get("recommendations", []),
+            "mbti_distribution": mbti_types,
+            "hot_topics": hot_topics
+        }
+        
+    except Exception as e:
+        print(f"Community Insights Error: {e}")
+        # Fallback response
+        return {
+            "summary": "AI 分析服务暂时不可用",
+            "skill_distribution": {},
+            "interest_clusters": [],
+            "recommendations": ["请稍后重试"],
+            "mbti_distribution": {},
+            "hot_topics": []
         }
 
 class RecruitmentGenRequest(BaseModel):

@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlmodel import Session, select
-from typing import List
+from typing import List, Optional
 from datetime import datetime
 
 from app.api import deps
@@ -17,13 +17,18 @@ def read_notifications(
     current_user: User = Depends(deps.get_current_user),
     skip: int = 0,
     limit: int = 50,
+    category: Optional[str] = Query(None, description="Filter by category: activity, system, promotion, general"),
+    is_read: Optional[bool] = Query(None, description="Filter by read status"),
 ):
+    query = select(Notification).where(Notification.user_id == current_user.id).order_by(Notification.created_at.desc())
+    
+    if category:
+        query = query.where(Notification.category == category)
+    if is_read is not None:
+        query = query.where(Notification.is_read == is_read)
+    
     notifications = session.exec(
-        select(Notification)
-        .where(Notification.user_id == current_user.id)
-        .order_by(Notification.created_at.desc())
-        .offset(skip)
-        .limit(limit)
+        query.offset(skip).limit(limit)
     ).all()
     return notifications
 
@@ -32,11 +37,17 @@ def get_unread_count(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(deps.get_current_user),
+    category: Optional[str] = Query(None, description="Filter by category"),
 ):
-    count = session.exec(
-        select(Notification)
-        .where(Notification.user_id == current_user.id, Notification.is_read == False)
-    ).count()
+    query = select(Notification).where(
+        Notification.user_id == current_user.id, 
+        Notification.is_read == False
+    )
+    
+    if category:
+        query = query.where(Notification.category == category)
+    
+    count = len(session.exec(query).all())
     return {"unread_count": count}
 
 @router.post("", response_model=NotificationRead)
@@ -51,6 +62,7 @@ def create_notification(
         title=notification_in.title,
         content=notification_in.content,
         type=notification_in.type,
+        category=notification_in.category,
         data=notification_in.data
     )
     session.add(notification)
@@ -83,11 +95,17 @@ def mark_all_as_read(
     *,
     session: Session = Depends(get_session),
     current_user: User = Depends(deps.get_current_user),
+    category: Optional[str] = Query(None, description="Mark all as read for specific category"),
 ):
-    notifications = session.exec(
-        select(Notification)
-        .where(Notification.user_id == current_user.id, Notification.is_read == False)
-    ).all()
+    query = select(Notification).where(
+        Notification.user_id == current_user.id, 
+        Notification.is_read == False
+    )
+    
+    if category:
+        query = query.where(Notification.category == category)
+    
+    notifications = session.exec(query).all()
     
     for notification in notifications:
         notification.is_read = True

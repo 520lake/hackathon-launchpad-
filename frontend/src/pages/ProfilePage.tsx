@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
@@ -84,28 +84,21 @@ const CalendarIcon = () => (
   </svg>
 )
 
-const PrizeIcon = () => (
-  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-  </svg>
-)
-
 const ArrowLeftIcon = () => (
   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
   </svg>
 )
 
-const CameraIcon = () => (
-  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-  </svg>
-)
-
 const CloseIcon = () => (
   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+)
+
+const UploadIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
   </svg>
 )
 
@@ -124,10 +117,12 @@ export default function ProfilePage() {
   
   const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account' | 'notifications'>('profile')
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [myHackathons, setMyHackathons] = useState<Hackathon[]>([])
+  const [, setMyHackathons] = useState<Hackathon[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Edit form state
   const [editForm, setEditForm] = useState({
@@ -151,7 +146,18 @@ export default function ProfilePage() {
   
   // Preferences state
   const [selectedTopics, setSelectedTopics] = useState<string[]>(['AI', '可持续发展', 'Web3'])
-  const availableTopics = ['AI', '可持续发展', 'Web3', '物联网', '大数据', '区块链', '云计算', '元宇宙', '智能制造', '金融科技']
+  const [customTopic, setCustomTopic] = useState('')
+  const [notificationSettings, setNotificationSettings] = useState<Record<string, boolean>>({
+    activity_reminder: true,
+    new_hackathon_push: true,
+    system_announcement: true,
+    general_notification: true
+  })
+  const [availableTopics, setAvailableTopics] = useState(['AI', '可持续发展', 'Web3', '物联网', '大数据', '区块链', '云计算', '元宇宙', '智能制造', '金融科技'])
+  
+  // Account settings state
+  const [showDeactivateModal, setShowDeactivateModal] = useState(false)
+  const [deactivateConfirmText, setDeactivateConfirmText] = useState('')
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -178,8 +184,6 @@ export default function ProfilePage() {
   useEffect(() => {
     if (activeTab === 'notifications') {
       navigate('/notifications')
-    } else if (activeTab !== 'notifications' && window.location.pathname === '/notifications') {
-      navigate('/profile')
     }
   }, [activeTab])
 
@@ -230,6 +234,70 @@ export default function ProfilePage() {
     }
   }
 
+  // Image Upload Handler
+  const handleAvatarUpload = async (file: File) => {
+    if (!file.type.startsWith('image/')) {
+      alert('请上传图片文件')
+      return
+    }
+
+    if (file.size > 5 * 1024 * 1024) {
+      alert('图片大小不能超过 5MB')
+      return
+    }
+
+    setUploading(true)
+    try {
+      // 创建本地预览 URL
+      const localUrl = URL.createObjectURL(file)
+      setEditForm({...editForm, avatar_url: localUrl})
+      
+      // TODO: 在实际应用中，这里需要调用后端 API 上传图片
+      // const formData = new FormData()
+      // formData.append('file', file)
+      // const res = await axios.post('/api/v1/upload', formData, {
+      //   headers: { 'Content-Type': 'multipart/form-data' }
+      // })
+      // setEditForm({...editForm, avatar_url: res.data.url})
+    } catch (e: any) {
+      alert('图片上传失败')
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    const file = e.dataTransfer.files[0]
+    if (file) {
+      handleAvatarUpload(file)
+    }
+  }
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+  }
+
+  const handleSavePreferences = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    setSaving(true)
+    try {
+      await axios.patch('/api/v1/users/me/preferences', {
+        notification_settings: notificationSettings
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      alert('偏好设置保存成功')
+    } catch (e: any) {
+      console.error(e)
+      alert(e.response?.data?.detail || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   const handleChangePassword = async () => {
     if (passwordForm.newPassword !== passwordForm.confirmPassword) {
       alert('两次输入的密码不一致')
@@ -259,22 +327,27 @@ export default function ProfilePage() {
     }
   }
 
-  const handleDeleteAccount = async () => {
-    if (!confirm('确定要删除账号吗？此操作不可恢复！')) return
-    if (!confirm('再次确认：删除账号将清除所有数据，确定继续？')) return
+  const handleDeactivateAccount = async () => {
+    if (deactivateConfirmText !== '注销账号') {
+      alert('请输入"注销账号"以确认操作')
+      return
+    }
     
     const token = localStorage.getItem('token')
     if (!token) return
     
     try {
-      await axios.delete('/api/v1/users/me', {
+      await axios.post('/api/v1/users/me/deactivate', {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
       localStorage.removeItem('token')
+      setShowDeactivateModal(false)
+      alert('账号已注销，您现在以游客身份浏览')
       navigate('/')
+      window.location.reload()
     } catch (e: any) {
       console.error(e)
-      alert(e.response?.data?.detail || '删除失败')
+      alert(e.response?.data?.detail || '注销失败')
     }
   }
 
@@ -297,6 +370,42 @@ export default function ProfilePage() {
     )
   }
 
+  const addCustomTopic = () => {
+    if (customTopic.trim() && !availableTopics.includes(customTopic.trim())) {
+      setAvailableTopics(prev => [...prev, customTopic.trim()])
+      setSelectedTopics(prev => [...prev, customTopic.trim()])
+      setCustomTopic('')
+    }
+  }
+
+  const handleSaveTopics = async () => {
+    const token = localStorage.getItem('token')
+    if (!token) return
+    
+    setSaving(true)
+    try {
+      await axios.patch('/api/v1/users/me', {
+        interests: selectedTopics.join(',')
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      fetchCurrentUser()
+      alert('话题保存成功，我们将根据您的话题偏好推送相关活动通知')
+    } catch (e: any) {
+      console.error(e)
+      alert(e.response?.data?.detail || '保存失败')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const toggleNotificationSetting = (settingId: string) => {
+    setNotificationSettings(prev => ({
+      ...prev,
+      [settingId]: !prev[settingId]
+    }))
+  }
+
   if (!isLoggedIn) return null
 
   const menuItems = [
@@ -315,6 +424,16 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
+          <div className="flex items-center gap-4 mb-6 py-2">
+            <button 
+              onClick={() => navigate('/')}
+              className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-surface rounded-md"
+            >
+              <span>←</span> 返回首页
+            </button>
+            <span className="text-ink-dim/30">/</span>
+            <span className="text-brand text-sm font-bold tracking-wide px-2 py-1 bg-brand/5 rounded-md">个人中心</span>
+          </div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
             <span className="text-[#FBBF24] font-mono">//</span>
             个人中心
@@ -372,25 +491,70 @@ export default function ProfilePage() {
                         </div>
                         
                         {/* Avatar Upload */}
-                        <div className="flex items-center gap-4">
-                          <div className="w-20 h-20 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center overflow-hidden">
+                        <div className="flex flex-col sm:flex-row items-center gap-4">
+                          <div 
+                            className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand transition-colors relative"
+                            onClick={() => fileInputRef.current?.click()}
+                            onDrop={handleDrop}
+                            onDragOver={handleDragOver}
+                          >
+                            {uploading ? (
+                              <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                                <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin"></div>
+                              </div>
+                            ) : null}
                             {editForm.avatar_url ? (
                               <img src={editForm.avatar_url} className="w-full h-full object-cover" />
                             ) : (
-                              <UserIcon />
+                              <div className="text-gray-500">
+                                <UserIcon />
+                              </div>
                             )}
+                            {/* Upload Overlay on Hover */}
+                            <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+                              <UploadIcon />
+                            </div>
                           </div>
-                          <div className="flex-1">
-                            <label className="text-gray-400 text-sm mb-1 block">头像链接</label>
-                            <input
-                              type="text"
-                              value={editForm.avatar_url}
-                              onChange={e => setEditForm({...editForm, avatar_url: e.target.value})}
-                              placeholder="输入图片URL"
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
-                            />
+                          <div className="flex-1 w-full">
+                            <label className="text-gray-400 text-sm mb-2 block">头像</label>
+                            <div className="flex flex-col sm:flex-row gap-2">
+                              <button
+                                type="button"
+                                onClick={() => fileInputRef.current?.click()}
+                                disabled={uploading}
+                                className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-md hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                              >
+                                <UploadIcon />
+                                {uploading ? '上传中...' : '点击上传头像'}
+                              </button>
+                              {editForm.avatar_url && (
+                                <button
+                                  type="button"
+                                  onClick={() => setEditForm({...editForm, avatar_url: ''})}
+                                  className="px-4 py-2.5 bg-red-900/20 border border-red-800/30 text-red-400 text-sm rounded-md hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+                                >
+                                  <CloseIcon />
+                                  移除
+                                </button>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-500 mt-2">支持 JPG、PNG 格式，最大 5MB</p>
                           </div>
                         </div>
+
+                        {/* Hidden File Input */}
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept="image/*"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0]
+                            if (file) {
+                              handleAvatarUpload(file)
+                            }
+                          }}
+                          className="hidden"
+                        />
 
                         {/* Form Fields */}
                         <div className="grid grid-cols-2 gap-4">
@@ -549,7 +713,10 @@ export default function ProfilePage() {
                   <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
-                        <button className="text-gray-400 hover:text-white transition-colors">
+                        <button 
+                          onClick={() => navigate('/events')}
+                          className="text-gray-400 hover:text-white transition-colors"
+                        >
                           <ArrowLeftIcon />
                         </button>
                         <h3 className="text-white font-semibold">我参与的黑客松</h3>
@@ -574,7 +741,7 @@ export default function ProfilePage() {
                         {enrollments.map(enroll => (
                           <div 
                             key={enroll.id}
-                            onClick={() => navigate(`/events/${enroll.hackathon_id}`)}
+                            onClick={() => navigate(`/events/${enroll.hackathon_id}?tab=myproject`)}
                             className="bg-[#111111] border border-[#222222] rounded-md p-5 cursor-pointer hover:border-[#333] transition-all group"
                           >
                             <div className="flex gap-5">
@@ -657,16 +824,36 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-white font-semibold text-lg">感兴趣的话题</h3>
                       <button 
-                        onClick={handleSaveProfile}
-                        className="text-brand text-sm hover:text-white transition-colors"
+                        onClick={handleSaveTopics}
+                        disabled={saving}
+                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50"
                       >
-                        保存
+                        {saving ? '保存中...' : '保存话题'}
                       </button>
                     </div>
 
                     <p className="text-gray-500 text-sm mb-6">
-                      选择你感兴趣的话题，我们将为你推荐相关的黑客松活动。
+                      选择你感兴趣的话题，我们将为你推荐相关的黑客松活动，并在有相关活动发布时发送通知。
                     </p>
+
+                    {/* Custom Topic Input */}
+                    <div className="flex gap-2 mb-6">
+                      <input
+                        type="text"
+                        value={customTopic}
+                        onChange={(e) => setCustomTopic(e.target.value)}
+                        onKeyPress={(e) => e.key === 'Enter' && addCustomTopic()}
+                        placeholder="输入自定义话题..."
+                        className="flex-1 px-4 py-2 bg-[#1A1A1A] border border-[#333] rounded-lg text-white text-sm focus:border-[#FBBF24] outline-none"
+                      />
+                      <button
+                        onClick={addCustomTopic}
+                        disabled={!customTopic.trim()}
+                        className="px-4 py-2 bg-[#FBBF24] text-black text-sm font-medium rounded-lg hover:bg-white transition-colors disabled:opacity-50"
+                      >
+                        添加
+                      </button>
+                    </div>
 
                     {/* Tag Cloud */}
                     <div className="flex flex-wrap gap-3">
@@ -684,28 +871,99 @@ export default function ProfilePage() {
                         </button>
                       ))}
                     </div>
+                    
+                    {selectedTopics.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-[#222]">
+                        <p className="text-gray-500 text-xs">
+                          已选择 {selectedTopics.length} 个话题，当相关活动发布时您将收到通知
+                        </p>
+                      </div>
+                    )}
                   </div>
 
                   {/* Notification Settings */}
                   <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
-                    <h3 className="text-white font-semibold text-lg mb-6">通知设置</h3>
+                    <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-white font-semibold text-lg">通知偏好设置</h3>
+                      <button 
+                        onClick={handleSavePreferences}
+                        disabled={saving}
+                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50"
+                      >
+                        {saving ? '保存中...' : '保存偏好设置'}
+                      </button>
+                    </div>
+                    
+                    <p className="text-gray-500 text-sm mb-6">
+                      管理您希望接收的通知类型。您可以随时在通知中心查看和管理所有通知。
+                    </p>
                     
                     <div className="space-y-4">
                       {[
-                        { label: '活动提醒', desc: '接收报名活动的开始、截止提醒' },
-                        { label: '新活动推送', desc: '接收符合兴趣标签的新活动通知' },
-                        { label: '系统公告', desc: '接收平台重要公告和更新' },
+                        { 
+                          id: 'activity_reminder', 
+                          label: '活动提醒', 
+                          desc: '接收报名活动的开始、截止提醒',
+                          icon: '⏰',
+                          category: 'activity'
+                        },
+                        { 
+                          id: 'new_hackathon_push', 
+                          label: '新活动推送', 
+                          desc: '接收符合兴趣标签的新活动通知',
+                          icon: '🚀',
+                          category: 'promotion'
+                        },
+                        { 
+                          id: 'system_announcement', 
+                          label: '系统公告', 
+                          desc: '接收平台重要公告和更新',
+                          icon: '📢',
+                          category: 'system'
+                        },
+                        { 
+                          id: 'general_notification', 
+                          label: '其他消息', 
+                          desc: '接收平台的一般性通知和提醒',
+                          icon: '✉️',
+                          category: 'general'
+                        }
                       ].map((item, i) => (
-                        <div key={i} className="flex items-center justify-between py-3 border-b border-[#222]">
-                          <div>
-                            <div className="text-white text-sm">{item.label}</div>
-                            <div className="text-gray-500 text-[12px]">{item.desc}</div>
+                        <div key={i} className="flex items-start gap-4 py-4 border-b border-[#222] group hover:bg-[#111] transition-colors rounded-lg px-2">
+                          <div className="flex-shrink-0 w-10 h-10 bg-[#111] rounded-lg flex items-center justify-center text-lg">
+                            {item.icon}
                           </div>
-                          <button className="w-12 h-6 bg-brand rounded-full relative">
-                            <span className="absolute right-1 top-1 w-4 h-4 bg-black rounded-full" />
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <div className="text-white text-sm font-medium">{item.label}</div>
+                              <span className="px-2 py-0.5 bg-[#222] text-[10px] text-gray-400 rounded font-mono">
+                                {item.category}
+                              </span>
+                            </div>
+                            <div className="text-gray-500 text-[12px] leading-relaxed">{item.desc}</div>
+                          </div>
+                          <button 
+                            className={`w-12 h-6 rounded-full relative transition-colors ${
+                              notificationSettings[item.id] ? 'bg-[#FBBF24]' : 'bg-gray-600'
+                            }`}
+                            onClick={() => toggleNotificationSetting(item.id)}
+                          >
+                            <span className={`absolute top-1 w-4 h-4 bg-black rounded-full transition-all duration-300 ${
+                              notificationSettings[item.id] ? 'right-1' : 'left-1'
+                            }`} />
                           </button>
                         </div>
                       ))}
+                    </div>
+                    
+                    <div className="mt-6 pt-4 border-t border-[#222]">
+                      <button 
+                        onClick={() => navigate('/notifications')}
+                        className="w-full py-3 border border-[#222] text-gray-400 text-sm rounded-lg hover:border-[#FBBF24] hover:text-[#FBBF24] transition-colors flex items-center justify-center gap-2"
+                      >
+                        <span>🔔</span>
+                        前往通知中心管理所有通知
+                      </button>
                     </div>
                   </div>
                 </motion.div>
@@ -781,23 +1039,53 @@ export default function ProfilePage() {
                     <div className="flex items-center justify-between p-6 border-b border-[#222]">
                       <div>
                         <div className="text-gray-400 text-sm mb-1">第三方登录</div>
-                        <div className="text-white text-sm">
-                          {currentUser?.wx_openid ? '微信已绑定' : '未绑定第三方账号'}
+                        <div className="flex items-center gap-4">
+                          {currentUser?.wx_openid ? (
+                            <span className="text-white text-sm flex items-center gap-2">
+                              <svg className="w-4 h-4" viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M8.691 2.188C3.891 2.188 0 5.476 0 9.53c0 2.212 1.17 4.203 3.002 5.55a.59.59 0 0 1 .213.665l-.39 1.48c-.019.07-.048.141-.048.213 0 .163.13.295.29.295a.326.326 0 0 0 .167-.054l1.903-1.114a.864.864 0 0 1 .717-.098 10.16 10.16 0 0 0 2.837.403c.276 0 .543-.027.811-.05-.857-2.578.157-4.972 1.932-6.446 1.703-1.415 3.882-1.98 5.853-1.838-.576-3.583-4.196-6.348-8.596-6.348zM5.785 5.991c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178A1.17 1.17 0 0 1 4.623 7.17c0-.651.52-1.18 1.162-1.18zm5.813 0c.642 0 1.162.529 1.162 1.18a1.17 1.17 0 0 1-1.162 1.178 1.17 1.17 0 0 1-1.162-1.178c0-.651.52-1.18 1.162-1.18zm5.34 2.867c-1.797-.052-3.746.512-5.28 1.786-1.72 1.428-2.687 3.72-1.78 6.22.942 2.453 3.666 4.229 6.884 4.229.826 0 1.622-.12 2.361-.336a.722.722 0 0 1 .598.082l1.584.926a.272.272 0 0 0 .14.047c.134 0 .24-.111.24-.247 0-.06-.023-.12-.038-.177l-.327-1.233a.582.582 0 0 1-.023-.156.49.49 0 0 1 .201-.398C23.024 18.48 24 16.82 24 14.98c0-3.21-2.931-5.837-6.656-6.088V8.89c-.135-.01-.27-.027-.407-.03zm-2.53 3.274c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.97-.982zm4.844 0c.535 0 .969.44.969.982a.976.976 0 0 1-.969.983.976.976 0 0 1-.969-.983c0-.542.434-.982.969-.982z"/>
+                              </svg>
+                              微信已绑定
+                            </span>
+                          ) : (
+                            <span className="text-gray-500 text-sm">未绑定第三方账号</span>
+                          )}
                         </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {!currentUser?.github_id && (
+                          <button 
+                            onClick={() => window.location.href = '/api/v1/auth/github'}
+                            className="flex items-center gap-2 px-4 py-2 bg-[#24292e] text-white text-sm rounded-md hover:bg-[#2f363d] transition-colors"
+                          >
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            绑定 GitHub
+                          </button>
+                        )}
+                        {currentUser?.github_id && (
+                          <span className="text-emerald-400 text-sm flex items-center gap-2">
+                            <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                            GitHub 已绑定
+                          </span>
+                        )}
                       </div>
                     </div>
 
-                    {/* Delete Account */}
+                    {/* Deactivate Account */}
                     <div className="flex items-center justify-between p-6">
                       <div>
-                        <div className="text-red-400 text-sm mb-1">删除账号</div>
-                        <div className="text-gray-500 text-[12px]">删除后将无法恢复，请谨慎操作</div>
+                        <div className="text-red-400 text-sm mb-1">注销账号</div>
+                        <div className="text-gray-500 text-[12px]">注销后账号将变为游客状态，可重新登录恢复</div>
                       </div>
                       <button 
-                        onClick={handleDeleteAccount}
+                        onClick={() => setShowDeactivateModal(true)}
                         className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-md hover:bg-red-500/10 transition-colors"
                       >
-                        删除账号
+                        注销账号
                       </button>
                     </div>
                   </div>
@@ -858,6 +1146,67 @@ export default function ProfilePage() {
                           </button>
                         </div>
                       </div>
+                    </div>
+                  )}
+
+                  {/* Deactivate Account Modal */}
+                  {showDeactivateModal && (
+                    <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+                      <motion.div 
+                        initial={{ opacity: 0, scale: 0.95 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        className="bg-[#0A0A0A] border border-red-500/30 rounded-xl p-8 max-w-md w-full"
+                      >
+                        <div className="flex items-center gap-3 mb-6">
+                          <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
+                            <svg className="w-6 h-6 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          </div>
+                          <div>
+                            <h3 className="text-white font-semibold text-lg">注销账号</h3>
+                            <p className="text-gray-500 text-sm">此操作将注销您的账号</p>
+                          </div>
+                        </div>
+                        
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+                          <p className="text-red-300 text-sm leading-relaxed">
+                            注销后，您的账号将变为游客状态。您的数据将被保留，您可以随时重新登录恢复账号。
+                          </p>
+                        </div>
+
+                        <div className="space-y-3 mb-6">
+                          <label className="text-gray-400 text-sm">
+                            请输入 <span className="text-red-400 font-mono">注销账号</span> 以确认操作
+                          </label>
+                          <input
+                            type="text"
+                            value={deactivateConfirmText}
+                            onChange={(e) => setDeactivateConfirmText(e.target.value)}
+                            placeholder="注销账号"
+                            className="w-full px-4 py-3 bg-[#1A1A1A] border border-red-500/30 rounded-lg text-white text-sm focus:border-red-500 outline-none"
+                          />
+                        </div>
+
+                        <div className="flex gap-3">
+                          <button
+                            onClick={() => {
+                              setShowDeactivateModal(false)
+                              setDeactivateConfirmText('')
+                            }}
+                            className="flex-1 px-4 py-3 border border-[#333] text-gray-400 text-sm rounded-lg hover:text-white transition-colors"
+                          >
+                            取消
+                          </button>
+                          <button
+                            onClick={handleDeactivateAccount}
+                            disabled={deactivateConfirmText !== '注销账号'}
+                            className="flex-1 px-4 py-3 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            确认注销
+                          </button>
+                        </div>
+                      </motion.div>
                     </div>
                   )}
                 </motion.div>

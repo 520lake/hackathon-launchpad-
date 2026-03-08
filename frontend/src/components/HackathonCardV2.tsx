@@ -192,7 +192,7 @@ export default function HackathonCard({
           {/* 顶部标签行 */}
           <div className="flex flex-wrap gap-2 items-center">
             {data.isOrganizer && (
-              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-indigo-500/20 border border-indigo-500/30 text-indigo-400">
+              <span className="text-xs font-medium px-2.5 py-1 rounded-full bg-brand/20 border border-brand/30 text-brand">
                 我创建的
               </span>
             )}

@@ -78,18 +78,23 @@ def update_user(
     session.refresh(user)
     return user
 
+from pydantic import BaseModel
+
+class ActivateOrganizerRequest(BaseModel):
+    code: str
+
 @router.post("/activate-organizer", response_model=UserRead)
 def activate_organizer(
     *,
     session: Session = Depends(get_session),
-    code: str,
+    req: ActivateOrganizerRequest,
     current_user: User = Depends(deps.get_current_user),
 ):
     if current_user.can_create_hackathon:
         return current_user
     
     invitation = session.exec(
-        select(InvitationCode).where(InvitationCode.code == code)
+        select(InvitationCode).where(InvitationCode.code == req.code)
     ).first()
     
     if not invitation:

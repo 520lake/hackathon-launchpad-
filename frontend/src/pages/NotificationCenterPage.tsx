@@ -194,7 +194,7 @@ export default function NotificationCenterPage() {
         <div className="flex flex-wrap gap-2 mb-6">
           <button
             onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-[16px] text-sm font-medium transition-colors ${
               filter === 'all'
                 ? 'bg-brand text-black'
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -204,7 +204,7 @@ export default function NotificationCenterPage() {
           </button>
           <button
             onClick={() => setFilter('unread')}
-            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+            className={`px-4 py-2 rounded-[16px] text-sm font-medium transition-colors ${
               filter === 'unread'
                 ? 'bg-brand text-black'
                 : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
@@ -223,7 +223,7 @@ export default function NotificationCenterPage() {
         <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-800 pb-2">
           <button
             onClick={() => setCategoryFilter('all')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors ${
+            className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors ${
               categoryFilter === 'all'
                 ? 'bg-white text-black'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -233,7 +233,7 @@ export default function NotificationCenterPage() {
           </button>
           <button
             onClick={() => setCategoryFilter('activity')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
               categoryFilter === 'activity'
                 ? 'bg-[#FBBF24] text-black'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -242,14 +242,14 @@ export default function NotificationCenterPage() {
             <span className="w-2 h-2 rounded-full bg-[#FBBF24]"></span>
             活动提醒
             {categoryCounts['activity'] > 0 && (
-              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
                 {categoryCounts['activity']}
               </span>
             )}
           </button>
           <button
             onClick={() => setCategoryFilter('system')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
               categoryFilter === 'system'
                 ? 'bg-[#3B82F6] text-black'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -258,14 +258,14 @@ export default function NotificationCenterPage() {
             <span className="w-2 h-2 rounded-full bg-[#3B82F6]"></span>
             系统公告
             {categoryCounts['system'] > 0 && (
-              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
                 {categoryCounts['system']}
               </span>
             )}
           </button>
           <button
             onClick={() => setCategoryFilter('promotion')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
               categoryFilter === 'promotion'
                 ? 'bg-[#10B981] text-black'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -274,14 +274,14 @@ export default function NotificationCenterPage() {
             <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
             新活动推送
             {categoryCounts['promotion'] > 0 && (
-              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
                 {categoryCounts['promotion']}
               </span>
             )}
           </button>
           <button
             onClick={() => setCategoryFilter('general')}
-            className={`px-3 py-1.5 rounded-full text-xs font-medium transition-colors flex items-center gap-2 ${
+            className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
               categoryFilter === 'general'
                 ? 'bg-gray-600 text-black'
                 : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
@@ -290,7 +290,7 @@ export default function NotificationCenterPage() {
             <span className="w-2 h-2 rounded-full bg-gray-600"></span>
             其他消息
             {categoryCounts['general'] > 0 && (
-              <span className="px-1.5 py-0.5 bg-black/30 rounded-full text-[10px]">
+              <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
                 {categoryCounts['general']}
               </span>
             )}
@@ -314,7 +314,7 @@ export default function NotificationCenterPage() {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, x: -20 }}
                     transition={{ duration: 0.2 }}
-                    className={`bg-[#0A0A0A] border ${getTypeColor(notification.type)} rounded-xl p-5 relative group hover:border-brand/40 transition-all`}
+                    className={`bg-[#0A0A0A] border ${getTypeColor(notification.type)} rounded-[24px] p-5 relative group hover:border-brand/40 transition-all`}
                   >
                     <div className="flex items-start gap-4">
                       {/* Icon */}
@@ -382,7 +382,7 @@ export default function NotificationCenterPage() {
           <div className="mt-8 flex justify-center">
             <button
               onClick={markAllAsRead}
-              className="px-6 py-2 border border-gray-700 text-gray-400 text-sm rounded-md hover:text-white hover:border-gray-600 transition-colors"
+              className="px-6 py-2 border border-gray-700 text-gray-400 text-sm rounded-[16px] hover:text-white hover:border-gray-600 transition-colors"
             >
               标记全部已读
             </button>

@@ -23,12 +23,23 @@ export default function ActivateOrganizerModal({ isOpen, onClose, onSuccess }: A
     try {
       const token = localStorage.getItem('token')
       const response = await axios.post('/api/v1/users/activate-organizer',
-        { code },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { code: code.trim() },
+        { 
+          headers: { 
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          } 
+        }
       )
       
       // 更新用户信息到 localStorage
       if (response.data) {
+        // 保存更新后的用户信息
+        const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}')
+        localStorage.setItem('currentUser', JSON.stringify({
+          ...currentUser,
+          can_create_hackathon: true
+        }))
         // 触发成功回调，让父组件更新用户状态
         onSuccess()
       }

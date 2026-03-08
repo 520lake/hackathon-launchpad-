@@ -166,9 +166,9 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
         {isForgotPassword ? (
           // 忘记密码表单
           <form onSubmit={handleForgotPassword} className="space-y-4">
-            <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg mb-4">
-              <p className="text-sm text-indigo-300 font-medium">忘记密码</p>
-              <p className="text-xs text-indigo-400/80 mt-1">通过邮箱验证码重置密码</p>
+            <div className="p-3 bg-brand/10 border border-brand/20 rounded-lg mb-4">
+              <p className="text-sm text-brand font-medium">忘记密码</p>
+              <p className="text-xs text-brand/80 mt-1">通过邮箱验证码重置密码</p>
             </div>
 
             <input 

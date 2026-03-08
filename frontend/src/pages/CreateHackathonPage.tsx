@@ -84,7 +84,7 @@ export default function CreateHackathonPage() {
     query: '',
     isVisible: true,
   })
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -100,15 +100,21 @@ export default function CreateHackathonPage() {
     
     // 检查用户是否有创建活动的权限
     if (currentUser && !currentUser.can_create_hackathon) {
-      alert('您没有权限创建活动，需要超级管理员分配的邀请码才能发布活动')
-      navigate('/')
+      // 显示提示并跳转
+      setTimeout(() => {
+        alert('您没有权限创建活动，需要超级管理员分配的邀请码才能发布活动。\n\n请在个人中心使用邀请码激活组织者权限。')
+        navigate('/profile')
+      }, 100)
       return
     }
+    
+    // 权限检查通过，设置 loading 为 false
+    setLoading(false)
     
     if (editId) {
       loadHackathonData(editId)
     }
-  }, [isLoggedIn, editId])
+  }, [isLoggedIn, currentUser, editId, navigate])
 
   const loadHackathonData = async (id: string) => {
     try {
@@ -347,6 +353,18 @@ export default function CreateHackathonPage() {
   }
 
   if (!isLoggedIn) return null
+  
+  // 显示加载状态
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#050505] flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-brand border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-400 text-sm">加载中...</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-200">
@@ -397,7 +415,7 @@ export default function CreateHackathonPage() {
                     {aiCommand.isGenerating ? (
                       <Loader2 className="w-4 h-4 animate-spin" />
                     ) : (
-                      <Sparkles className="w-4 h-4 text-indigo-400" />
+                      <Sparkles className="w-4 h-4 text-brand" />
                     )}
                     <span className="text-xs font-mono tracking-wider">AI 闪电生成</span>
                   </div>
@@ -414,7 +432,7 @@ export default function CreateHackathonPage() {
                   <button
                     onClick={handleAIGenerate}
                     disabled={aiCommand.isGenerating || !aiCommand.query.trim()}
-                    className="px-4 py-2 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 text-xs font-medium rounded-md hover:bg-indigo-600/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-4 py-2 bg-brand/20 border border-brand/30 text-brand text-xs font-medium rounded-md hover:bg-brand/30 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
                     <Wand2 className="w-3 h-3" />
                     Generate
@@ -436,7 +454,7 @@ export default function CreateHackathonPage() {
                             initial={{ width: 0 }}
                             animate={{ width: '100%' }}
                             transition={{ duration: 2 }}
-                            className="h-full bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500"
+                            className="h-full bg-gradient-to-r from-brand via-brand/70 to-brand"
                           />
                         </div>
                         <span className="font-mono">AI 正在构建活动框架...</span>
@@ -772,7 +790,7 @@ export default function CreateHackathonPage() {
               {/* Total Prize Pool */}
               <div className="mt-4 flex items-center justify-between text-xs">
                 <span className="text-zinc-500 font-mono">总奖金池</span>
-                <span className="text-indigo-400 font-mono">
+                <span className="text-brand font-mono">
                   ¥ {(formData.awards.reduce((sum, a) => sum + a.prize_pool * a.quota, 0)).toLocaleString()}
                 </span>
               </div>
@@ -797,7 +815,7 @@ export default function CreateHackathonPage() {
                     onClick={() => setFormat('online')}
                     className={`flex-1 py-2.5 rounded-md text-xs font-medium transition-all ${
                       format === 'online'
-                        ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400'
+                        ? 'bg-brand/20 border border-brand/30 text-brand'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
                     }`}
                   >
@@ -808,7 +826,7 @@ export default function CreateHackathonPage() {
                     onClick={() => setFormat('offline')}
                     className={`flex-1 py-2.5 rounded-md text-xs font-medium transition-all ${
                       format === 'offline'
-                        ? 'bg-indigo-600/20 border border-indigo-500/30 text-indigo-400'
+                        ? 'bg-brand/20 border border-brand/30 text-brand'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
                     }`}
                   >
@@ -864,7 +882,7 @@ export default function CreateHackathonPage() {
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
-                          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                          className="px-4 py-2 bg-brand hover:bg-brand/90 text-black text-xs font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                           <Upload className="w-3 h-3" />
                           {uploading ? '上传中...' : '更换图片'}
@@ -911,7 +929,7 @@ export default function CreateHackathonPage() {
                   {uploading && (
                     <div className="absolute inset-0 bg-black/70 flex items-center justify-center">
                       <div className="text-center">
-                        <Loader2 className="w-6 h-6 animate-spin text-indigo-400 mx-auto mb-2" />
+                        <Loader2 className="w-6 h-6 animate-spin text-brand mx-auto mb-2" />
                         <p className="text-xs text-zinc-400">图片上传中...</p>
                       </div>
                     </div>
@@ -968,7 +986,7 @@ export default function CreateHackathonPage() {
                 <button
                   onClick={() => handleSubmit('published')}
                   disabled={loading}
-                  className="w-full py-3 bg-indigo-600 hover:bg-indigo-500 text-white text-sm font-medium rounded-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(79,70,229,0.3)] hover:shadow-[0_0_20px_rgba(79,70,229,0.4)]"
+                  className="w-full py-3 bg-brand hover:bg-brand/90 text-black text-sm font-medium rounded-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
                 >
                   <Rocket className="w-4 h-4" />
                   {loading ? '发布中...' : '发布活动'}

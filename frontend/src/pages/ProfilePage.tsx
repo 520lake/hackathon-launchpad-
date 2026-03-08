@@ -37,6 +37,13 @@ interface Hackathon {
   cover_image?: string
   location?: string
   description?: string
+  organizer_name?: string
+  theme_tags?: string
+}
+
+interface OrganizedHackathon extends Hackathon {
+  participant_count?: number
+  team_count?: number
 }
 
 // Icons
@@ -108,6 +115,12 @@ const BellIcon = () => (
   </svg>
 )
 
+const EventIcon = () => (
+  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+  </svg>
+)
+
 export default function ProfilePage() {
   const navigate = useNavigate()
   const context = useOutletContext<OutletContextType>()
@@ -115,9 +128,9 @@ export default function ProfilePage() {
   const currentUser = context?.currentUser ?? null
   const fetchCurrentUser = context?.fetchCurrentUser ?? (() => {})
   
-  const [activeTab, setActiveTab] = useState<'profile' | 'preferences' | 'account' | 'notifications'>('profile')
+  const [activeTab, setActiveTab] = useState<'profile' | 'organized' | 'preferences' | 'account' | 'notifications'>('profile')
   const [enrollments, setEnrollments] = useState<Enrollment[]>([])
-  const [, setMyHackathons] = useState<Hackathon[]>([])
+  const [organizedHackathons, setOrganizedHackathons] = useState<OrganizedHackathon[]>([])
   const [loading, setLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -203,7 +216,7 @@ export default function ProfilePage() {
         const hackRes = await axios.get('/api/v1/hackathons/my', {
           headers: { Authorization: `Bearer ${token}` }
         })
-        setMyHackathons(hackRes.data || [])
+        setOrganizedHackathons(hackRes.data || [])
       } catch (e) {
         console.log('No organized hackathons')
       }
@@ -410,6 +423,7 @@ export default function ProfilePage() {
 
   const menuItems = [
     { id: 'profile', label: '个人资料', icon: <UserIcon /> },
+    { id: 'organized', label: '我发起的活动', icon: <EventIcon /> },
     { id: 'preferences', label: '偏好设置', icon: <PreferencesIcon /> },
     { id: 'account', label: '账号设置', icon: <SettingsIcon /> },
     { id: 'notifications', label: '通知中心', icon: <BellIcon /> },
@@ -427,12 +441,12 @@ export default function ProfilePage() {
           <div className="flex items-center gap-4 mb-6 py-2">
             <button 
               onClick={() => navigate('/')}
-              className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-surface rounded-md"
+              className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-4 py-2 hover:bg-surface rounded-[16px]"
             >
               <span>←</span> 返回首页
             </button>
             <span className="text-ink-dim/30">/</span>
-            <span className="text-brand text-sm font-bold tracking-wide px-2 py-1 bg-brand/5 rounded-md">个人中心</span>
+            <span className="text-brand text-sm font-bold tracking-wide px-4 py-2 bg-brand/5 rounded-[16px]">个人中心</span>
           </div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
             <span className="text-[#FBBF24] font-mono">//</span>
@@ -444,12 +458,12 @@ export default function ProfilePage() {
         <div className="flex gap-8">
           {/* Left Sidebar Navigation */}
           <div className="w-56 flex-shrink-0">
-            <nav className="sticky top-24 space-y-1">
+            <nav className="sticky top-24 space-y-2">
               {menuItems.map(item => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
-                  className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-md ${
+                  className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] ${
                     activeTab === item.id 
                       ? 'bg-white/[0.08] text-white' 
                       : 'text-gray-400 hover:text-white hover:bg-white/[0.03]'
@@ -476,7 +490,7 @@ export default function ProfilePage() {
                   className="space-y-6"
                 >
                   {/* User Hero Card */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
                     {isEditing ? (
                       // Edit Mode
                       <div className="space-y-6">
@@ -522,7 +536,7 @@ export default function ProfilePage() {
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
                                 disabled={uploading}
-                                className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-md hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                                className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-[16px] hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                               >
                                 <UploadIcon />
                                 {uploading ? '上传中...' : '点击上传头像'}
@@ -531,7 +545,7 @@ export default function ProfilePage() {
                                 <button
                                   type="button"
                                   onClick={() => setEditForm({...editForm, avatar_url: ''})}
-                                  className="px-4 py-2.5 bg-red-900/20 border border-red-800/30 text-red-400 text-sm rounded-md hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+                                  className="px-4 py-2.5 bg-red-900/20 border border-red-800/30 text-red-400 text-sm rounded-[16px] hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
                                 >
                                   <CloseIcon />
                                   移除
@@ -564,7 +578,7 @@ export default function ProfilePage() {
                               type="text"
                               value={editForm.full_name}
                               onChange={e => setEditForm({...editForm, full_name: e.target.value})}
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                              className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                             />
                           </div>
                           <div>
@@ -573,7 +587,7 @@ export default function ProfilePage() {
                               type="text"
                               value={editForm.nickname}
                               onChange={e => setEditForm({...editForm, nickname: e.target.value})}
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                              className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                             />
                           </div>
                           <div>
@@ -583,7 +597,7 @@ export default function ProfilePage() {
                               value={editForm.city}
                               onChange={e => setEditForm({...editForm, city: e.target.value})}
                               placeholder="如：上海"
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                              className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                             />
                           </div>
                           <div>
@@ -593,7 +607,7 @@ export default function ProfilePage() {
                               value={editForm.phone}
                               onChange={e => setEditForm({...editForm, phone: e.target.value})}
                               placeholder="+86 138****8888"
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                              className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                             />
                           </div>
                         </div>
@@ -604,7 +618,7 @@ export default function ProfilePage() {
                             value={editForm.bio}
                             onChange={e => setEditForm({...editForm, bio: e.target.value})}
                             rows={3}
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none resize-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none resize-none transition-colors"
                           />
                         </div>
 
@@ -615,7 +629,7 @@ export default function ProfilePage() {
                             value={editForm.skills}
                             onChange={e => setEditForm({...editForm, skills: e.target.value})}
                             placeholder="React, Python, AI..."
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                           />
                         </div>
 
@@ -626,21 +640,21 @@ export default function ProfilePage() {
                             value={editForm.interests}
                             onChange={e => setEditForm({...editForm, interests: e.target.value})}
                             placeholder="AI, Web3, 可持续发展..."
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                           />
                         </div>
 
                         <div className="flex justify-end gap-3">
                           <button
                             onClick={() => setIsEditing(false)}
-                            className="px-4 py-2 border border-[#333] text-gray-400 text-sm rounded-md hover:text-white transition-colors"
+                            className="px-4 py-2.5 border border-[#333] text-gray-400 text-sm rounded-[16px] hover:text-white transition-colors"
                           >
                             取消
                           </button>
                           <button
                             onClick={handleSaveProfile}
                             disabled={saving}
-                            className="px-4 py-2 bg-brand text-black font-medium text-sm rounded-md hover:bg-white transition-colors disabled:opacity-50"
+                            className="px-4 py-2.5 bg-brand text-black font-medium text-sm rounded-[16px] hover:bg-white transition-colors disabled:opacity-50"
                           >
                             {saving ? '保存中...' : '保存'}
                           </button>
@@ -650,7 +664,7 @@ export default function ProfilePage() {
                       // View Mode
                       <div className="flex items-start gap-6">
                         {/* Avatar */}
-                        <div className="w-24 h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="w-24 h-24 rounded-[24px] bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
                           {currentUser?.avatar_url ? (
                             <img src={currentUser.avatar_url} className="w-full h-full object-cover" />
                           ) : (
@@ -665,7 +679,7 @@ export default function ProfilePage() {
                               {currentUser?.full_name || currentUser?.nickname || '未设置姓名'}
                             </h2>
                             {currentUser?.can_create_hackathon && (
-                              <span className="px-3 py-1 bg-brand text-black text-[11px] font-medium rounded">
+                              <span className="px-3 py-1.5 bg-brand text-black text-[11px] font-medium rounded-[16px]">
                                 组织者
                               </span>
                             )}
@@ -689,7 +703,7 @@ export default function ProfilePage() {
                           {currentUser?.interests && (
                             <div className="flex flex-wrap gap-2 mt-4">
                               {currentUser.interests.split(',').map((interest: string, i: number) => (
-                                <span key={i} className="px-2 py-1 bg-[#222] text-gray-400 text-xs rounded">
+                                <span key={i} className="px-3 py-1.5 bg-[#222] text-gray-400 text-xs rounded-[16px]">
                                   {interest.trim()}
                                 </span>
                               ))}
@@ -700,7 +714,7 @@ export default function ProfilePage() {
                         {/* Edit Button */}
                         <button 
                           onClick={() => setIsEditing(true)}
-                          className="flex items-center gap-2 px-4 py-2 border border-white/10 text-gray-300 text-sm rounded-md hover:bg-white/[0.05] transition-colors"
+                          className="flex items-center gap-2 px-4 py-2.5 border border-white/10 text-gray-300 text-sm rounded-[16px] hover:bg-white/[0.05] transition-colors"
                         >
                           <EditIcon />
                           编辑资料
@@ -710,7 +724,7 @@ export default function ProfilePage() {
                   </div>
 
                   {/* My Participated Hackathons */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-6">
                     <div className="flex items-center justify-between mb-6">
                       <div className="flex items-center gap-3">
                         <button 
@@ -720,7 +734,7 @@ export default function ProfilePage() {
                           <ArrowLeftIcon />
                         </button>
                         <h3 className="text-white font-semibold">我参与的黑客松</h3>
-                        <span className="px-2 py-0.5 bg-[#222] text-gray-400 text-[12px] rounded-full">
+                        <span className="px-3 py-1.5 bg-[#222] text-gray-400 text-[12px] rounded-[16px]">
                           {enrollments.length}
                         </span>
                       </div>
@@ -742,13 +756,13 @@ export default function ProfilePage() {
                           <div 
                             key={enroll.id}
                             onClick={() => navigate(`/events/${enroll.hackathon_id}?tab=myproject`)}
-                            className="bg-[#111111] border border-[#222222] rounded-md p-5 cursor-pointer hover:border-[#333] transition-all group"
+                            className="bg-[#111111] border border-[#222222] rounded-[16px] p-5 cursor-pointer hover:border-[#333] transition-all group"
                           >
                             <div className="flex gap-5">
                               {/* Thumbnail */}
-                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-md flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600">
+                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-[16px] flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600 overflow-hidden">
                                 {enroll.hackathon?.cover_image ? (
-                                  <img src={enroll.hackathon.cover_image} className="w-full h-full rounded-md object-cover" />
+                                  <img src={enroll.hackathon.cover_image} className="w-full h-full object-cover" />
                                 ) : (
                                   enroll.hackathon?.title?.substring(0, 2) || 'TE'
                                 )}
@@ -759,7 +773,7 @@ export default function ProfilePage() {
                                 {/* Tags */}
                                 <div className="flex items-center gap-2 mb-2">
                                   {enroll.hackathon?.theme_tags?.split(',').slice(0, 2).map((tag, i) => (
-                                    <span key={i} className="px-2 py-0.5 bg-[#222] text-gray-400 text-[10px] rounded">
+                                    <span key={i} className="px-3 py-1.5 bg-[#222] text-gray-400 text-[10px] rounded-[16px]">
                                       {tag.trim()}
                                     </span>
                                   ))}
@@ -800,9 +814,117 @@ export default function ProfilePage() {
                         <p>还没有参与任何黑客松</p>
                         <button 
                           onClick={() => navigate('/events')}
-                          className="mt-4 px-4 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
+                          className="mt-4 px-6 py-3 bg-brand text-black text-sm font-medium rounded-[16px] hover:bg-white transition-colors"
                         >
                           去探索活动
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </motion.div>
+              )}
+
+              {/* Organized Hackathons Tab */}
+              {activeTab === 'organized' && (
+                <motion.div
+                  key="organized"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-6"
+                >
+                  {/* My Organized Hackathons */}
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-6">
+                    <div className="flex items-center justify-between mb-6">
+                      <div className="flex items-center gap-3">
+                        <h3 className="text-white font-semibold text-lg">我发起的活动</h3>
+                        <span className="px-3 py-1.5 bg-[#222] text-gray-400 text-[12px] rounded-[16px]">
+                          {organizedHackathons.length}
+                        </span>
+                      </div>
+                      <button 
+                        onClick={() => navigate('/create')}
+                        className="px-4 py-2 bg-brand text-black text-sm font-medium rounded-[16px] hover:bg-white transition-colors"
+                      >
+                        + 发起新活动
+                      </button>
+                    </div>
+
+                    {loading ? (
+                      <div className="flex items-center justify-center py-12">
+                        <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+                      </div>
+                    ) : organizedHackathons.length > 0 ? (
+                      <div className="space-y-4">
+                        {organizedHackathons.map(hackathon => (
+                          <div 
+                            key={hackathon.id}
+                            onClick={() => navigate(`/events/${hackathon.id}?tab=manage`)}
+                            className="bg-[#111111] border border-[#222222] rounded-[16px] p-5 cursor-pointer hover:border-[#333] transition-all group"
+                          >
+                            <div className="flex gap-5">
+                              {/* Thumbnail */}
+                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-[16px] flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600 overflow-hidden">
+                                {hackathon.cover_image ? (
+                                  <img src={hackathon.cover_image} className="w-full h-full object-cover" />
+                                ) : (
+                                  hackathon.title?.substring(0, 2) || 'TE'
+                                )}
+                              </div>
+
+                              {/* Info */}
+                              <div className="flex-1 min-w-0">
+                                {/* Tags */}
+                                <div className="flex items-center gap-2 mb-2">
+                                  {hackathon.theme_tags?.split(',').slice(0, 2).map((tag: string, i: number) => (
+                                    <span key={i} className="px-3 py-1.5 bg-[#222] text-gray-400 text-[10px] rounded-[16px]">
+                                      {tag.trim()}
+                                    </span>
+                                  ))}
+                                  <span className="px-3 py-1.5 bg-brand/10 text-brand text-[10px] rounded-[16px] border border-brand/20">
+                                    主办方
+                                  </span>
+                                </div>
+                                
+                                <h4 className="text-white font-semibold mb-2 group-hover:text-brand transition-colors">
+                                  {hackathon.title || `活动 #${hackathon.id}`}
+                                </h4>
+                                
+                                <p className="text-gray-500 text-sm mb-3 line-clamp-1">
+                                  {hackathon.description || '暂无描述'}
+                                </p>
+
+                                {/* Meta */}
+                                <div className="flex items-center gap-4 text-gray-500 text-[12px]">
+                                  <span className="flex items-center gap-1">
+                                    <CalendarIcon />
+                                    {hackathon.start_date ? new Date(hackathon.start_date).toLocaleDateString('zh-CN') : '待定'}
+                                  </span>
+                                  <span className="flex items-center gap-1">
+                                    <LocationIcon />
+                                    {hackathon.location || '线上'}
+                                  </span>
+                                </div>
+                              </div>
+
+                              {/* Status */}
+                              <div className="flex flex-col items-end justify-between">
+                                {getStatusBadge(hackathon.status || 'registration')}
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-gray-500">
+                        <div className="text-4xl mb-4">🎉</div>
+                        <p>还没有发起任何活动</p>
+                        <button 
+                          onClick={() => navigate('/create')}
+                          className="mt-4 px-6 py-3 bg-brand text-black text-sm font-medium rounded-[16px] hover:bg-white transition-colors"
+                        >
+                          发起第一个活动
                         </button>
                       </div>
                     )}
@@ -820,13 +942,13 @@ export default function ProfilePage() {
                   transition={{ duration: 0.2 }}
                   className="space-y-6"
                 >
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-white font-semibold text-lg">感兴趣的话题</h3>
                       <button 
                         onClick={handleSaveTopics}
                         disabled={saving}
-                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50"
+                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50 px-4 py-2 rounded-[16px] hover:bg-brand/5"
                       >
                         {saving ? '保存中...' : '保存话题'}
                       </button>
@@ -844,12 +966,12 @@ export default function ProfilePage() {
                         onChange={(e) => setCustomTopic(e.target.value)}
                         onKeyPress={(e) => e.key === 'Enter' && addCustomTopic()}
                         placeholder="输入自定义话题..."
-                        className="flex-1 px-4 py-2 bg-[#1A1A1A] border border-[#333] rounded-lg text-white text-sm focus:border-[#FBBF24] outline-none"
+                        className="flex-1 px-4 py-3 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-[#FBBF24] outline-none transition-colors"
                       />
                       <button
                         onClick={addCustomTopic}
                         disabled={!customTopic.trim()}
-                        className="px-4 py-2 bg-[#FBBF24] text-black text-sm font-medium rounded-lg hover:bg-white transition-colors disabled:opacity-50"
+                        className="px-6 py-3 bg-[#FBBF24] text-black text-sm font-medium rounded-[16px] hover:bg-white transition-colors disabled:opacity-50"
                       >
                         添加
                       </button>
@@ -861,7 +983,7 @@ export default function ProfilePage() {
                         <button
                           key={topic}
                           onClick={() => toggleTopic(topic)}
-                          className={`px-4 py-2 rounded-full text-sm transition-all ${
+                          className={`px-5 py-2.5 rounded-[20px] text-sm transition-all ${
                             selectedTopics.includes(topic)
                               ? 'bg-white text-black font-medium'
                               : 'bg-transparent border border-gray-600 text-gray-300 hover:border-gray-400'
@@ -882,13 +1004,13 @@ export default function ProfilePage() {
                   </div>
 
                   {/* Notification Settings */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-8">
+                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
                     <div className="flex items-center justify-between mb-6">
                       <h3 className="text-white font-semibold text-lg">通知偏好设置</h3>
                       <button 
                         onClick={handleSavePreferences}
                         disabled={saving}
-                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50"
+                        className="text-brand text-sm hover:text-white transition-colors disabled:opacity-50 px-4 py-2 rounded-[16px] hover:bg-brand/5"
                       >
                         {saving ? '保存中...' : '保存偏好设置'}
                       </button>
@@ -929,8 +1051,8 @@ export default function ProfilePage() {
                           category: 'general'
                         }
                       ].map((item, i) => (
-                        <div key={i} className="flex items-start gap-4 py-4 border-b border-[#222] group hover:bg-[#111] transition-colors rounded-lg px-2">
-                          <div className="flex-shrink-0 w-10 h-10 bg-[#111] rounded-lg flex items-center justify-center text-lg">
+                        <div key={i} className="flex items-start gap-4 py-4 border-b border-[#222] group hover:bg-[#111] transition-colors rounded-[16px] px-2">
+                          <div className="flex-shrink-0 w-10 h-10 bg-[#111] rounded-[16px] flex items-center justify-center text-lg">
                             {item.icon}
                           </div>
                           <div className="flex-1">
@@ -943,12 +1065,12 @@ export default function ProfilePage() {
                             <div className="text-gray-500 text-[12px] leading-relaxed">{item.desc}</div>
                           </div>
                           <button 
-                            className={`w-12 h-6 rounded-full relative transition-colors ${
+                            className={`w-12 h-6 rounded-[16px] relative transition-colors ${
                               notificationSettings[item.id] ? 'bg-[#FBBF24]' : 'bg-gray-600'
                             }`}
                             onClick={() => toggleNotificationSetting(item.id)}
                           >
-                            <span className={`absolute top-1 w-4 h-4 bg-black rounded-full transition-all duration-300 ${
+                            <span className={`absolute top-1 w-4 h-4 bg-black rounded-[12px] transition-all duration-300 ${
                               notificationSettings[item.id] ? 'right-1' : 'left-1'
                             }`} />
                           </button>
@@ -959,7 +1081,7 @@ export default function ProfilePage() {
                     <div className="mt-6 pt-4 border-t border-[#222]">
                       <button 
                         onClick={() => navigate('/notifications')}
-                        className="w-full py-3 border border-[#222] text-gray-400 text-sm rounded-lg hover:border-[#FBBF24] hover:text-[#FBBF24] transition-colors flex items-center justify-center gap-2"
+                        className="w-full py-3 border border-[#222] text-gray-400 text-sm rounded-[16px] hover:border-[#FBBF24] hover:text-[#FBBF24] transition-colors flex items-center justify-center gap-2"
                       >
                         <span>🔔</span>
                         前往通知中心管理所有通知
@@ -1001,7 +1123,7 @@ export default function ProfilePage() {
                         <div className="text-white">{currentUser?.email || '未设置'}</div>
                       </div>
                       <div className="flex items-center gap-3">
-                        <span className="px-2 py-1 bg-emerald-500/20 text-emerald-400 text-[11px] rounded">
+                        <span className="px-3 py-1.5 bg-emerald-500/20 text-emerald-400 text-[11px] rounded-[16px]">
                           已验证
                         </span>
                       </div>
@@ -1015,7 +1137,7 @@ export default function ProfilePage() {
                       </div>
                       <button 
                         onClick={() => setActiveTab('profile')}
-                        className="text-gray-500 text-sm hover:text-white transition-colors"
+                        className="text-gray-500 text-sm hover:text-white transition-colors px-4 py-2 rounded-[16px] hover:bg-white/5"
                       >
                         修改
                       </button>
@@ -1029,7 +1151,7 @@ export default function ProfilePage() {
                       </div>
                       <button 
                         onClick={() => setShowChangePassword(true)}
-                        className="text-gray-500 text-sm hover:text-white transition-colors"
+                        className="text-gray-500 text-sm hover:text-white transition-colors px-4 py-2 rounded-[16px] hover:bg-white/5"
                       >
                         修改密码
                       </button>
@@ -1056,7 +1178,7 @@ export default function ProfilePage() {
                         {!currentUser?.github_id && (
                           <button 
                             onClick={() => window.location.href = '/api/v1/auth/github'}
-                            className="flex items-center gap-2 px-4 py-2 bg-[#24292e] text-white text-sm rounded-md hover:bg-[#2f363d] transition-colors"
+                            className="flex items-center gap-2 px-4 py-2 bg-[#24292e] text-white text-sm rounded-[16px] hover:bg-[#2f363d] transition-colors"
                           >
                             <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
                               <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
@@ -1083,7 +1205,7 @@ export default function ProfilePage() {
                       </div>
                       <button 
                         onClick={() => setShowDeactivateModal(true)}
-                        className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-md hover:bg-red-500/10 transition-colors"
+                        className="px-4 py-2 border border-red-500/50 text-red-400 text-sm rounded-[16px] hover:bg-red-500/10 transition-colors"
                       >
                         注销账号
                       </button>
@@ -1092,7 +1214,7 @@ export default function ProfilePage() {
 
                   {/* Change Password Modal */}
                   {showChangePassword && (
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-6">
                       <div className="flex items-center justify-between mb-6">
                         <h3 className="text-white font-semibold">修改密码</h3>
                         <button 
@@ -1110,7 +1232,7 @@ export default function ProfilePage() {
                             type="password"
                             value={passwordForm.currentPassword}
                             onChange={e => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                           />
                         </div>
                         <div>
@@ -1119,7 +1241,7 @@ export default function ProfilePage() {
                             type="password"
                             value={passwordForm.newPassword}
                             onChange={e => setPasswordForm({...passwordForm, newPassword: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                           />
                         </div>
                         <div>
@@ -1128,19 +1250,19 @@ export default function ProfilePage() {
                             type="password"
                             value={passwordForm.confirmPassword}
                             onChange={e => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
-                            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#333] rounded-md text-white text-sm focus:border-brand outline-none"
+                            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
                           />
                         </div>
                         <div className="flex justify-end gap-3 pt-2">
                           <button
                             onClick={() => setShowChangePassword(false)}
-                            className="px-4 py-2 border border-[#333] text-gray-400 text-sm rounded-md hover:text-white transition-colors"
+                            className="px-4 py-2.5 border border-[#333] text-gray-400 text-sm rounded-[16px] hover:text-white transition-colors"
                           >
                             取消
                           </button>
                           <button
                             onClick={handleChangePassword}
-                            className="px-4 py-2 bg-brand text-black font-medium text-sm rounded-md hover:bg-white transition-colors"
+                            className="px-4 py-2.5 bg-brand text-black font-medium text-sm rounded-[16px] hover:bg-white transition-colors"
                           >
                             确认修改
                           </button>
@@ -1155,7 +1277,7 @@ export default function ProfilePage() {
                       <motion.div 
                         initial={{ opacity: 0, scale: 0.95 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        className="bg-[#0A0A0A] border border-red-500/30 rounded-xl p-8 max-w-md w-full"
+                        className="bg-[#0A0A0A] border border-red-500/30 rounded-[24px] p-8 max-w-md w-full"
                       >
                         <div className="flex items-center gap-3 mb-6">
                           <div className="w-12 h-12 bg-red-500/20 rounded-full flex items-center justify-center">
@@ -1169,7 +1291,7 @@ export default function ProfilePage() {
                           </div>
                         </div>
                         
-                        <div className="bg-red-500/10 border border-red-500/20 rounded-lg p-4 mb-6">
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-[16px] p-4 mb-6">
                           <p className="text-red-300 text-sm leading-relaxed">
                             注销后，您的账号将变为游客状态。您的数据将被保留，您可以随时重新登录恢复账号。
                           </p>
@@ -1184,7 +1306,7 @@ export default function ProfilePage() {
                             value={deactivateConfirmText}
                             onChange={(e) => setDeactivateConfirmText(e.target.value)}
                             placeholder="注销账号"
-                            className="w-full px-4 py-3 bg-[#1A1A1A] border border-red-500/30 rounded-lg text-white text-sm focus:border-red-500 outline-none"
+                            className="w-full px-4 py-3 bg-[#1A1A1A] border border-red-500/30 rounded-[16px] text-white text-sm focus:border-red-500 outline-none transition-colors"
                           />
                         </div>
 
@@ -1194,14 +1316,14 @@ export default function ProfilePage() {
                               setShowDeactivateModal(false)
                               setDeactivateConfirmText('')
                             }}
-                            className="flex-1 px-4 py-3 border border-[#333] text-gray-400 text-sm rounded-lg hover:text-white transition-colors"
+                            className="flex-1 px-4 py-3 border border-[#333] text-gray-400 text-sm rounded-[16px] hover:text-white transition-colors"
                           >
                             取消
                           </button>
                           <button
                             onClick={handleDeactivateAccount}
                             disabled={deactivateConfirmText !== '注销账号'}
-                            className="flex-1 px-4 py-3 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="flex-1 px-4 py-3 bg-red-500 text-white text-sm rounded-[16px] hover:bg-red-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                           >
                             确认注销
                           </button>

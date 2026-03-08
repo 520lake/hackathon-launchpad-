@@ -150,9 +150,9 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         {step === 1 ? (
           // 第一步：验证邮箱
           <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div className="p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg mb-4">
-              <p className="text-sm text-indigo-300 font-medium">邮箱验证</p>
-              <p className="text-xs text-indigo-400/80 mt-1">验证邮箱后设置密码</p>
+            <div className="p-3 bg-brand/10 border border-brand/20 rounded-lg mb-4">
+              <p className="text-sm text-brand font-medium">邮箱验证</p>
+              <p className="text-xs text-brand/80 mt-1">验证邮箱后设置密码</p>
             </div>
 
             <input 

@@ -98,11 +98,29 @@ interface OutletContextType {
 }
 
 // 解析奖项 JSON
-const parseAwardsDetail = (awardsDetail?: string): Array<{name: string, count: number, amount?: number}> => {
+interface AwardItem {
+  name: string
+  prize: string
+  description?: string
+  count?: number
+  amount?: number
+  prize_pool?: number
+}
+
+const parseAwardsDetail = (awardsDetail?: string): AwardItem[] => {
   if (!awardsDetail) return []
   try {
     const parsed = JSON.parse(awardsDetail)
-    if (Array.isArray(parsed)) return parsed
+    if (Array.isArray(parsed)) {
+      // 转换数据格式，支持多种字段名
+      return parsed.map(item => ({
+        name: item.name || '',
+        prize: item.prize || item.prize_pool || '',
+        description: item.description || '',
+        count: item.count || item.quota || 1,
+        amount: item.amount || (typeof item.prize_pool === 'number' ? item.prize_pool : 0)
+      }))
+    }
   } catch (e) {
     // 如果不是 JSON，返回空数组
   }
@@ -369,7 +387,7 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black pt-16" ref={containerRef}>
+    <div className="min-h-screen bg-black" ref={containerRef}>
       {/* Hero Banner - Full bleed at top */}
       <div className="relative h-[45vh] min-h-[360px] overflow-hidden">
         {/* Background */}
@@ -387,25 +405,25 @@ export default function EventDetailPage() {
         {/* Content */}
         <div className="relative z-10 h-full flex flex-col justify-end p-8 md:p-12 max-w-7xl mx-auto w-full">
           {/* Breadcrumb - 优化返回导航 */}
-          <div className="flex items-center gap-2 mb-4">
+          <div className="flex items-center gap-4 mb-6">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide px-2 py-1 hover:bg-white/5 rounded-md"
+              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
             >
-              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
               </svg>
-              首页
+              返回首页
             </button>
             <span className="text-gray-600">/</span>
             <button 
               onClick={() => navigate('/events')}
-              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide px-2 py-1 hover:bg-white/5 rounded-md"
+              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
             >
               探索网络
             </button>
             <span className="text-gray-600">/</span>
-            <span className="text-[#FBBF24] text-[12px] tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">{hackathon.title}</span>
+            <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">{hackathon.title}</span>
           </div>
 
           {/* Tags - 活动分类标签 */}
@@ -695,9 +713,14 @@ export default function EventDetailPage() {
                               <span className="text-white font-medium">{award.name}</span>
                               <span className="text-gray-500 text-sm">名额: {award.count}</span>
                             </div>
-                            {award.amount && award.amount > 0 && (
-                              <div className="text-[#FBBF24] font-bold">
-                                ¥ {award.amount >= 10000 ? `${(award.amount / 10000).toFixed(0)}万` : award.amount.toLocaleString()}
+                            {award.prize && (
+                              <div className="text-[#FBBF24] font-bold mt-2">
+                                {award.prize}
+                              </div>
+                            )}
+                            {award.description && (
+                              <div className="text-gray-400 text-sm mt-1">
+                                {award.description}
                               </div>
                             )}
                           </div>

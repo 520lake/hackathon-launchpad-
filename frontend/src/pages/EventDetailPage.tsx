@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
-import { useParams, useNavigate, useOutletContext } from 'react-router-dom'
+import { useParams, useNavigate, useOutletContext, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import axios from 'axios'
 import ReactMarkdown from 'react-markdown'
@@ -9,6 +9,10 @@ import SubmitProjectModal from '../components/SubmitProjectModal'
 import JudgingModal from '../components/JudgingModal'
 import ResultPublishModal from '../components/ResultPublishModal'
 import AIResumeModal from '../components/AIResumeModal'
+import TeamMatchModal from '../components/TeamMatchModal'
+import CreateTeamModal from '../components/CreateTeamModal'
+import AIProjectAssistant from '../components/AIProjectAssistant'
+import CreateRecruitmentModal from '../components/CreateRecruitmentModal'
 
 // Interfaces
 interface Recruitment {
@@ -69,6 +73,7 @@ interface Team {
   leader_id: number;
   members?: TeamMember[];
   recruitments?: Recruitment[];
+  max_members?: number;
 }
 
 interface Project {
@@ -90,6 +95,30 @@ interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
   fetchCurrentUser: () => void;
+}
+
+// 解析奖项 JSON
+const parseAwardsDetail = (awardsDetail?: string): Array<{name: string, count: number, amount?: number}> => {
+  if (!awardsDetail) return []
+  try {
+    const parsed = JSON.parse(awardsDetail)
+    if (Array.isArray(parsed)) return parsed
+  } catch (e) {
+    // 如果不是 JSON，返回空数组
+  }
+  return []
+}
+
+// 解析评审维度 JSON
+const parseScoringDimensions = (dimensions?: string): Array<{name: string, description: string, weight: number}> => {
+  if (!dimensions) return []
+  try {
+    const parsed = JSON.parse(dimensions)
+    if (Array.isArray(parsed)) return parsed
+  } catch (e) {
+    // 如果不是 JSON，返回空数组
+  }
+  return []
 }
 
 // Countdown Timer Component
@@ -134,15 +163,17 @@ function CountdownTimer({ targetDate }: { targetDate: string }) {
 export default function EventDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
-  const { isLoggedIn, currentUser, fetchCurrentUser } = useOutletContext<OutletContextType>()
+  const [searchParams] = useSearchParams()
+  const { isLoggedIn, currentUser } = useOutletContext<OutletContextType>()
   
   const hackathonId = id ? parseInt(id) : null
+  const tabParam = searchParams.get('tab')
   
   const [hackathon, setHackathon] = useState<Hackathon | null>(null)
   const [enrollment, setEnrollment] = useState<any>(null)
   const [myProject, setMyProject] = useState<Project | null>(null)
   const [myTeam, setMyTeam] = useState<Team | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState(tabParam || 'overview')
   const [loading, setLoading] = useState(true)
   const [teams, setTeams] = useState<Team[]>([])
   const [participants, setParticipants] = useState<any[]>([])
@@ -157,6 +188,13 @@ export default function EventDetailPage() {
   const [isJudgingOpen, setIsJudgingOpen] = useState(false)
   const [isResultPublishOpen, setIsResultPublishOpen] = useState(false)
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false)
+  const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
+  const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
+  const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
+  const [isRecruitOpen, setIsRecruitOpen] = useState(false)
+  
+  // 判断当前用户是否为活动发起者
+  const isOrganizer = hackathon?.organizer_id === currentUser?.id
   
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -240,24 +278,6 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleRegister = async () => {
-    if (!isLoggedIn) {
-      return
-    }
-    try {
-      const token = localStorage.getItem('token')
-      await axios.post(`/api/v1/enrollments`,
-        { hackathon_id: hackathonId },
-        { headers: { Authorization: `Bearer ${token}` } }
-      )
-      fetchEnrollment()
-    } catch (e: any) {
-      if (e.response?.data?.detail) {
-        alert(e.response.data.detail)
-      }
-    }
-  }
-
   const handleJoinTeam = async (teamId: number) => {
     try {
       const token = localStorage.getItem('token')
@@ -268,6 +288,56 @@ export default function EventDetailPage() {
       fetchEnrollment()
     } catch (e: any) {
       alert(e.response?.data?.detail || '加入失败')
+    }
+  }
+
+  // 创建个人项目（自动创建单人战队）
+  const handleCreatePersonalTeam = async () => {
+    try {
+      const token = localStorage.getItem('token')
+      // 1. 创建个人战队
+      const teamRes = await axios.post('/api/v1/teams', {
+        hackathon_id: hackathonId,
+        name: `${currentUser?.nickname || currentUser?.full_name || '我'}的个人项目`,
+        description: '个人参赛项目',
+        max_members: 1
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      // 2. 自动创建项目
+      await axios.post('/api/v1/projects', {
+        hackathon_id: hackathonId,
+        team_id: teamRes.data.id,
+        title: '未命名项目',
+        description: '请完善项目描述'
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      fetchTeams()
+      fetchEnrollment()
+      setIsSubmitOpen(true)
+    } catch (e: any) {
+      alert(e.response?.data?.detail || '创建失败')
+    }
+  }
+
+  // 处理创建战队
+  const handleCreateTeam = async (teamData: { name: string; description: string; max_members: number }) => {
+    try {
+      const token = localStorage.getItem('token')
+      await axios.post('/api/v1/teams', {
+        hackathon_id: hackathonId,
+        ...teamData
+      }, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      fetchTeams()
+      fetchEnrollment()
+      setIsCreateTeamOpen(false)
+    } catch (e: any) {
+      alert(e.response?.data?.detail || '创建战队失败')
     }
   }
 
@@ -299,9 +369,9 @@ export default function EventDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-black" ref={containerRef}>
+    <div className="min-h-screen bg-black pt-16" ref={containerRef}>
       {/* Hero Banner - Full bleed at top */}
-      <div className="relative h-[45vh] min-h-[360px] overflow-hidden -mt-16">
+      <div className="relative h-[45vh] min-h-[360px] overflow-hidden">
         {/* Background */}
         <div className="absolute inset-0 bg-gradient-to-br from-[#0a0f2a] via-[#0d1020] to-black">
           {hackathon.cover_image && (
@@ -320,7 +390,7 @@ export default function EventDetailPage() {
           <div className="flex items-center gap-2 mb-4">
             <button 
               onClick={() => navigate('/')}
-              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide px-2 py-1 hover:bg-white/5 rounded-md"
             >
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
@@ -330,12 +400,12 @@ export default function EventDetailPage() {
             <span className="text-gray-600">/</span>
             <button 
               onClick={() => navigate('/events')}
-              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide"
+              className="flex items-center gap-1 text-gray-400 hover:text-white transition-colors duration-200 text-[12px] tracking-wide px-2 py-1 hover:bg-white/5 rounded-md"
             >
-              活动大厅
+              探索网络
             </button>
             <span className="text-gray-600">/</span>
-            <span className="text-[#FBBF24] text-[12px] tracking-wide">{hackathon.title}</span>
+            <span className="text-[#FBBF24] text-[12px] tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">{hackathon.title}</span>
           </div>
 
           {/* Tags - 活动分类标签 */}
@@ -388,6 +458,72 @@ export default function EventDetailPage() {
               {getStatusText(hackathon.status)}
             </div>
           </div>
+
+          {/* Action Buttons - 头栏操作按钮 */}
+          <div className="flex items-center gap-3 mt-6">
+            {/* 参赛者视角提示 */}
+            {isLoggedIn && !isOrganizer && (
+              <div className="flex-1 p-3 bg-brand/10 border border-brand/20 rounded-lg flex items-start gap-3">
+                <svg className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="text-sm text-brand/80">
+                  <p className="font-medium mb-0.5">参赛者视角</p>
+                  <p className="text-brand/60 text-xs">您正在浏览他人创建的活动，仅可查看公开信息和参与竞赛。</p>
+                </div>
+              </div>
+            )}
+            
+            {/* 编辑活动 - 仅发起者可见 */}
+            {isOrganizer && (
+              <button
+                onClick={() => navigate(`/create?edit=${hackathon.id}`)}
+                className="flex items-center gap-2 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:border-white hover:text-white transition-colors text-[13px]"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                编辑活动
+              </button>
+            )}
+            
+            {/* 核心功能按钮 - 登录用户可见 */}
+            {isLoggedIn && !isOrganizer && (
+              <>
+                <button
+                  onClick={() => setActiveTab('myproject')}
+                  className="flex items-center gap-2 px-4 py-2 bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors text-[13px]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  开始项目
+                </button>
+                <button
+                  onClick={() => setIsTeamMatchOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-[#FBBF24]/50 text-[#FBBF24] rounded-md hover:bg-[#FBBF24]/10 transition-colors text-[13px]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                  智能组队
+                </button>
+              </>
+            )}
+            
+            {/* 未登录提示 */}
+            {!isLoggedIn && (
+              <button
+                onClick={() => navigate('/login')}
+                className="flex items-center gap-2 px-6 py-2 bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors text-[13px]"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
+                </svg>
+                登录参与
+              </button>
+            )}
+          </div>
         </div>
       </div>
 
@@ -401,8 +537,8 @@ export default function EventDetailPage() {
               <div className="flex">
                 {[
                   { id: 'overview', label: '活动详情' },
-                  { id: 'myproject', label: '我的作品' },
-                  { id: 'participants', label: '参赛人员' },
+                  { id: 'myproject', label: isOrganizer ? '作品管理' : '我的作品' },
+                  { id: 'participants', label: isOrganizer ? '参赛管理' : '参赛人员' },
                   { id: 'results', label: '评审结果' },
                 ].map(tab => (
                   <button
@@ -420,13 +556,23 @@ export default function EventDetailPage() {
                     )}
                   </button>
                 ))}
-                {hackathon.organizer_id === currentUser?.id && (
-                  <button
-                    onClick={() => navigate(`/create?edit=${hackathon.id}`)}
-                    className="ml-auto px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
-                  >
-                    编辑活动
-                  </button>
+                
+                {/* 发起者管理按钮组 */}
+                {isOrganizer && (
+                  <div className="ml-auto flex items-center gap-2">
+                    <button
+                      onClick={() => setIsJudgingOpen(true)}
+                      className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
+                    >
+                      评审管理
+                    </button>
+                    <button
+                      onClick={() => setIsResultPublishOpen(true)}
+                      className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
+                    >
+                      发布结果
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
@@ -499,6 +645,29 @@ export default function EventDetailPage() {
                     </section>
                   )}
 
+                  {/* 评审维度 */}
+                  {hackathon.scoring_dimensions && parseScoringDimensions(hackathon.scoring_dimensions).length > 0 && (
+                    <section id="scoring">
+                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                        <span className="w-6 h-[2px] bg-brand"></span>
+                        评审标准
+                      </h3>
+                      <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                        {parseScoringDimensions(hackathon.scoring_dimensions).map((dim, idx) => (
+                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-white font-medium">{dim.name}</span>
+                              <span className="text-[#FBBF24] font-bold">{dim.weight}%</span>
+                            </div>
+                            {dim.description && (
+                              <p className="text-gray-500 text-sm">{dim.description}</p>
+                            )}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  )}
+
                   {/* 评审规则 */}
                   {hackathon.rules_detail && (
                     <section id="rules">
@@ -519,8 +688,25 @@ export default function EventDetailPage() {
                         <span className="w-6 h-[2px] bg-brand"></span>
                         奖项设置
                       </h3>
-                      <div className="prose prose-invert max-w-none text-gray-300 border-l border-white/[0.08] pl-6">
-                        <ReactMarkdown>{hackathon.awards_detail}</ReactMarkdown>
+                      <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                        {parseAwardsDetail(hackathon.awards_detail).map((award, idx) => (
+                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-lg p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <span className="text-white font-medium">{award.name}</span>
+                              <span className="text-gray-500 text-sm">名额: {award.count}</span>
+                            </div>
+                            {award.amount && award.amount > 0 && (
+                              <div className="text-[#FBBF24] font-bold">
+                                ¥ {award.amount >= 10000 ? `${(award.amount / 10000).toFixed(0)}万` : award.amount.toLocaleString()}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+                        {parseAwardsDetail(hackathon.awards_detail).length === 0 && (
+                          <div className="prose prose-invert max-w-none text-gray-300">
+                            <ReactMarkdown>{hackathon.awards_detail}</ReactMarkdown>
+                          </div>
+                        )}
                       </div>
                     </section>
                   )}
@@ -530,72 +716,131 @@ export default function EventDetailPage() {
               {/* MY PROJECT TAB - 我的作品/作品展示 */}
               {activeTab === 'myproject' && (
                 <div className="space-y-8">
-                  {/* 我的作品区域 - 仅登录用户可见 */}
+                  {/* 我的项目区域 - 仅登录用户可见 */}
                   {isLoggedIn && (
                     <div className="border-b border-white/[0.08] pb-8">
                       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-3">
                         <span className="w-5 h-[2px] bg-brand"></span>
-                        我的作品
+                        我的项目
                       </h3>
-                      {!enrollment ? (
+                      {!myTeam && !myProject ? (
                         <div className="border border-white/[0.08] p-6">
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-col gap-4">
                             <div>
-                              <p className="text-gray-400 text-sm">您还未报名此活动</p>
-                              <p className="text-[12px] text-gray-600 mt-1">报名后可提交作品参与评审</p>
+                              <p className="text-white text-sm font-medium">开始您的黑客松之旅</p>
+                              <p className="text-[12px] text-gray-600 mt-1">选择适合您的方式参与</p>
                             </div>
-                            <button 
-                              onClick={handleRegister}
-                              className="px-5 py-2 bg-brand text-black text-sm font-medium hover:bg-white transition-colors"
-                            >
-                              立即报名
-                            </button>
-                          </div>
-                        </div>
-                      ) : !myProject ? (
-                        <div className="border border-white/[0.08] p-6">
-                          <div className="flex items-center justify-between">
-                            <div>
-                              <p className="text-gray-400 text-sm">您还未提交作品</p>
-                              <p className="text-[12px] text-gray-600 mt-1">点击右侧按钮提交您的参赛作品</p>
+                            <div className="flex flex-wrap gap-3">
+                              <button 
+                                onClick={handleCreatePersonalTeam}
+                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-md"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                </svg>
+                                个人项目
+                              </button>
+                              <button 
+                                onClick={() => setIsCreateTeamOpen(true)}
+                                className="flex items-center gap-2 px-5 py-2.5 border border-white/[0.15] text-white text-sm hover:bg-white hover:text-black transition-colors rounded-md"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                                创建战队
+                              </button>
+                              <button 
+                                onClick={() => setActiveTab('participants')}
+                                className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-md"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                                加入战队
+                              </button>
                             </div>
-                            <button 
-                              onClick={() => setIsSubmitOpen(true)}
-                              className="px-5 py-2 bg-brand text-black text-sm font-medium hover:bg-white transition-colors"
-                            >
-                              提交作品
-                            </button>
                           </div>
                         </div>
                       ) : (
-                        <div className="border border-white/[0.08]">
-                          <div className="flex">
-                            <div className="w-[3px] bg-brand" />
-                            <div className="flex-1 p-6">
-                              <div className="flex items-start gap-6">
-                                <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
-                                  {myProject.cover_image ? (
-                                    <img src={myProject.cover_image} className="w-full h-full object-cover" />
-                                  ) : (
-                                    <span className="text-2xl font-bold text-white/20">{myProject.title[0]}</span>
-                                  )}
-                                </div>
-                                <div className="flex-1">
-                                  <h4 className="text-lg font-semibold text-white mb-2">{myProject.title}</h4>
-                                  <p className="text-sm text-gray-400 mb-4 line-clamp-2">{myProject.description}</p>
-                                  <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                    {myProject.tech_stack && <span>技术栈: {myProject.tech_stack}</span>}
-                                    {myProject.total_score && <span className="text-brand">得分: {myProject.total_score.toFixed(1)}</span>}
+                        <div className="space-y-4">
+                          {/* 项目卡片 */}
+                          <div className="border border-white/[0.08]">
+                            <div className="flex">
+                              <div className="w-[3px] bg-brand" />
+                              <div className="flex-1 p-6">
+                                <div className="flex items-start gap-6">
+                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                                    {myProject?.cover_image ? (
+                                      <img src={myProject.cover_image} className="w-full h-full object-cover" />
+                                    ) : (
+                                      <span className="text-2xl font-bold text-white/20">{(myProject?.title || '未命名')[0]}</span>
+                                    )}
                                   </div>
+                                  <div className="flex-1">
+                                    <h4 className="text-lg font-semibold text-white mb-2">{myProject?.title || '未命名项目'}</h4>
+                                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">{myProject?.description || '暂无描述'}</p>
+                                    <div className="flex items-center gap-4 text-[11px] text-gray-500">
+                                      {myProject?.tech_stack && <span>技术栈: {myProject.tech_stack}</span>}
+                                      {myProject?.total_score && <span className="text-brand">得分: {myProject.total_score.toFixed(1)}</span>}
+                                      {myTeam && (
+                                        <span className="flex items-center gap-1">
+                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                          </svg>
+                                          {myTeam.name} ({myTeam.members?.length || 1}/{myTeam.max_members || '-'})
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <button 
+                                    onClick={() => setIsSubmitOpen(true)}
+                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors"
+                                  >
+                                    编辑项目
+                                  </button>
                                 </div>
-                                <button 
-                                  onClick={() => setIsSubmitOpen(true)}
-                                  className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors"
-                                >
-                                  编辑
-                                </button>
                               </div>
                             </div>
+                          </div>
+
+                          {/* 快捷操作栏 */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button 
+                              onClick={() => setIsAIAssistantOpen(true)}
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              <span className="text-sm text-white">AI 助手</span>
+                            </button>
+                            <button 
+                              onClick={() => setIsTeamMatchOpen(true)}
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                              </svg>
+                              <span className="text-sm text-white">智能组队</span>
+                            </button>
+                            <button 
+                              onClick={() => setIsRecruitOpen(true)}
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                              </svg>
+                              <span className="text-sm text-white">发布招募</span>
+                            </button>
+                            <button 
+                              onClick={() => navigate('/community')}
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                            >
+                              <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                              <span className="text-sm text-white">招募大厅</span>
+                            </button>
                           </div>
                         </div>
                       )}
@@ -863,23 +1108,23 @@ export default function EventDetailPage() {
           {/* 右侧边栏 25% */}
           <div className="hidden md:block w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
             <div className="sticky top-24 space-y-6">
-              {/* 报名按钮 */}
+              {/* 右侧边栏操作区 */}
               <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
-                {!enrollment ? (
+                {!myTeam ? (
                   <>
                     <button 
-                      onClick={handleRegister}
+                      onClick={() => setIsCreateTeamOpen(true)}
                       className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors duration-200 mb-4"
                     >
-                      立即报名
+                      创建战队
                     </button>
-                    <p className="text-[11px] text-gray-500 text-center">报名后可参与组队和提交作品</p>
+                    <p className="text-[11px] text-gray-500 text-center">创建战队后即可参与活动和提交作品</p>
                   </>
                 ) : (
                   <>
                     <div className="text-center mb-4">
                       <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] rounded-md">
-                        <span>✓</span> 已报名
+                        <span>✓</span> 已参与
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
@@ -992,18 +1237,36 @@ export default function EventDetailPage() {
           <SubmitProjectModal isOpen={isSubmitOpen} onClose={() => setIsSubmitOpen(false)} hackathonId={hackathonId} teamId={myTeam?.id} />
           <JudgingModal isOpen={isJudgingOpen} onClose={() => setIsJudgingOpen(false)} hackathonId={hackathonId} hackathonTitle={hackathon?.title || ''} />
           <ResultPublishModal isOpen={isResultPublishOpen} onClose={() => setIsResultPublishOpen(false)} hackathonId={hackathonId} />
+          <TeamMatchModal isOpen={isTeamMatchOpen} onClose={() => setIsTeamMatchOpen(false)} hackathonId={hackathonId} />
+          <CreateTeamModal isOpen={isCreateTeamOpen} onClose={() => setIsCreateTeamOpen(false)} onCreate={handleCreateTeam} />
+          <AIProjectAssistant isOpen={isAIAssistantOpen} onClose={() => setIsAIAssistantOpen(false)} />
+          <CreateRecruitmentModal isOpen={isRecruitOpen} onClose={() => setIsRecruitOpen(false)} teamId={myTeam?.id || 0} onSuccess={fetchTeams} />
         </>
       )}
       <AIResumeModal isOpen={isAIResumeOpen} onClose={() => setIsAIResumeOpen(false)} />
 
       {/* Mobile Fixed Bottom Bar */}
       <div className="md:hidden fixed bottom-0 left-0 right-0 bg-[#0A0A0A] border-t border-[#222222] px-4 py-3 z-40">
-        {!enrollment ? (
+        {!isLoggedIn ? (
           <button 
-            onClick={handleRegister}
+            onClick={() => navigate('/login')}
             className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
           >
-            立即报名
+            登录参与
+          </button>
+        ) : isOrganizer ? (
+          <button 
+            onClick={() => navigate(`/create?edit=${hackathon.id}`)}
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+          >
+            编辑活动
+          </button>
+        ) : !myTeam ? (
+          <button 
+            onClick={() => setActiveTab('myproject')}
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+          >
+            开始项目
           </button>
         ) : (
           <div className="flex gap-2">

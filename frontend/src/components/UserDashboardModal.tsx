@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import gsap from 'gsap';
 import AIResumeModal from './AIResumeModal';
@@ -42,13 +43,13 @@ interface User {
   full_name?: string;
   nickname?: string;
   avatar_url?: string;
-  is_verified: boolean;
   skills?: string;
   interests?: string;
   city?: string;
   phone?: string;
   personality?: string;
   bio?: string;
+  can_create_hackathon?: boolean;
 }
 
 interface Team {
@@ -70,12 +71,11 @@ interface UserDashboardModalProps {
   isOpen: boolean;
   onClose: () => void;
   onHackathonSelect: (id: number, initialTab?: string) => void;
-  onVerifyClick: () => void;
   onUserUpdate?: () => void;
   onTeamMatchClick?: () => void;
 }
 
-export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onVerifyClick, onUserUpdate, onTeamMatchClick }: UserDashboardModalProps) {
+export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect, onUserUpdate: _onUserUpdate, onTeamMatchClick: _onTeamMatchClick }: UserDashboardModalProps) {
   const [user, setUser] = useState<User | null>(null);
   const [myCreated, setMyCreated] = useState<Hackathon[]>([]);
   const [myJoined, setMyJoined] = useState<EnrollmentWithHackathon[]>([]);
@@ -84,6 +84,7 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
   const [activeTab, setActiveTab] = useState<'created' | 'joined' | 'projects' | 'profile'>('created');
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
   const [resume, setResume] = useState('');
+  const navigate = useNavigate();
   
   // Profile form
   const [nickname, setNickname] = useState('');
@@ -212,27 +213,6 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
     }
   };
 
-  const handleVerify = () => {
-    onVerifyClick();
-  };
-
-  const handleMockVerify = async () => {
-    try {
-        const token = localStorage.getItem('token');
-        await axios.post('/api/v1/users/me/verify', {}, {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        alert('模拟认证成功！');
-        fetchMyData(); // Refresh user data to show verified status
-        if (onUserUpdate) {
-            onUserUpdate(); // Notify parent component
-        }
-    } catch (e) {
-        console.error(e);
-        alert('模拟认证失败');
-    }
-  };
-
   const handleResumeUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
         const file = e.target.files[0];
@@ -327,10 +307,10 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                 <div>
                    <div className="text-white font-bold font-mono text-sm truncate max-w-[140px]">{user.nickname || user.email.split('@')[0]}</div>
                    <div className="text-xs text-brand/80 font-mono flex items-center gap-1 mt-1">
-                      {user.is_verified ? (
-                        <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> VERIFIED</>
+                      {user.can_create_hackathon ? (
+                        <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> ORGANIZER</>
                       ) : (
-                        <><span className="w-2 h-2 bg-red-500 rounded-full"></span> UNVERIFIED</>
+                        <><span className="w-2 h-2 bg-red-500 rounded-full"></span> MEMBER</>
                       )}
                    </div>
                 </div>
@@ -507,22 +487,9 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
                       <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">认证状态</label>
                       <div className="flex items-center justify-between bg-black/50 p-4 border border-brand/30">
                           <div className="flex items-center gap-2">
-                              {user?.is_verified ? (
-                                  <><span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> <span className="text-green-500 font-mono font-bold">VERIFIED USER</span></>
-                              ) : (
-                                  <><span className="w-2 h-2 bg-red-500 rounded-full"></span> <span className="text-red-500 font-mono font-bold">UNVERIFIED</span></>
-                              )}
+                              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span>
+                              <span className="text-green-500 font-mono font-bold">ACTIVE USER</span>
                           </div>
-                          {!user?.is_verified && (
-                              <div className="flex gap-2">
-                                  <button onClick={handleVerify} className="px-3 py-1 bg-brand/20 text-brand text-xs font-bold border border-brand/50 hover:bg-brand hover:text-black transition-colors">
-                                      真实认证
-                                  </button>
-                                  <button onClick={handleMockVerify} className="px-3 py-1 bg-gray-800 text-gray-300 text-xs font-bold border border-gray-600 hover:bg-white hover:text-black transition-colors">
-                                      模拟认证
-                                  </button>
-                              </div>
-                          )}
                       </div>
                   </div>
 
@@ -540,14 +507,28 @@ export default function UserDashboardModal({ isOpen, onClose, onHackathonSelect,
             {/* CREATED TAB */}
             {activeTab === 'created' && (
               <div className="space-y-4">
-                <h3 className="text-xl font-bold text-white mb-6 uppercase tracking-wider border-l-4 border-brand pl-4">
-                  我发起的活动
-                </h3>
+                <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-xl font-bold text-white uppercase tracking-wider border-l-4 border-brand pl-4">
+                    我发起的活动
+                  </h3>
+                  <button 
+                    onClick={() => navigate('/create')}
+                    className="text-brand text-sm hover:text-white transition-colors flex items-center gap-1"
+                  >
+                    <span>+</span> 发起新活动
+                  </button>
+                </div>
                 {myCreated.length === 0 ? (
                   <div className="text-center py-20 border-2 border-dashed border-gray-800 bg-black/20">
                       <p className="text-gray-500 font-mono text-sm uppercase tracking-widest">
                           无数据
                       </p>
+                      <button 
+                        onClick={() => navigate('/create')}
+                        className="mt-4 px-4 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
+                      >
+                        立即发起活动
+                      </button>
                   </div>
                 ) : (
                   myCreated.map(h => (

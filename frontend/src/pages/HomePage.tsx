@@ -5,6 +5,7 @@ import axios from 'axios'
 // Landing Components
 import Hero from '../components/Landing/Hero'
 import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
+import CommunityHall from '../components/Landing/CommunityHall'
 
 // Modals
 import RegisterModal from '../components/RegisterModal'
@@ -98,6 +99,7 @@ export default function HomePage() {
         onCreateClick={handleCreateHackathonClick}
         onExploreClick={() => openEventsList('list')}
         onAIGuideClick={() => openEventsList('ai')}
+        onCommunityClick={() => navigate('/community')}
       />
       
       <About />

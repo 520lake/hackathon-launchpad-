@@ -3,6 +3,7 @@ import { useNavigate, useOutletContext, useSearchParams } from 'react-router-dom
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import { Sparkles, Plus, X, Globe, MapPin, Save, Rocket, Calendar, Target, Trophy, Tag, Wand2, Loader2, Upload, Image as ImageIcon } from 'lucide-react'
+import AIGenerateImageButton from '../components/AIGenerateImageButton'
 
 interface OutletContextType {
   isLoggedIn: boolean
@@ -87,6 +88,7 @@ export default function CreateHackathonPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [currentStatus, setCurrentStatus] = useState<'draft' | 'published'>('draft')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Refs for animations
@@ -133,6 +135,7 @@ export default function CreateHackathonPage() {
       setLocation(data.location || '')
       setOrganizerName(data.organizer_name || '')
       setCoverImage(data.cover_image || '')
+      setCurrentStatus(data.status || 'draft')
     } catch (e) {
       console.error(e)
     }
@@ -303,8 +306,16 @@ export default function CreateHackathonPage() {
   }
 
   const handleSubmit = async (status: 'draft' | 'published') => {
-    if (!formData.name || !formData.tagline) {
-      setError('请填写活动名称和简介')
+    if (!formData.name?.trim()) {
+      setError('请填写活动名称')
+      return
+    }
+    if (!formData.tagline?.trim()) {
+      setError('请填写活动简介')
+      return
+    }
+    if (!formData.description?.trim()) {
+      setError('请填写活动描述')
       return
     }
 
@@ -312,12 +323,19 @@ export default function CreateHackathonPage() {
     try {
       const token = localStorage.getItem('token')
 
-      const dates = formData.timeline.map(t => {
-        const match = t.time_offset.match(/Day\s*(\d+)/)
-        return match ? parseInt(match[1]) : 0
-      })
+      // 计算日期 - 处理空timeline的情况
+      let days = 30 // 默认30天
+      if (formData.timeline && formData.timeline.length > 0) {
+        const dates = formData.timeline.map(t => {
+          const match = t.time_offset?.match(/Day\s*(\d+)/)
+          return match ? parseInt(match[1]) : 0
+        }).filter(d => d > 0)
+        if (dates.length > 0) {
+          days = Math.max(...dates)
+        }
+      }
       const startDate = new Date().toISOString()
-      const endDate = new Date(Date.now() + Math.max(...dates) * 24 * 60 * 60 * 1000).toISOString()
+      const endDate = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString()
 
       const payload = {
         title: formData.name,
@@ -336,7 +354,10 @@ export default function CreateHackathonPage() {
       }
 
       if (editId) {
-        await axios.patch(`/api/v1/hackathons/${editId}`, payload, {
+        // 编辑时保持原有状态，不修改status字段
+        const updatePayload = { ...payload }
+        delete (updatePayload as any).status
+        await axios.patch(`/api/v1/hackathons/${editId}`, updatePayload, {
           headers: { Authorization: `Bearer ${token}` },
         })
       } else {
@@ -346,7 +367,15 @@ export default function CreateHackathonPage() {
       }
       navigate('/events')
     } catch (e: any) {
-      setError(e.response?.data?.detail || '提交失败')
+      console.error('Submit error:', e)
+      console.error('Error response:', e.response?.data)
+      const errorDetail = e.response?.data?.detail
+      if (Array.isArray(errorDetail)) {
+        // Pydantic validation error
+        setError(errorDetail.map((err: any) => `${err.loc?.join('.')}: ${err.msg}`).join('\n'))
+      } else {
+        setError(errorDetail || e.message || '提交失败')
+      }
     } finally {
       setLoading(false)
     }
@@ -369,7 +398,7 @@ export default function CreateHackathonPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-zinc-200">
       {/* Header */}
-      <header className="border-b border-zinc-800/50 backdrop-blur-md bg-[#050505]/80 sticky top-0 z-50">
+      <header className="border-b border-zinc-800/50 backdrop-blur-md bg-[#050505]/80 sticky top-0 z-40">
         <div className="max-w-[1600px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
@@ -409,7 +438,7 @@ export default function CreateHackathonPage() {
               animate={{ opacity: 1, y: 0 }}
               className="relative"
             >
-              <div className="bg-zinc-900/50 border border-zinc-800 rounded-lg p-4 backdrop-blur-md">
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-[16px] p-4 backdrop-blur-md">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2 text-zinc-400">
                     {aiCommand.isGenerating ? (
@@ -432,7 +461,7 @@ export default function CreateHackathonPage() {
                   <button
                     onClick={handleAIGenerate}
                     disabled={aiCommand.isGenerating || !aiCommand.query.trim()}
-                    className="px-4 py-2 bg-brand/20 border border-brand/30 text-brand text-xs font-medium rounded-md hover:bg-brand/30 transition-colors disabled:opacity-50 flex items-center gap-2"
+                    className="px-4 py-2 bg-brand/20 border border-brand/30 text-brand text-xs font-medium rounded-[12px] hover:bg-brand/30 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
                     <Wand2 className="w-3 h-3" />
                     Generate
@@ -466,9 +495,9 @@ export default function CreateHackathonPage() {
             </motion.div>
 
             {/* Module 1: Basic Info */}
-            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-6">
+            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-[12px] bg-zinc-900 border border-zinc-800 flex items-center justify-center">
                   <Tag className="w-4 h-4 text-zinc-500" />
                 </div>
                 <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
@@ -486,7 +515,7 @@ export default function CreateHackathonPage() {
                     value={formData.name}
                     onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
                     placeholder="例如：2026 AI 创新黑客松"
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-[12px] px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
                   />
                 </div>
 
@@ -499,7 +528,7 @@ export default function CreateHackathonPage() {
                     value={formData.tagline}
                     onChange={(e) => setFormData(prev => ({ ...prev, tagline: e.target.value }))}
                     placeholder="用一句话概括活动的核心价值"
-                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
+                    className="w-full bg-zinc-900/50 border border-zinc-800 rounded-[12px] px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
                   />
                 </div>
 
@@ -515,7 +544,7 @@ export default function CreateHackathonPage() {
                           initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
                           exit={{ opacity: 0, scale: 0.9 }}
-                          className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-md text-xs text-zinc-400 flex items-center gap-2"
+                          className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-[12px] text-xs text-zinc-400 flex items-center gap-2"
                         >
                           #{tag}
                           <button
@@ -539,7 +568,7 @@ export default function CreateHackathonPage() {
                           ;(e.target as HTMLInputElement).value = ''
                         }
                       }}
-                      className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-md px-4 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
+                      className="flex-1 bg-zinc-900/50 border border-zinc-800 rounded-[12px] px-4 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors"
                     />
                   </div>
                 </div>
@@ -547,9 +576,9 @@ export default function CreateHackathonPage() {
             </section>
 
             {/* Module 2: Description */}
-            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-6">
+            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-6">
               <div className="flex items-center gap-3 mb-6">
-                <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-[12px] bg-zinc-900 border border-zinc-800 flex items-center justify-center">
                   <Globe className="w-4 h-4 text-zinc-500" />
                 </div>
                 <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
@@ -566,7 +595,7 @@ export default function CreateHackathonPage() {
                   onChange={(e) => setFormData(prev => ({ ...prev, description: e.target.value }))}
                   placeholder="支持 Markdown 语法..."
                   rows={10}
-                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-md px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors resize-none font-mono"
+                  className="w-full bg-zinc-900/50 border border-zinc-800 rounded-[12px] px-4 py-3 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 transition-colors resize-none font-mono"
                 />
                 <p className="text-[10px] text-zinc-600 mt-2 font-mono">
                   提示：支持 Markdown 语法，可使用 # 标题、**粗体**、- 列表等
@@ -575,10 +604,10 @@ export default function CreateHackathonPage() {
             </section>
 
             {/* Module 3: Timeline */}
-            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-6">
+            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[12px] bg-zinc-900 border border-zinc-800 flex items-center justify-center">
                     <Calendar className="w-4 h-4 text-zinc-500" />
                   </div>
                   <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
@@ -587,7 +616,7 @@ export default function CreateHackathonPage() {
                 </div>
                 <button
                   onClick={addTimelinePhase}
-                  className="p-2 hover:bg-zinc-900 rounded-md transition-colors"
+                  className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
                 </button>
@@ -601,7 +630,7 @@ export default function CreateHackathonPage() {
                       initial={{ opacity: 0, x: -10 }}
                       animate={{ opacity: 1, x: 0 }}
                       exit={{ opacity: 0, x: 10 }}
-                      className="bg-zinc-900/30 border border-zinc-800 rounded-md p-4 group"
+                      className="bg-zinc-900/30 border border-zinc-800 rounded-[12px] p-4 group"
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-1 grid grid-cols-3 gap-3">
@@ -610,21 +639,21 @@ export default function CreateHackathonPage() {
                             value={phase.phase}
                             onChange={(e) => updateTimeline(idx, 'phase', e.target.value)}
                             placeholder="阶段名称"
-                            className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                            className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
                           <input
                             type="text"
                             value={phase.time_offset}
                             onChange={(e) => updateTimeline(idx, 'time_offset', e.target.value)}
                             placeholder="时间偏移 (如：Day 0)"
-                            className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                            className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
                           <input
                             type="text"
                             value={phase.description}
                             onChange={(e) => updateTimeline(idx, 'description', e.target.value)}
                             placeholder="描述"
-                            className="bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                            className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
                         </div>
                         <button
@@ -641,10 +670,10 @@ export default function CreateHackathonPage() {
             </section>
 
             {/* Module 4: Criteria */}
-            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-6">
+            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[12px] bg-zinc-900 border border-zinc-800 flex items-center justify-center">
                     <Target className="w-4 h-4 text-zinc-500" />
                   </div>
                   <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
@@ -653,7 +682,7 @@ export default function CreateHackathonPage() {
                 </div>
                 <button
                   onClick={addCriteria}
-                  className="p-2 hover:bg-zinc-900 rounded-md transition-colors"
+                  className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
                 </button>
@@ -667,7 +696,7 @@ export default function CreateHackathonPage() {
                       initial={{ opacity: 0, y: -5 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: -5 }}
-                      className="bg-zinc-900/30 border border-zinc-800 rounded-md p-4 group"
+                      className="bg-zinc-900/30 border border-zinc-800 rounded-[12px] p-4 group"
                     >
                       <div className="flex items-start gap-3 mb-3">
                         <input
@@ -675,7 +704,7 @@ export default function CreateHackathonPage() {
                           value={dim.dimension}
                           onChange={(e) => updateCriteria(idx, 'dimension', e.target.value)}
                           placeholder="维度名称"
-                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                         />
                         <div className="flex items-center gap-2">
                           <input
@@ -683,7 +712,7 @@ export default function CreateHackathonPage() {
                             value={dim.weight}
                             onChange={(e) => updateCriteria(idx, 'weight', parseInt(e.target.value) || 0)}
                             placeholder="权重"
-                            className="w-16 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-center"
+                            className="w-16 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-center"
                           />
                           <span className="text-xs text-zinc-500">%</span>
                         </div>
@@ -699,7 +728,7 @@ export default function CreateHackathonPage() {
                         onChange={(e) => updateCriteria(idx, 'description', e.target.value)}
                         placeholder="详细描述..."
                         rows={2}
-                        className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-400 placeholder-zinc-600 outline-none focus:border-zinc-700 resize-none"
+                        className="w-full bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-400 placeholder-zinc-600 outline-none focus:border-zinc-700 resize-none"
                       />
                     </motion.div>
                   ))}
@@ -720,10 +749,10 @@ export default function CreateHackathonPage() {
             </section>
 
             {/* Module 5: Awards */}
-            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-6">
+            <section className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-6">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-md bg-zinc-900 border border-zinc-800 flex items-center justify-center">
+                  <div className="w-8 h-8 rounded-[12px] bg-zinc-900 border border-zinc-800 flex items-center justify-center">
                     <Trophy className="w-4 h-4 text-zinc-500" />
                   </div>
                   <h2 className="text-sm font-semibold text-zinc-200 uppercase tracking-wider">
@@ -732,7 +761,7 @@ export default function CreateHackathonPage() {
                 </div>
                 <button
                   onClick={addAward}
-                  className="p-2 hover:bg-zinc-900 rounded-md transition-colors"
+                  className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
                 </button>
@@ -746,7 +775,7 @@ export default function CreateHackathonPage() {
                       initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.98 }}
-                      className="bg-zinc-900/30 border border-zinc-800 rounded-md p-4 group"
+                      className="bg-zinc-900/30 border border-zinc-800 rounded-[12px] p-4 group"
                     >
                       <div className="flex items-center gap-3">
                         <input
@@ -754,7 +783,7 @@ export default function CreateHackathonPage() {
                           value={award.name}
                           onChange={(e) => updateAward(idx, 'name', e.target.value)}
                           placeholder="奖项名称"
-                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                          className="flex-1 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                         />
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-zinc-500">奖金</span>
@@ -762,7 +791,7 @@ export default function CreateHackathonPage() {
                             type="number"
                             value={award.prize_pool}
                             onChange={(e) => updateAward(idx, 'prize_pool', parseInt(e.target.value) || 0)}
-                            className="w-24 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-right"
+                            className="w-24 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-right"
                           />
                           <span className="text-xs text-zinc-500">元</span>
                         </div>
@@ -772,7 +801,7 @@ export default function CreateHackathonPage() {
                             type="number"
                             value={award.quota}
                             onChange={(e) => updateAward(idx, 'quota', parseInt(e.target.value) || 1)}
-                            className="w-16 bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-center"
+                            className="w-16 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-center"
                           />
                         </div>
                         <button
@@ -805,7 +834,7 @@ export default function CreateHackathonPage() {
             <div className="sticky top-24 space-y-6">
               
               {/* Format & Location */}
-              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-5">
+              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-5">
                 <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
                   活动形式 / Format
                 </h3>
@@ -813,7 +842,7 @@ export default function CreateHackathonPage() {
                 <div className="flex gap-2 mb-4">
                   <button
                     onClick={() => setFormat('online')}
-                    className={`flex-1 py-2.5 rounded-md text-xs font-medium transition-all ${
+                    className={`flex-1 py-2.5 rounded-[12px] text-xs font-medium transition-all ${
                       format === 'online'
                         ? 'bg-brand/20 border border-brand/30 text-brand'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
@@ -824,7 +853,7 @@ export default function CreateHackathonPage() {
                   </button>
                   <button
                     onClick={() => setFormat('offline')}
-                    className={`flex-1 py-2.5 rounded-md text-xs font-medium transition-all ${
+                    className={`flex-1 py-2.5 rounded-[12px] text-xs font-medium transition-all ${
                       format === 'offline'
                         ? 'bg-brand/20 border border-brand/30 text-brand'
                         : 'bg-zinc-900 border border-zinc-800 text-zinc-500 hover:border-zinc-700'
@@ -841,7 +870,7 @@ export default function CreateHackathonPage() {
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="活动地点"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                   />
                 )}
 
@@ -854,19 +883,28 @@ export default function CreateHackathonPage() {
                     value={organizerName}
                     onChange={(e) => setOrganizerName(e.target.value)}
                     placeholder="主办方名称"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-md px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+                    className="w-full bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                   />
                 </div>
               </div>
 
               {/* Live Preview Card */}
-              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-5">
-                <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-4">
-                  实时预览 / Preview
-                </h3>
+              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-5">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
+                    实时预览 / Preview
+                  </h3>
+                  <AIGenerateImageButton
+                    buttonText="AI 生图"
+                    scene="cover"
+                    context={formData.name || '黑客松活动'}
+                    onImageGenerated={(url) => setCoverImage(url)}
+                    className="text-xs px-3 py-1.5"
+                  />
+                </div>
                 
                 <div 
-                  className="aspect-video bg-zinc-900 border border-zinc-800 rounded-md overflow-hidden relative group"
+                  className="aspect-video bg-zinc-900 border border-zinc-800 rounded-[12px] overflow-hidden relative group"
                   onDrop={handleDrop}
                   onDragOver={handleDragOver}
                 >
@@ -882,14 +920,14 @@ export default function CreateHackathonPage() {
                         <button
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
-                          className="px-4 py-2 bg-brand hover:bg-brand/90 text-black text-xs font-medium rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
+                          className="px-4 py-2 bg-brand hover:bg-brand/90 text-black text-xs font-medium rounded-[12px] transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                           <Upload className="w-3 h-3" />
                           {uploading ? '上传中...' : '更换图片'}
                         </button>
                         <button
                           onClick={() => setCoverImage('')}
-                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs font-medium rounded-md transition-colors flex items-center gap-2"
+                          className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs font-medium rounded-[12px] transition-colors flex items-center gap-2"
                         >
                           <X className="w-3 h-3" />
                           移除
@@ -948,25 +986,25 @@ export default function CreateHackathonPage() {
 
                 {/* Stats */}
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="bg-zinc-900/50 rounded-md p-3">
+                  <div className="bg-zinc-900/50 rounded-[12px] p-3">
                     <div className="text-[10px] text-zinc-500 mb-1">评审维度</div>
                     <div className="text-sm font-semibold text-zinc-300">
                       {formData.criteria.length} 项
                     </div>
                   </div>
-                  <div className="bg-zinc-900/50 rounded-md p-3">
+                  <div className="bg-zinc-900/50 rounded-[12px] p-3">
                     <div className="text-[10px] text-zinc-500 mb-1">奖项数量</div>
                     <div className="text-sm font-semibold text-zinc-300">
                       {formData.awards.length} 个
                     </div>
                   </div>
-                  <div className="bg-zinc-900/50 rounded-md p-3">
+                  <div className="bg-zinc-900/50 rounded-[12px] p-3">
                     <div className="text-[10px] text-zinc-500 mb-1">日程节点</div>
                     <div className="text-sm font-semibold text-zinc-300">
                       {formData.timeline.length} 个
                     </div>
                   </div>
-                  <div className="bg-zinc-900/50 rounded-md p-3">
+                  <div className="bg-zinc-900/50 rounded-[12px] p-3">
                     <div className="text-[10px] text-zinc-500 mb-1">标签</div>
                     <div className="text-sm font-semibold text-zinc-300">
                       {formData.tags.length} 个
@@ -976,9 +1014,9 @@ export default function CreateHackathonPage() {
               </div>
 
               {/* Action Buttons */}
-              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-lg p-5 space-y-3">
+              <div className="bg-[#0A0A0A] border border-zinc-800/50 rounded-[16px] p-5 space-y-3">
                 {error && (
-                  <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-md text-red-400 text-xs">
+                  <div className="p-3 bg-red-900/20 border border-red-800/30 rounded-[12px] text-red-400 text-xs">
                     {error}
                   </div>
                 )}
@@ -986,7 +1024,7 @@ export default function CreateHackathonPage() {
                 <button
                   onClick={() => handleSubmit('published')}
                   disabled={loading}
-                  className="w-full py-3 bg-brand hover:bg-brand/90 text-black text-sm font-medium rounded-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
+                  className="w-full py-3 bg-brand hover:bg-brand/90 text-black text-sm font-medium rounded-[12px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
                 >
                   <Rocket className="w-4 h-4" />
                   {loading ? '发布中...' : '发布活动'}
@@ -995,7 +1033,7 @@ export default function CreateHackathonPage() {
                 <button
                   onClick={() => handleSubmit('draft')}
                   disabled={loading}
-                  className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-sm font-medium rounded-md transition-all disabled:opacity-50 flex items-center justify-center gap-2"
+                  className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-sm font-medium rounded-[12px] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   保存为草稿

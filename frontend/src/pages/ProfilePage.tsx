@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useOutletContext } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
+import AIGenerateImageButton from '../components/AIGenerateImageButton'
 
 interface OutletContextType {
   isLoggedIn: boolean
@@ -531,28 +532,38 @@ export default function ProfilePage() {
                           </div>
                           <div className="flex-1 w-full">
                             <label className="text-gray-400 text-sm mb-2 block">头像</label>
-                            <div className="flex flex-col sm:flex-row gap-2">
-                              <button
-                                type="button"
-                                onClick={() => fileInputRef.current?.click()}
-                                disabled={uploading}
-                                className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-[16px] hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-                              >
-                                <UploadIcon />
-                                {uploading ? '上传中...' : '点击上传头像'}
-                              </button>
-                              {editForm.avatar_url && (
+                            <div className="flex flex-col gap-2">
+                              <div className="flex flex-col sm:flex-row gap-2">
                                 <button
                                   type="button"
-                                  onClick={() => setEditForm({...editForm, avatar_url: ''})}
-                                  className="px-4 py-2.5 bg-red-900/20 border border-red-800/30 text-red-400 text-sm rounded-[16px] hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+                                  onClick={() => fileInputRef.current?.click()}
+                                  disabled={uploading}
+                                  className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-[16px] hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                                 >
-                                  <CloseIcon />
-                                  移除
+                                  <UploadIcon />
+                                  {uploading ? '上传中...' : '点击上传头像'}
                                 </button>
-                              )}
+                                <AIGenerateImageButton
+                                  buttonText="AI 生成头像"
+                                  scene="avatar"
+                                  onImageGenerated={(url) => setEditForm({...editForm, avatar_url: url})}
+                                  className="flex-1 text-sm py-2.5"
+                                />
+                              </div>
+                              <div className="flex gap-2">
+                                {editForm.avatar_url && (
+                                  <button
+                                    type="button"
+                                    onClick={() => setEditForm({...editForm, avatar_url: ''})}
+                                    className="flex-1 px-4 py-2 bg-red-900/20 border border-red-800/30 text-red-400 text-sm rounded-[16px] hover:bg-red-900/30 transition-colors flex items-center justify-center gap-2"
+                                  >
+                                    <CloseIcon />
+                                    移除
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <p className="text-xs text-gray-500 mt-2">支持 JPG、PNG 格式，最大 5MB</p>
+                            <p className="text-xs text-gray-500 mt-2">支持上传 JPG、PNG 格式（最大 5MB），或使用 AI 生成头像</p>
                           </div>
                         </div>
 

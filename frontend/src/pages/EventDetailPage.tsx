@@ -210,6 +210,8 @@ export default function EventDetailPage() {
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false)
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false)
   const [isRecruitOpen, setIsRecruitOpen] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
   
   // 判断当前用户是否为活动发起者
   const isOrganizer = hackathon?.organizer_id === currentUser?.id
@@ -293,6 +295,27 @@ export default function EventDetailPage() {
       setMyProject(projRes.data)
     } catch (e) {
       console.error(e)
+    }
+  }
+
+  // 删除活动
+  const handleDeleteHackathon = async () => {
+    if (!hackathonId) return
+    
+    try {
+      setIsDeleting(true)
+      const token = localStorage.getItem('token')
+      await axios.delete(`/api/v1/hackathons/${hackathonId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      
+      // 删除成功后跳转到活动列表
+      navigate('/events')
+    } catch (e: any) {
+      console.error('删除活动失败:', e)
+      alert(e.response?.data?.detail || '删除活动失败，请重试')
+      setIsDeleting(false)
+      setShowDeleteConfirm(false)
     }
   }
 
@@ -429,12 +452,12 @@ export default function EventDetailPage() {
           {/* Tags - 活动分类标签 */}
           <div className="flex flex-wrap gap-2 mb-4">
             {hackathon.theme_tags?.split(',').map((tag, i) => (
-              <span key={i} className="px-3 py-1 text-[11px] border border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5 rounded-md">
+              <span key={i} className="px-3 py-1 text-[11px] border border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5 rounded-[16px]">
                 #{tag.trim()}
               </span>
             ))}
             {hackathon.professionalism_tags?.split(',').map((tag, i) => (
-              <span key={`p-${i}`} className="px-3 py-1 text-[11px] border border-[#333] text-gray-300 rounded-md">
+              <span key={`p-${i}`} className="px-3 py-1 text-[11px] border border-[#333] text-gray-300 rounded-[16px]">
                 #{tag.trim()}
               </span>
             ))}
@@ -459,7 +482,7 @@ export default function EventDetailPage() {
               <span>{hackathon.format === 'online' ? '线上' : hackathon.location || '线下'}</span>
             </div>
             {/* 增强的活动状态徽标 */}
-            <div className={`px-4 py-1.5 text-[12px] font-medium flex items-center gap-2 rounded-md ${
+            <div className={`px-4 py-1.5 text-[12px] font-medium flex items-center gap-2 rounded-[16px] ${
               hackathon.status === 'registration' ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-400' :
               hackathon.status === 'ongoing' ? 'bg-sky-500/20 border border-sky-500/40 text-sky-400' :
               hackathon.status === 'judging' ? 'bg-violet-500/20 border border-violet-500/40 text-violet-400' :
@@ -481,7 +504,7 @@ export default function EventDetailPage() {
           <div className="flex items-center gap-3 mt-6">
             {/* 参赛者视角提示 */}
             {isLoggedIn && !isOrganizer && (
-              <div className="flex-1 p-3 bg-brand/10 border border-brand/20 rounded-lg flex items-start gap-3">
+              <div className="flex-1 p-3 bg-brand/10 border border-brand/20 rounded-[16px] flex items-start gap-3">
                 <svg className="w-5 h-5 text-brand flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
@@ -494,15 +517,26 @@ export default function EventDetailPage() {
             
             {/* 编辑活动 - 仅发起者可见 */}
             {isOrganizer && (
-              <button
-                onClick={() => navigate(`/create?edit=${hackathon.id}`)}
-                className="flex items-center gap-2 px-4 py-2 border border-gray-600 text-gray-300 rounded-md hover:border-white hover:text-white transition-colors text-[13px]"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                </svg>
-                编辑活动
-              </button>
+              <>
+                <button
+                  onClick={() => navigate(`/create?edit=${hackathon.id}`)}
+                  className="flex items-center gap-2 px-4 py-2 border border-gray-600 text-gray-300 rounded-[16px] hover:border-white hover:text-white transition-colors text-[13px]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                  编辑活动
+                </button>
+                <button
+                  onClick={() => setShowDeleteConfirm(true)}
+                  className="flex items-center gap-2 px-4 py-2 border border-red-500/50 text-red-400 rounded-[16px] hover:border-red-500 hover:text-red-300 hover:bg-red-500/10 transition-colors text-[13px]"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  </svg>
+                  删除活动
+                </button>
+              </>
             )}
             
             {/* 核心功能按钮 - 登录用户可见 */}
@@ -510,7 +544,7 @@ export default function EventDetailPage() {
               <>
                 <button
                   onClick={() => setActiveTab('myproject')}
-                  className="flex items-center gap-2 px-4 py-2 bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors text-[13px]"
+                  className="flex items-center gap-2 px-4 py-2 bg-[#FBBF24] text-black font-medium rounded-[16px] hover:bg-white transition-colors text-[13px]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -519,7 +553,7 @@ export default function EventDetailPage() {
                 </button>
                 <button
                   onClick={() => setIsTeamMatchOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 border border-[#FBBF24]/50 text-[#FBBF24] rounded-md hover:bg-[#FBBF24]/10 transition-colors text-[13px]"
+                  className="flex items-center gap-2 px-4 py-2 border border-[#FBBF24]/50 text-[#FBBF24] rounded-[16px] hover:bg-[#FBBF24]/10 transition-colors text-[13px]"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -623,25 +657,25 @@ export default function EventDetailPage() {
                       活动日程
                     </h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors">
+                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">报名开始</div>
                         <div className="text-brand font-mono text-sm">
                           {hackathon.registration_start_date ? new Date(hackathon.registration_start_date).toLocaleDateString('zh-CN') : '待定'}
                         </div>
                       </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors">
+                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">报名截止</div>
                         <div className="text-gray-300 font-mono text-sm">
                           {hackathon.registration_end_date ? new Date(hackathon.registration_end_date).toLocaleDateString('zh-CN') : '待定'}
                         </div>
                       </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors">
+                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">提交截止</div>
                         <div className="text-gray-300 font-mono text-sm">
                           {hackathon.submission_end_date ? new Date(hackathon.submission_end_date).toLocaleDateString('zh-CN') : '待定'}
                         </div>
                       </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors">
+                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
                         <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">结果公布</div>
                         <div className="text-gray-300 font-mono text-sm">
                           {hackathon.judging_end_date ? new Date(hackathon.judging_end_date).toLocaleDateString('zh-CN') : '待定'}
@@ -657,7 +691,7 @@ export default function EventDetailPage() {
                         <span className="w-6 h-[2px] bg-brand"></span>
                         参赛要求
                       </h3>
-                      <div className="prose prose-invert max-w-none text-gray-300 bg-white/[0.02] border border-white/[0.08] p-6">
+                      <div className="prose prose-invert max-w-none text-gray-300 bg-white/[0.02] border border-white/[0.08] p-6 rounded-[16px]">
                         <ReactMarkdown>{hackathon.requirements}</ReactMarkdown>
                       </div>
                     </section>
@@ -672,7 +706,7 @@ export default function EventDetailPage() {
                       </h3>
                       <div className="border-l border-white/[0.08] pl-6 space-y-4">
                         {parseScoringDimensions(hackathon.scoring_dimensions).map((dim, idx) => (
-                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-lg p-4">
+                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-[16px] p-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-white font-medium">{dim.name}</span>
                               <span className="text-[#FBBF24] font-bold">{dim.weight}%</span>
@@ -708,7 +742,7 @@ export default function EventDetailPage() {
                       </h3>
                       <div className="border-l border-white/[0.08] pl-6 space-y-4">
                         {parseAwardsDetail(hackathon.awards_detail).map((award, idx) => (
-                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-lg p-4">
+                          <div key={idx} className="bg-[#111111] border border-[#222222] rounded-[16px] p-4">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-white font-medium">{award.name}</span>
                               <span className="text-gray-500 text-sm">名额: {award.count}</span>
@@ -747,7 +781,7 @@ export default function EventDetailPage() {
                         我的项目
                       </h3>
                       {!myTeam && !myProject ? (
-                        <div className="border border-white/[0.08] p-6">
+                        <div className="border border-white/[0.08] p-6 rounded-[16px]">
                           <div className="flex flex-col gap-4">
                             <div>
                               <p className="text-white text-sm font-medium">开始您的黑客松之旅</p>
@@ -756,7 +790,7 @@ export default function EventDetailPage() {
                             <div className="flex flex-wrap gap-3">
                               <button 
                                 onClick={handleCreatePersonalTeam}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-md"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -765,7 +799,7 @@ export default function EventDetailPage() {
                               </button>
                               <button 
                                 onClick={() => setIsCreateTeamOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-white/[0.15] text-white text-sm hover:bg-white hover:text-black transition-colors rounded-md"
+                                className="flex items-center gap-2 px-5 py-2.5 border border-white/[0.15] text-white text-sm hover:bg-white hover:text-black transition-colors rounded-[16px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -774,7 +808,7 @@ export default function EventDetailPage() {
                               </button>
                               <button 
                                 onClick={() => setActiveTab('participants')}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-md"
+                                className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-[16px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -787,12 +821,12 @@ export default function EventDetailPage() {
                       ) : (
                         <div className="space-y-4">
                           {/* 项目卡片 */}
-                          <div className="border border-white/[0.08]">
+                          <div className="border border-white/[0.08] rounded-[16px]">
                             <div className="flex">
                               <div className="w-[3px] bg-brand" />
                               <div className="flex-1 p-6">
                                 <div className="flex items-start gap-6">
-                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] flex items-center justify-center flex-shrink-0">
+                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] rounded-[16px] flex items-center justify-center flex-shrink-0">
                                     {myProject?.cover_image ? (
                                       <img src={myProject.cover_image} className="w-full h-full object-cover" />
                                     ) : (
@@ -817,7 +851,7 @@ export default function EventDetailPage() {
                                   </div>
                                   <button 
                                     onClick={() => setIsSubmitOpen(true)}
-                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors"
+                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors rounded-[16px]"
                                   >
                                     编辑项目
                                   </button>
@@ -830,7 +864,7 @@ export default function EventDetailPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <button 
                               onClick={() => setIsAIAssistantOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
@@ -839,7 +873,7 @@ export default function EventDetailPage() {
                             </button>
                             <button 
                               onClick={() => setIsTeamMatchOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -848,7 +882,7 @@ export default function EventDetailPage() {
                             </button>
                             <button 
                               onClick={() => setIsRecruitOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
@@ -857,7 +891,7 @@ export default function EventDetailPage() {
                             </button>
                             <button 
                               onClick={() => navigate('/community')}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-md hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -1002,7 +1036,7 @@ export default function EventDetailPage() {
                               <div className="flex items-center gap-3 mb-1">
                                 <h5 className="text-[14px] font-semibold text-white">{team.name}</h5>
                                 {team.recruitments && team.recruitments.length > 0 && (
-                                  <span className="px-2 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-md">招募中</span>
+                                  <span className="px-2 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-[16px]">招募中</span>
                                 )}
                                 <span className="text-[11px] text-gray-600 font-mono">{team.members?.length || 0}人</span>
                               </div>
@@ -1012,7 +1046,7 @@ export default function EventDetailPage() {
                             {/* Recruitment Tags */}
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {team.recruitments?.slice(0, 3).map(r => (
-                                <span key={r.id} className="px-2 py-1 text-[10px] border border-[#333] text-gray-400 rounded-md">招{r.role}</span>
+                                <span key={r.id} className="px-2 py-1 text-[10px] border border-[#333] text-gray-400 rounded-[16px]">招{r.role}</span>
                               ))}
                             </div>
 
@@ -1021,12 +1055,12 @@ export default function EventDetailPage() {
                               {!myTeam && enrollment && (
                                 <button 
                                   onClick={(e) => { e.stopPropagation(); handleJoinTeam(team.id); }} 
-                                  className="px-3 py-1.5 text-[11px] bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors duration-200"
+                                  className="px-3 py-1.5 text-[11px] bg-[#FBBF24] text-black font-medium rounded-[16px] hover:bg-white transition-colors duration-200"
                                 >
                                   + 加入
                                 </button>
                               )}
-                              <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-md hover:text-white hover:border-gray-500 transition-colors duration-200">
+                              <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-[16px] hover:text-white hover:border-gray-500 transition-colors duration-200">
                                 联系
                               </button>
                             </div>
@@ -1051,7 +1085,7 @@ export default function EventDetailPage() {
                           <h4 className="text-sm font-medium text-white flex items-center gap-3">
                             <span className="text-[#FBBF24] font-mono">//</span>
                             个人参赛者
-                            <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-md">{individualParticipants.length}</span>
+                            <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-[16px]">{individualParticipants.length}</span>
                           </h4>
                         </div>
                         
@@ -1083,7 +1117,7 @@ export default function EventDetailPage() {
                                 {p.skills && p.skills.length > 0 && (
                                   <div className="flex items-center gap-1 flex-shrink-0">
                                     {p.skills.slice(0, 3).map((skill: string, i: number) => (
-                                      <span key={i} className="px-2 py-0.5 text-[10px] border border-[#333] text-gray-500 rounded-md">{skill}</span>
+                                      <span key={i} className="px-2 py-0.5 text-[10px] border border-[#333] text-gray-500 rounded-[16px]">{skill}</span>
                                     ))}
                                   </div>
                                 )}
@@ -1132,12 +1166,12 @@ export default function EventDetailPage() {
           <div className="hidden md:block w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
             <div className="sticky top-24 space-y-6">
               {/* 右侧边栏操作区 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
                 {!myTeam ? (
                   <>
                     <button 
                       onClick={() => setIsCreateTeamOpen(true)}
-                      className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors duration-200 mb-4"
+                      className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-[16px] hover:bg-white transition-colors duration-200 mb-4"
                     >
                       创建战队
                     </button>
@@ -1146,20 +1180,20 @@ export default function EventDetailPage() {
                 ) : (
                   <>
                     <div className="text-center mb-4">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] rounded-md">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] rounded-[16px]">
                         <span>✓</span> 已参与
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <button 
                         onClick={() => setActiveTab('participants')}
-                        className="py-2 border border-white/10 text-[11px] text-white rounded-md hover:bg-[#111111] transition-colors duration-200"
+                        className="py-2 border border-white/10 text-[11px] text-white rounded-[16px] hover:bg-[#111111] transition-colors duration-200"
                       >
                         组队广场
                       </button>
                       <button 
                         onClick={() => setIsSubmitOpen(true)}
-                        className="py-2 bg-[#FBBF24] text-black text-[11px] font-medium rounded-md hover:bg-white transition-colors duration-200"
+                        className="py-2 bg-[#FBBF24] text-black text-[11px] font-medium rounded-[16px] hover:bg-white transition-colors duration-200"
                       >
                         提交作品
                       </button>
@@ -1169,38 +1203,38 @@ export default function EventDetailPage() {
               </div>
 
               {/* 倒计时 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">活动倒计时</div>
                 <CountdownTimer targetDate={hackathon.registration_end_date || hackathon.end_date} />
               </div>
 
               {/* 时间轴 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">时间轴</div>
                 <div className="space-y-4 relative pl-4 border-l border-[#222222]">
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-[#FBBF24]"></div>
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
                     <div className="text-[10px] text-[#FBBF24] font-mono mb-1">
                       {hackathon.registration_start_date ? new Date(hackathon.registration_start_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
                     <div className="text-[12px] text-white">报名开启</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600"></div>
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
                     <div className="text-[10px] text-gray-500 font-mono mb-1">
                       {hackathon.registration_end_date ? new Date(hackathon.registration_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
                     <div className="text-[12px] text-gray-400">报名截止</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600"></div>
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
                     <div className="text-[10px] text-gray-500 font-mono mb-1">
                       {hackathon.submission_end_date ? new Date(hackathon.submission_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
                     <div className="text-[12px] text-gray-400">提交截止</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600"></div>
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
                     <div className="text-[10px] text-gray-500 font-mono mb-1">
                       {hackathon.judging_end_date ? new Date(hackathon.judging_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
@@ -1210,7 +1244,7 @@ export default function EventDetailPage() {
               </div>
 
               {/* 主办方信息 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-6">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">主办方</div>
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 bg-[#111111] border border-[#333] rounded-full flex items-center justify-center">
@@ -1226,7 +1260,7 @@ export default function EventDetailPage() {
               </div>
 
               {/* 快速导航 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-4">
+              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-4">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-3">快速导航</div>
                 <div className="space-y-1">
                   {[
@@ -1238,7 +1272,7 @@ export default function EventDetailPage() {
                     <button
                       key={item.id}
                       onClick={() => setActiveTab(item.id)}
-                      className={`block w-full text-left px-3 py-2 text-[12px] rounded-md transition-colors duration-200 ${
+                      className={`block w-full text-left px-3 py-2 text-[12px] rounded-[16px] transition-colors duration-200 ${
                         activeTab === item.id 
                           ? 'text-[#FBBF24] bg-[#FBBF24]/5' 
                           : 'text-gray-500 hover:text-white hover:bg-[#111111]'
@@ -1308,6 +1342,54 @@ export default function EventDetailPage() {
           </div>
         )}
       </div>
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0A0A0A] border border-[#222222] rounded-[20px] max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-red-500/10 flex items-center justify-center">
+                <svg className="w-6 h-6 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">确认删除活动</h3>
+                <p className="text-sm text-gray-400">此操作不可撤销</p>
+              </div>
+            </div>
+            
+            <p className="text-gray-300 mb-6 text-sm leading-relaxed">
+              您确定要删除活动 <span className="text-white font-medium">"{hackathon?.title}"</span> 吗？
+              删除后，所有相关数据（报名、团队、作品等）都将被永久删除。
+            </p>
+            
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 border border-[#333333] text-gray-300 rounded-[12px] hover:border-gray-500 hover:text-white transition-colors text-sm font-medium disabled:opacity-50"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleDeleteHackathon}
+                disabled={isDeleting}
+                className="flex-1 px-4 py-2.5 bg-red-500 text-white rounded-[12px] hover:bg-red-600 transition-colors text-sm font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {isDeleting ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    删除中...
+                  </>
+                ) : (
+                  '确认删除'
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

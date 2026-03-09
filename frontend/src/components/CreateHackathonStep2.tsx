@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import axios from 'axios'
 import CriteriaSection from './CriteriaSection'
 import PrizesSection from './PrizesSection'
+import AIGenerateImageButton from './AIGenerateImageButton'
 
 // 步骤2的数据结构
 interface Step2Data {
@@ -194,7 +195,18 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
 
                 {/* Logo 上传 */}
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">主办方 Logo</label>
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-sm text-gray-400">主办方 Logo</label>
+                    {!organizerLogo && (
+                      <AIGenerateImageButton
+                        buttonText="AI 生成"
+                        scene="logo"
+                        context={organizerName || '主办方'}
+                        onImageGenerated={(url) => setOrganizerLogo(url)}
+                        className="text-xs px-2 py-1"
+                      />
+                    )}
+                  </div>
                   <input
                     ref={fileInputRef}
                     type="file"
@@ -202,7 +214,7 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
                     onChange={handleLogoUpload}
                     className="hidden"
                   />
-                  
+
                   <AnimatePresence mode="wait">
                     {organizerLogo ? (
                       <motion.div
@@ -220,7 +232,7 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
                             className="w-full h-full object-cover"
                           />
                         </div>
-                        
+
                         {/* 操作按钮 */}
                         <div className="flex items-center gap-2">
                           <button
@@ -230,6 +242,13 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
                           >
                             {isUploading ? '上传中...' : '更换'}
                           </button>
+                          <AIGenerateImageButton
+                            buttonText="AI 生成"
+                            scene="logo"
+                            context={organizerName || '主办方'}
+                            onImageGenerated={(url) => setOrganizerLogo(url)}
+                            className="text-xs px-3 py-1.5"
+                          />
                           <button
                             onClick={removeLogo}
                             className="px-3 py-1.5 text-xs text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/10 transition-colors"
@@ -264,7 +283,7 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
                       </motion.button>
                     )}
                   </AnimatePresence>
-                  
+
                   {/* 错误提示 */}
                   {uploadError && (
                     <motion.p
@@ -275,8 +294,8 @@ export default function CreateHackathonStep2({ initialData, onNext, onBack }: Cr
                       {uploadError}
                     </motion.p>
                   )}
-                  
-                  <p className="text-xs text-gray-600 mt-2">支持 JPG、PNG 格式，最大 5MB</p>
+
+                  <p className="text-xs text-gray-600 mt-2">支持上传 JPG、PNG 格式（最大 5MB），或使用 AI 生成</p>
                 </div>
               </div>
             </div>

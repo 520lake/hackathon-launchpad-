@@ -103,25 +103,25 @@ export default function NotificationBadge({ unreadCount, onBellClick }: Notifica
             markAllAsRead();
           }
         }}
-        className={`p-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50 ${
+        className={`p-2 rounded-[12px] text-ink/70 hover:text-ink hover:bg-ink/5 transition-all duration-200 focus:outline-none ${
           shake ? 'animate-shake' : ''
         }`}
         aria-label="Notifications"
       >
-        <Bell className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+        <Bell className="w-[18px] h-[18px]" strokeWidth={1.5} />
         
         {/* Red Dot */}
         {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 flex h-2.5 w-2.5">
+          <span className="absolute top-1.5 right-1.5 flex h-2 w-2">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
           </span>
         )}
       </button>
 
       {/* Dropdown */}
       {showDropdown && (
-        <div className="absolute right-0 mt-3 w-80 bg-surface border border-border-base rounded-xl shadow-xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
+        <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-border-base rounded-[16px] shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
           <div className="px-4 py-3 border-b border-border-base flex items-center justify-between">
             <h3 className="text-sm font-semibold text-ink">通知</h3>
             <span className="text-xs text-ink-dim bg-ink/10 px-2 py-0.5 rounded-full">

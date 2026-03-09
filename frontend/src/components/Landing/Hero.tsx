@@ -5,9 +5,10 @@ interface HeroProps {
     onCreateClick: () => void;
     onExploreClick: () => void;
     onAIGuideClick?: () => void;
+    onCommunityClick?: () => void;
 }
 
-export default function Hero({ onCreateClick, onExploreClick }: HeroProps) {
+export default function Hero({ onCreateClick, onExploreClick, onCommunityClick }: HeroProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const textRef = useRef<HTMLHeadingElement>(null);
     const subTextRef = useRef<HTMLParagraphElement>(null);
@@ -89,21 +90,37 @@ export default function Hero({ onCreateClick, onExploreClick }: HeroProps) {
                {'为组织者、参与者、评委及赞助商打造的一站式全链路智能黑客松平台。'}
           </p>
 
-          <div ref={btnRef} className="grid grid-cols-2 sm:flex sm:flex-row gap-3 sm:gap-6 mb-8 lg:mb-12 w-full sm:w-auto">
-              <button 
+          <div ref={btnRef} className="flex flex-col sm:flex-row gap-3 sm:gap-4 mb-8 lg:mb-12 w-full sm:w-auto">
+              <button
                   onClick={onCreateClick}
-                  className="group relative px-4 sm:px-8 py-3 sm:py-4 bg-brand text-void font-bold text-sm sm:text-lg overflow-hidden transition-all hover:bg-ink hover:text-void clip-path-slant flex justify-center items-center"
+                  className="group relative px-6 sm:px-8 py-3.5 sm:py-4 bg-brand text-void font-bold text-sm sm:text-base overflow-hidden transition-all hover:bg-ink hover:text-void rounded-[16px] flex justify-center items-center flex-1 sm:flex-none"
               >
                   <span className="relative z-10 flex items-center gap-2 whitespace-nowrap">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
                       发起活动
                   </span>
               </button>
-              
-              <button 
+
+              <button
                   onClick={onExploreClick}
-                  className="group px-4 sm:px-8 py-3 sm:py-4 border border-ink/20 text-ink font-mono text-sm sm:text-lg hover:border-brand hover:text-brand transition-all flex justify-center items-center whitespace-nowrap bg-ink/5 backdrop-blur-sm"
+                  className="group px-6 sm:px-8 py-3.5 sm:py-4 border border-ink/20 text-ink font-mono text-sm sm:text-base hover:border-brand hover:text-brand transition-all flex justify-center items-center whitespace-nowrap bg-ink/5 backdrop-blur-sm rounded-[16px] flex-1 sm:flex-none"
               >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
                   探索活动
+              </button>
+
+              <button
+                  onClick={onCommunityClick}
+                  className="group px-6 sm:px-8 py-3.5 sm:py-4 border border-purple-500/30 text-purple-400 font-mono text-sm sm:text-base hover:border-purple-500 hover:text-purple-300 hover:bg-purple-500/10 transition-all flex justify-center items-center whitespace-nowrap bg-purple-500/5 backdrop-blur-sm rounded-[16px] flex-1 sm:flex-none"
+              >
+                  <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  社区大厅
               </button>
           </div>
 

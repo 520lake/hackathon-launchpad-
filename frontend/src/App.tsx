@@ -10,7 +10,7 @@ import ProfilePage from './pages/ProfilePage'
 import CreateHackathonPage from './pages/CreateHackathonPage'
 import AdminPage from './pages/AdminPage'
 import NotificationCenterPage from './pages/NotificationCenterPage'
-import CommunityHallPage from './pages/CommunityHallPage'
+import CommunityPage from './pages/CommunityPage'
 
 function App() {
   return (
@@ -25,7 +25,7 @@ function App() {
             <Route path="/create" element={<CreateHackathonPage />} />
             <Route path="/admin" element={<AdminPage />} />
             <Route path="/notifications" element={<NotificationCenterPage />} />
-            <Route path="/community" element={<CommunityHallPage />} />
+            <Route path="/community" element={<CommunityPage />} />
           </Route>
         </Routes>
       </ThemeProvider>

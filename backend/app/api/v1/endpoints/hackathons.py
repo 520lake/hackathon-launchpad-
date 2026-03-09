@@ -121,14 +121,21 @@ def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: i
     if db_hackathon.organizer_id != current_user.id:
         raise HTTPException(status_code=403, detail="Not enough permissions")
     
-    hackathon_data = hackathon_in.dict(exclude_unset=True)
-    for key, value in hackathon_data.items():
-        setattr(db_hackathon, key, value)
+    try:
+        hackathon_data = hackathon_in.dict(exclude_unset=True)
+        print(f"Updating hackathon {hackathon_id} with data: {hackathon_data}")
         
-    session.add(db_hackathon)
-    session.commit()
-    session.refresh(db_hackathon)
-    return db_hackathon
+        for key, value in hackathon_data.items():
+            setattr(db_hackathon, key, value)
+            
+        session.add(db_hackathon)
+        session.commit()
+        session.refresh(db_hackathon)
+        return db_hackathon
+    except Exception as e:
+        session.rollback()
+        print(f"Error updating hackathon: {e}")
+        raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}")
 
 @router.delete("/{hackathon_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_organizer)):

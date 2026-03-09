@@ -54,6 +54,14 @@ def read_users(*, session: Session = Depends(get_session), offset: int = 0, limi
     users = session.exec(select(User).offset(offset).limit(limit)).all()
     return users
 
+@router.get("/virtual", response_model=List[UserRead])
+def read_virtual_users(*, session: Session = Depends(get_session), limit: int = 12):
+    """获取虚拟用户列表 - 用于社区大厅展示"""
+    users = session.exec(
+        select(User).where(User.is_virtual == True).limit(limit)
+    ).all()
+    return users
+
 @router.put("/{user_id}", response_model=UserRead)
 def update_user(
     *,

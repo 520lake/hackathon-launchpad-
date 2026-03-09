@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Sun, Moon, User, LogOut, LayoutDashboard, Shield } from 'lucide-react';
+import { Sun, Moon, User, LogOut, LayoutDashboard, Shield, Bell } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../contexts/ThemeContext';
-import NotificationBadge from '../NotificationBadge';
+import NotificationDropdown from '../NotificationDropdown';
 import axios from 'axios';
 
 interface NavbarProps {
@@ -26,6 +26,7 @@ export default function Navbar({
     const navigate = useNavigate();
     const [scrolled, setScrolled] = useState(false);
     const [showUserMenu, setShowUserMenu] = useState(false);
+    const [showNotificationMenu, setShowNotificationMenu] = useState(false);
     const [unreadCount, setUnreadCount] = useState(0);
     const { theme, toggleTheme } = useTheme();
 
@@ -57,21 +58,34 @@ export default function Navbar({
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    // Close user menu when clicking outside
+    // Close menus when clicking outside
     useEffect(() => {
-        const handleClickOutside = () => setShowUserMenu(false);
-        if (showUserMenu) {
+        const handleClickOutside = () => {
+            setShowUserMenu(false);
+            setShowNotificationMenu(false);
+        };
+        if (showUserMenu || showNotificationMenu) {
             window.addEventListener('click', handleClickOutside);
         }
         return () => window.removeEventListener('click', handleClickOutside);
-    }, [showUserMenu]);
+    }, [showUserMenu, showNotificationMenu]);
 
     const handleUserClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         if (isLoggedIn) {
             setShowUserMenu(!showUserMenu);
+            setShowNotificationMenu(false); // Close notification menu when opening user menu
         } else {
             onLoginClick();
+        }
+    };
+
+    const handleNotificationClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setShowNotificationMenu(!showNotificationMenu);
+        setShowUserMenu(false); // Close user menu when opening notification menu
+        if (unreadCount > 0) {
+            setUnreadCount(0);
         }
     };
 
@@ -101,85 +115,120 @@ export default function Navbar({
                 </div>
 
                 {/* 2. Right: Action Icons */}
-                <div className="flex items-center gap-2 sm:gap-3">
+                <div className="flex items-center gap-2">
                     
                     {/* Theme Toggle (Sun/Moon) */}
                     <button 
-                        className="p-1.5 rounded-full text-ink/80 hover:text-ink hover:bg-ink/10 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50"
+                        className="p-2.5 rounded-[14px] text-ink/70 hover:text-ink hover:bg-ink/5 transition-all duration-200 focus:outline-none"
                         aria-label="Toggle theme"
                         onClick={toggleTheme}
                     >
                         {theme === 'dark' ? (
-                            <Sun className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                            <Sun className="w-5 h-5" strokeWidth={1.5} />
                         ) : (
-                            <Moon className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
+                            <Moon className="w-5 h-5" strokeWidth={1.5} />
                         )}
                     </button>
 
                     {/* Notification Badge (only for logged in users) */}
                     {isLoggedIn && (
-                        <NotificationBadge 
-                            unreadCount={unreadCount} 
-                            onBellClick={() => {
-                                if (unreadCount > 0) {
-                                    setUnreadCount(0);
-                                }
-                            }} 
-                        />
+                        <div className="relative">
+                            <button
+                                onClick={handleNotificationClick}
+                                className="p-2.5 rounded-[14px] text-ink/70 hover:text-ink hover:bg-ink/5 transition-all duration-200 focus:outline-none relative"
+                                aria-label="Notifications"
+                            >
+                                <Bell className="w-5 h-5" strokeWidth={1.5} />
+                                
+                                {/* Red Dot */}
+                                {unreadCount > 0 && (
+                                    <span className="absolute top-2 right-2 flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Notification Dropdown */}
+                            {showNotificationMenu && (
+                                <NotificationDropdown 
+                                    onClose={() => setShowNotificationMenu(false)}
+                                />
+                            )}
+                        </div>
                     )}
 
                     {/* User Profile / Login */}
-                    <button 
-                        className={`p-1.5 rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-brand/50 ${
-                            isLoggedIn ? 'text-brand bg-brand/10 hover:bg-brand/20' : 'text-ink/80 hover:text-ink hover:bg-ink/10'
-                        }`}
-                        aria-label={isLoggedIn ? "User menu" : "Login"}
-                        onClick={handleUserClick}
-                    >
-                        <User className="w-4 h-4 sm:w-5 sm:h-5" strokeWidth={1.5} />
-                    </button>
+                    <div className="relative">
+                        <button 
+                            className={`p-2.5 rounded-[14px] transition-all duration-200 focus:outline-none ${
+                                isLoggedIn 
+                                    ? 'text-ink hover:bg-ink/5' 
+                                    : 'text-ink/70 hover:text-ink hover:bg-ink/5'
+                            }`}
+                            aria-label={isLoggedIn ? "User menu" : "Login"}
+                            onClick={handleUserClick}
+                        >
+                            <User className="w-5 h-5" strokeWidth={1.5} />
+                        </button>
 
-                    {/* User Dropdown Menu */}
-                    {isLoggedIn && showUserMenu && (
-                        <div className="absolute right-0 mt-3 w-48 bg-surface border border-border-base rounded-xl shadow-xl py-1 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-50">
-                            <div className="px-4 py-3 border-b border-border-base">
-                                <p className="text-sm text-ink font-medium truncate">
-                                    {currentUser?.full_name || currentUser?.nickname || 'User'}
-                                </p>
-                                <p className="text-xs text-ink-dim truncate mt-0.5">
-                                    {currentUser?.email}
-                                </p>
+                        {/* User Dropdown Menu */}
+                        {isLoggedIn && showUserMenu && (
+                            <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-border-base rounded-[16px] shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
+                                {/* User Info Header */}
+                                <div className="px-4 py-3 border-b border-border-base/50">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-10 h-10 rounded-full bg-brand/10 flex items-center justify-center">
+                                            <User className="w-5 h-5 text-brand" strokeWidth={1.5} />
+                                        </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="text-sm font-semibold text-ink truncate">
+                                                {currentUser?.full_name || currentUser?.nickname || 'User'}
+                                            </p>
+                                            <p className="text-xs text-ink-dim truncate">
+                                                {currentUser?.email}
+                                            </p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Menu Items */}
+                                <div className="py-1">
+                                    {currentUser?.is_superuser && (
+                                        <button 
+                                            onClick={() => { onAdminClick(); setShowUserMenu(false); }}
+                                            className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-3 transition-colors"
+                                        >
+                                            <Shield className="w-4 h-4" />
+                                            管理面板
+                                        </button>
+                                    )}
+                                    
+                                    <button 
+                                        onClick={() => { onDashboardClick(); setShowUserMenu(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-3 transition-colors"
+                                    >
+                                        <LayoutDashboard className="w-4 h-4" />
+                                        个人中心
+                                    </button>
+                                </div>
+                                
+                                {/* Divider */}
+                                <div className="h-px bg-border-base/50 mx-3 my-1" />
+                                
+                                {/* Logout */}
+                                <div className="py-1">
+                                    <button 
+                                        onClick={() => { onLogoutClick(); setShowUserMenu(false); }}
+                                        className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-50/5 flex items-center gap-3 transition-colors"
+                                    >
+                                        <LogOut className="w-4 h-4" />
+                                        退出登录
+                                    </button>
+                                </div>
                             </div>
-                            
-                            {currentUser?.is_superuser && (
-                                <button 
-                                    onClick={() => { onAdminClick(); setShowUserMenu(false); }}
-                                    className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
-                                >
-                                    <Shield className="w-4 h-4" />
-                                    管理面板
-                                </button>
-                            )}
-                            
-                            <button 
-                                onClick={() => { onDashboardClick(); setShowUserMenu(false); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-ink-dim hover:text-ink hover:bg-ink/5 flex items-center gap-2 transition-colors"
-                            >
-                                <LayoutDashboard className="w-4 h-4" />
-                                个人中心
-                            </button>
-                            
-                            <div className="h-px bg-border-base my-1" />
-                            
-                            <button 
-                                onClick={() => { onLogoutClick(); setShowUserMenu(false); }}
-                                className="w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-ink/5 flex items-center gap-2 transition-colors"
-                            >
-                                <LogOut className="w-4 h-4" />
-                                退出登录
-                            </button>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </header>

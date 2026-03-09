@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import axios from 'axios';
 import gsap from 'gsap';
+import AIGenerateImageButton from './AIGenerateImageButton';
 
 interface CreateHackathonModalProps {
   isOpen: boolean;
@@ -738,7 +739,16 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                         </div>
 
                         <div>
-                            <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '封面缩略图' : 'COVER IMAGE'} *</label>
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-brand text-xs font-bold uppercase tracking-widest">{lang === 'zh' ? '封面缩略图' : 'COVER IMAGE'} *</label>
+                                <AIGenerateImageButton
+                                    buttonText={lang === 'zh' ? 'AI 生图' : 'AI Generate'}
+                                    scene="cover"
+                                    context={title || '黑客松活动'}
+                                    onImageGenerated={(url) => setCoverImage(url)}
+                                    className="text-xs px-3 py-1.5"
+                                />
+                            </div>
                             <div className="border-2 border-dashed border-brand/40 h-[220px] bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand/80 hover:bg-brand/5 transition-all">
                                 {coverImage ? (
                                     <img src={coverImage} alt="Cover" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
@@ -748,8 +758,8 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                                         <span className="text-brand/60 text-xs font-mono uppercase group-hover:text-brand transition-colors">Upload 16:9 Image</span>
                                     </div>
                                 )}
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     className="absolute inset-0 opacity-0 cursor-pointer"
                                     onChange={handleCoverUpload}
                                     accept="image/*"

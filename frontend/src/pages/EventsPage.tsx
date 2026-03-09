@@ -138,23 +138,13 @@ export default function EventsPage() {
   const fetchHackathons = async () => {
     try {
       setLoading(true)
-      const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
       
       // 获取所有活动
       const response = await axios.get('/api/v1/hackathons')
       const allHackathons = response.data
       
-      // 过滤：只显示自己创建的和另一个用户创建的活动（用于测试）
-      const myHackathons = allHackathons.filter((h: any) => h.organizer_id === currentUser.id)
-      const otherHackathons = allHackathons.filter((h: any) => h.organizer_id !== currentUser.id)
-      
-      // 取一个自己创建的活动和一个他人创建的活动
-      const testHackathons = [
-        ...(myHackathons.slice(0, 1) || []),
-        ...(otherHackathons.slice(0, 1) || [])
-      ]
-      
-      setHackathons(testHackathons)
+      // 显示所有已发布的活动
+      setHackathons(allHackathons)
     } catch (err) {
       console.error(err)
     } finally {

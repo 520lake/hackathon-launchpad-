@@ -62,6 +62,11 @@ class Settings(BaseSettings):
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL_NAME: str = "deepseek-chat"
     
+    # SiliconFlow (硅基流动) AI - Image Generation
+    SILICONFLOW_API_KEY: str = "sk-xvlmbmtnbmfvzctqqlxnuwhjygxlsrbzdzaqkixxeudehpfl"
+    SILICONFLOW_BASE_URL: str = "https://api.siliconflow.cn/v1"
+    SILICONFLOW_IMAGE_MODEL: str = "black-forest-labs/FLUX.1-schnell"  # Free model
+    
     # GitHub OAuth
     GITHUB_CLIENT_ID: str = ""
     GITHUB_CLIENT_SECRET: str = ""

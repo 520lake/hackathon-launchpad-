@@ -786,7 +786,7 @@ async def refine_project(req: RefineProjectRequest):
         Refine the project description to make it sound professional, impactful, and clear for a Hackathon submission.
         Keep it concise but exciting.
         """
-        
+
         response = client.chat.completions.create(
             model=MODEL_NAME,
             messages=[
@@ -794,7 +794,105 @@ async def refine_project(req: RefineProjectRequest):
                 {"role": "user", "content": req.description}
             ]
         )
-        
+
         return {"refined_description": response.choices[0].message.content.strip()}
     except Exception as e:
         return {"refined_description": req.description} # Fallback to original
+
+
+# --- AI Image Generation Endpoint ---
+
+class ImageGenerationRequest(BaseModel):
+    prompt: str
+    style: Optional[str] = "vivid"  # vivid, natural
+    size: Optional[str] = "1024x1024"  # 1024x1024, 1024x1792, 1792x1024
+
+class ImageGenerationResponse(BaseModel):
+    url: str
+    revised_prompt: Optional[str] = None
+
+@router.post("/generate-image", response_model=ImageGenerationResponse)
+async def generate_image(
+    req: ImageGenerationRequest,
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    Generate an image using SiliconFlow (硅基流动) free image generation API.
+    Falls back to Pollinations.ai if SiliconFlow fails.
+    """
+    try:
+        # Try SiliconFlow (硅基流动) first - using user's API key
+        # SiliconFlow offers free image generation models
+        print(f"Trying SiliconFlow image generation with prompt: {req.prompt[:50]}...")
+        
+        # Initialize SiliconFlow client
+        siliconflow_client = OpenAI(
+            api_key=settings.SILICONFLOW_API_KEY,
+            base_url=settings.SILICONFLOW_BASE_URL,
+        )
+        
+        # Enhance prompt for better results - 使用中文提示词优化
+        enhanced_prompt = f"""{req.prompt}
+
+高质量，专业设计，精美细节，高清渲染，最佳画质，专业摄影风格，完美的光影效果，8K超清。"""
+        
+        try:
+            # Try to generate with SiliconFlow
+            # Map size to appropriate format
+            size_map = {
+                "1024x1024": "1024x1024",
+                "1024x1792": "1024x1792",
+                "1792x1024": "1792x1024",
+            }
+            image_size = size_map.get(req.size, "1024x1024")
+            
+            response = siliconflow_client.images.generate(
+                model=settings.SILICONFLOW_IMAGE_MODEL,
+                prompt=enhanced_prompt,
+                size=image_size,
+                n=1,
+            )
+
+            if response.data and len(response.data) > 0:
+                print(f"Successfully generated image with SiliconFlow")
+                return {
+                    "url": response.data[0].url,
+                    "revised_prompt": response.data[0].revised_prompt or enhanced_prompt
+                }
+        except Exception as siliconflow_error:
+            print(f"SiliconFlow image generation failed: {siliconflow_error}")
+            # Fall through to Pollinations.ai
+        
+        # Fallback: Use Pollinations.ai (free image generation API)
+        print("Falling back to Pollinations.ai")
+        import urllib.parse
+        
+        encoded_prompt = urllib.parse.quote(enhanced_prompt)
+        
+        # Pollinations.ai supports various models via the model parameter
+        pollinations_url = f"https://image.pollinations.ai/prompt/{encoded_prompt}?width=1024&height=1024&nologo=true&seed={random.randint(1, 100000)}&model=flux&enhance=true"
+
+        # Verify the URL is accessible
+        import httpx
+        async with httpx.AsyncClient() as client:
+            response = await client.head(pollinations_url, timeout=30.0)
+            if response.status_code == 200:
+                print(f"Successfully generated image with Pollinations.ai")
+                return {
+                    "url": pollinations_url,
+                    "revised_prompt": enhanced_prompt
+                }
+
+        # Final fallback
+        return {
+            "url": f"https://picsum.photos/seed/{random.randint(1, 10000)}/1024/1024",
+            "revised_prompt": req.prompt
+        }
+
+    except Exception as e:
+        print(f"Image Generation Error: {e}")
+        # Final fallback - return a placeholder
+        return {
+            "url": f"https://picsum.photos/seed/{random.randint(1, 10000)}/1024/1024",
+            "revised_prompt": req.prompt
+        }

@@ -8,6 +8,7 @@ class UserBase(SQLModel):
     full_name: Optional[str] = None
     is_active: bool = True
     is_superuser: bool = False
+    is_virtual: bool = Field(default=False)  # 标记虚拟用户
     
     # New Fields for the platform
     can_create_hackathon: bool = Field(default=False)  # Organizer permission
@@ -36,11 +37,18 @@ class UserBase(SQLModel):
     
     # Notification preferences
     notification_settings: Optional[str] = Field(default='{"activity_reminder": true, "new_hackathon_push": true, "system_announcement": true, "general_notification": true}')
+    
+    # Community Hall settings
+    show_in_community: bool = Field(default=False)  # 是否展现在社区大厅
+    community_bio: Optional[str] = None  # 社区大厅独立简介
+    community_skills: Optional[str] = None  # 社区大厅独立技能展示
+    community_title: Optional[str] = None  # 社区大厅头衔/称号
 
 class User(UserBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hashed_password: Optional[str] = None # Password optional for WeChat login
     notifications: List["Notification"] = Relationship(back_populates="user")
+    discussions: List["Discussion"] = Relationship(back_populates="author")
 
 class UserCreate(UserBase):
     password: Optional[str] = None
@@ -60,6 +68,11 @@ class UserUpdate(SQLModel):
     skills_vector: Optional[str] = None
     notification_settings: Optional[str] = None
     invitation_code: Optional[str] = None
+    # Community Hall settings
+    show_in_community: Optional[bool] = None
+    community_bio: Optional[str] = None
+    community_skills: Optional[str] = None
+    community_title: Optional[str] = None
 
 class UserUpdateAdmin(UserUpdate):
     is_active: Optional[bool] = None

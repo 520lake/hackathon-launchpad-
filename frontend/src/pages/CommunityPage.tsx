@@ -1347,12 +1347,12 @@ function CommunityProfileModal({
                 </div>
                 <button
                   onClick={() => setShowInCommunity(!showInCommunity)}
-                  className={`relative w-12 h-6 rounded-full transition-colors ${
+                  className={`relative w-14 h-8 rounded-[24px] transition-colors ${
                     showInCommunity ? 'bg-brand' : 'bg-zinc-700'
                   }`}
                 >
                   <div
-                    className={`absolute top-1 w-4 h-4 rounded-full bg-black transition-transform ${
+                    className={`absolute top-1 w-6 h-6 rounded-[20px] bg-white transition-transform ${
                       showInCommunity ? 'translate-x-7' : 'translate-x-1'
                     }`}
                   />
@@ -1498,7 +1498,7 @@ function CommunityProfileModal({
                   { key: 'ai', label: 'AI/ML', icon: Zap },
                   { key: 'devops', label: 'DevOps', icon: Briefcase }
                 ].map(({ key, label, icon: Icon }) => (
-                  <div key={key} className="bg-zinc-800/50 rounded-2xl p-4">
+                  <div key={key} className="bg-zinc-800/50 rounded-[24px] p-4">
                     <div className="flex items-center gap-2 mb-3">
                       <Icon className="w-4 h-4 text-brand" />
                       <span className="text-white text-sm">{label}</span>
@@ -1538,7 +1538,7 @@ function CommunityProfileModal({
 
               <div className="space-y-4">
                 {pastProjects.map((project, index) => (
-                  <div key={index} className="bg-zinc-800/50 rounded-2xl p-4 space-y-3">
+                  <div key={index} className="bg-zinc-800/50 rounded-[24px] p-4 space-y-3">
                     <div className="flex items-start justify-between">
                       <div className="flex-1 grid grid-cols-2 gap-3">
                         <input

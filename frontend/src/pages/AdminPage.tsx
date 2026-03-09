@@ -27,15 +27,16 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
+  const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     checkAuth()
-    fetchData()
   }, [])
 
   const checkAuth = async () => {
     const token = localStorage.getItem('token')
     if (!token) {
+      setAuthError('请先登录')
       navigate('/')
       return
     }
@@ -44,9 +45,14 @@ export default function AdminPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       if (!res.data.is_superuser) {
+        setAuthError('您没有管理员权限')
         navigate('/')
+        return
       }
-    } catch (e) {
+      fetchData()
+    } catch (e: any) {
+      console.error('Auth check failed:', e)
+      setAuthError('验证失败，请重新登录')
       navigate('/')
     }
   }

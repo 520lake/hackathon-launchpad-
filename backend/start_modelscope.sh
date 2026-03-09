@@ -26,6 +26,15 @@ ls -l $DB_FILE || echo "File not found (yet)"
 echo "Running migrations..."
 alembic upgrade head || echo "WARNING: Alembic upgrade failed. Proceeding to manual fix..."
 
+# 确保 Python 路径包含后端代码
+export PYTHONPATH=/app/backend
+
+# 删除与包同名的冲突模块文件，避免 'app' 被识别为单文件模块
+if [ -f "/app/backend/app.py" ]; then
+  echo "Removing conflicting module file /app/backend/app.py to ensure package import"
+  rm -f /app/backend/app.py
+fi
+
 # 强制修复数据库Schema (防止Alembic失效)
 echo "Force fixing DB schema..."
 python ../scripts/fix_db_schema.py
@@ -36,7 +45,7 @@ ls -l $DB_FILE || echo "File not found"
 
 # 创建初始数据（管理员账号）
 echo "Creating initial data..."
-python -m aura_server.initial_data
+python -m app.initial_data
 
 # 创建Mock Hackathons (如果不存在)
 echo "Seeding Hackathons..."
@@ -56,4 +65,4 @@ python scripts/debug_login.py || echo "Debug script failed (non-fatal)"
 
 # 启动应用
 echo "Starting application on port 7860..."
-python -m uvicorn aura_server.main:app --host 0.0.0.0 --port 7860
+python -m uvicorn app.main:app --host 0.0.0.0 --port 7860

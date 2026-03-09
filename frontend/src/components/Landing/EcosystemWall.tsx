@@ -1,9 +1,10 @@
 import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 
 // Mock Data for Testimonials (Chinese)
 const TESTIMONIALS_ROW_1 = [
-    { id: 1, name: "Sarah Connor", role: "组织者", quote: "Aura的AI匹配功能为我们节省了数周的团队组建时间。", color: "#D4A373" },
+    { id: 1, name: "Sarah Connor", role: "组织者", quote: "Aurathon的AI匹配功能为我们节省了数周的团队组建时间。", color: "#D4A373" },
     { id: 2, name: "David Lightman", role: "黑客", quote: "编程环境超现实。感觉就像直接接入了矩阵。", color: "#4CAF50" },
     { id: 3, name: "Judge Dredd", role: "裁判", quote: "自动评分维度精确且公正。终于等到了。", color: "#FF5F5F" },
     { id: 4, name: "Weyland Corp", role: "赞助商", quote: "我们在一个周末内就找到了接下来的10位核心员工。", color: "#9C27B0" },
@@ -24,6 +25,7 @@ export default function EcosystemWall() {
     const track2Ref = useRef<HTMLDivElement>(null);
     const tl1 = useRef<gsap.core.Tween | null>(null);
     const tl2 = useRef<gsap.core.Tween | null>(null);
+    const navigate = useNavigate();
 
     // Setup scrolling animations
     useEffect(() => {
@@ -59,7 +61,10 @@ export default function EcosystemWall() {
         >
             {/* Title Section */}
             <div className="text-center mb-8 relative z-30">
-                <h2 className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-2">
+                <h2 
+                    className="text-4xl md:text-6xl font-black uppercase tracking-tighter text-white mb-2 cursor-pointer hover:text-brand transition-colors"
+                    onClick={() => navigate('/')}
+                >
                     Loved by <span className="text-brand text-shadow-brand">Hackathon</span>
                 </h2>
                 <div className="w-24 h-1 bg-brand mx-auto mb-4"></div>

@@ -13,4 +13,3 @@ python-multipart
 httpx
 email-validator
 openai
-requests

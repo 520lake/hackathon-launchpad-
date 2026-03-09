@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import axios from 'axios';
 import gsap from 'gsap';
+import AIGenerateImageButton from './AIGenerateImageButton';
 
 interface CreateHackathonModalProps {
   isOpen: boolean;
@@ -31,9 +32,11 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   // Details
   const [rulesDetail, setRulesDetail] = useState('');
+  const [awardsDetail, setAwardsDetail] = useState(''); // Restore for legacy/AI string support
   
   // Judging
   const [judges, setJudges] = useState<string[]>([]);
+  const [newJudgeEmail, setNewJudgeEmail] = useState('');
   const [scoringDimensions, setScoringDimensions] = useState<{name: string, description: string, weight: number}[]>([]);
   const [newDimension, setNewDimension] = useState({ name: '', description: '', weight: 10 });
 
@@ -74,7 +77,6 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [isVerified, setIsVerified] = useState(false);
   const [aiPrompt, setAiPrompt] = useState('');
   const [aiLoading, setAiLoading] = useState(false);
   const [aiChatHistory, setAiChatHistory] = useState<{role: 'user' | 'ai', content: string}[]>([]);
@@ -155,11 +157,14 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                  try {
                      const parsed = JSON.parse(initialData.awards_detail);
                      if (Array.isArray(parsed)) {
-                        setAwards(parsed);
-                    }
-                } catch {
-                    // Ignore parsing error for legacy string
-                }
+                         setAwards(parsed);
+                     } else {
+                         // Fallback for old string data
+                         setAwardsDetail(initialData.awards_detail); 
+                     }
+                 } catch {
+                     setAwardsDetail(initialData.awards_detail || '');
+                 }
             } else {
                 setAwards([]);
             }
@@ -217,6 +222,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
             setSubmissionEndDate('');
             setJudgingStartDate('');
             setJudgingEndDate('');
+            setAwardsDetail('');
             setRulesDetail('');
             setScoringDimensions([]);
             setJudges([]);
@@ -276,7 +282,9 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
         }
 
         if (content.awards_detail) {
-            if (Array.isArray(content.awards_detail)) {
+            if (typeof content.awards_detail === 'string') {
+                setAwardsDetail(content.awards_detail);
+            } else if (Array.isArray(content.awards_detail)) {
                 setAwards(content.awards_detail);
             }
         }
@@ -360,7 +368,6 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
               const res = await axios.get('/api/v1/users/me', {
                   headers: { Authorization: `Bearer ${token}` }
               });
-              setIsVerified(res.data.is_verified);
           }
       } catch (e) {
           console.error("Failed to check verification", e);
@@ -470,12 +477,6 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
   const handleSubmit = async (status: 'draft' | 'published') => {
     setError('');
     
-    // Real-name auth check for publishing
-    if (status === 'published' && !isVerified) {
-        setError('发布活动需先完成实名认证');
-        return;
-    }
-
     if (currentStep === 1) {
         if (!validateStep1()) return;
         // Allow draft save on step 1
@@ -674,10 +675,10 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                             
                             {/* Input Area */}
                             <div className="relative group">
-                                <div className="absolute -inset-0.5 bg-gradient-to-r from-brand to-purple-600 rounded-sm opacity-20 group-hover:opacity-40 transition duration-500 blur"></div>
+                                <div className="absolute -inset-0.5 bg-gradient-to-r from-brand to-brand/50 rounded-sm opacity-30 group-hover:opacity-50 transition duration-500 blur"></div>
                                 <div className="relative flex gap-0 bg-black">
                                     <textarea 
-                                        className="flex-1 px-4 py-4 bg-black border border-brand/30 text-ink placeholder-gray-600 focus:border-brand focus:outline-none font-mono text-sm resize-none h-24 transition-all leading-relaxed"
+                                        className="flex-1 px-4 py-4 bg-black border border-brand/30 text-white placeholder-gray-600 focus:border-brand focus:outline-none font-mono text-sm resize-none h-24 transition-all leading-relaxed"
                                         placeholder={lang === 'zh' ? "在此描述您的活动构想..." : "Describe your event concept here..."}
                                         value={aiPrompt}
                                         onChange={(e) => setAiPrompt(e.target.value)}
@@ -711,16 +712,16 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                             <div>
                                 <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '活动名称' : 'HACKATHON TITLE'} *</label>
                                 <input 
-                                    className="w-full bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600"
+                                    className="w-full bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 transition-all"
                                     placeholder={lang === 'zh' ? "输入活动名称" : "Enter title"}
                                     value={title}
                                     onChange={(e) => setTitle(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '副标题' : 'SUBTITLE'}</label>
+                                <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '副标题' : 'SUBTITLE'}</label>
                                 <input 
-                                    className="w-full bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600"
+                                    className="w-full bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 transition-all"
                                     placeholder={lang === 'zh' ? "一句话描述活动亮点" : "Subtitle"}
                                     value={subtitle}
                                     onChange={(e) => setSubtitle(e.target.value)}
@@ -729,7 +730,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                             <div>
                                 <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '活动主题 (标题云)' : 'THEME TAGS'} *</label>
                                 <input 
-                                    className="w-full bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600"
+                                    className="w-full bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 transition-all"
                                     placeholder={lang === 'zh' ? "Web3, AI, GameFi (用逗号分隔)" : "Tags separated by comma"}
                                     value={themeTags}
                                     onChange={(e) => setThemeTags(e.target.value)}
@@ -738,18 +739,27 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                         </div>
 
                         <div>
-                            <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '封面缩略图' : 'COVER IMAGE'} *</label>
-                            <div className="border border-dashed border-brand/30 h-[220px] bg-black/30 flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand/60 transition-colors">
+                            <div className="flex items-center justify-between mb-2">
+                                <label className="block text-brand text-xs font-bold uppercase tracking-widest">{lang === 'zh' ? '封面缩略图' : 'COVER IMAGE'} *</label>
+                                <AIGenerateImageButton
+                                    buttonText={lang === 'zh' ? 'AI 生图' : 'AI Generate'}
+                                    scene="cover"
+                                    context={title || '黑客松活动'}
+                                    onImageGenerated={(url) => setCoverImage(url)}
+                                    className="text-xs px-3 py-1.5"
+                                />
+                            </div>
+                            <div className="border-2 border-dashed border-brand/40 h-[220px] bg-black/40 backdrop-blur-sm flex flex-col items-center justify-center relative overflow-hidden group hover:border-brand/80 hover:bg-brand/5 transition-all">
                                 {coverImage ? (
-                                    <img src={coverImage} alt="Cover" className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                                    <img src={coverImage} alt="Cover" className="w-full h-full object-cover opacity-90 group-hover:opacity-100 transition-opacity" />
                                 ) : (
                                     <div className="text-center p-4">
-                                        <div className="text-4xl mb-2 text-brand/50">+</div>
-                                        <span className="text-gray-500 text-xs font-mono uppercase">Upload 16:9 Image</span>
+                                        <div className="text-4xl mb-2 text-brand/70 group-hover:text-brand transition-colors">⊕</div>
+                                        <span className="text-brand/60 text-xs font-mono uppercase group-hover:text-brand transition-colors">Upload 16:9 Image</span>
                                     </div>
                                 )}
-                                <input 
-                                    type="file" 
+                                <input
+                                    type="file"
                                     className="absolute inset-0 opacity-0 cursor-pointer"
                                     onChange={handleCoverUpload}
                                     accept="image/*"
@@ -758,17 +768,17 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-brand/10">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-6 border-t border-brand/30">
                         <div>
                             <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '报名形式' : 'REGISTRATION TYPE'} *</label>
                             <div className="flex space-x-4">
-                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border ${registrationType === 'individual' ? 'border-brand bg-brand/10' : 'border-gray-700 hover:border-gray-500'} flex-1`}>
+                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border-2 ${registrationType === 'individual' ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(212,163,115,0.2)]' : 'border-white/10 hover:border-brand/50 hover:bg-brand/5'} flex-1 transition-all`}>
                                     <input type="radio" checked={registrationType === 'individual'} onChange={() => setRegistrationType('individual')} className="hidden" />
-                                    <span className={registrationType === 'individual' ? 'text-brand' : 'text-gray-400'}>👤 {lang === 'zh' ? '个人报名' : 'Individual'}</span>
+                                    <span className={registrationType === 'individual' ? 'text-brand font-bold' : 'text-gray-400'}>👤 {lang === 'zh' ? '个人报名' : 'Individual'}</span>
                                 </label>
-                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border ${registrationType === 'team' ? 'border-brand bg-brand/10' : 'border-gray-700 hover:border-gray-500'} flex-1`}>
+                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border-2 ${registrationType === 'team' ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(212,163,115,0.2)]' : 'border-white/10 hover:border-brand/50 hover:bg-brand/5'} flex-1 transition-all`}>
                                     <input type="radio" checked={registrationType === 'team'} onChange={() => setRegistrationType('team')} className="hidden" />
-                                    <span className={registrationType === 'team' ? 'text-brand' : 'text-gray-400'}>👥 {lang === 'zh' ? '团队报名' : 'Team'}</span>
+                                    <span className={registrationType === 'team' ? 'text-brand font-bold' : 'text-gray-400'}>👥 {lang === 'zh' ? '团队报名' : 'Team'}</span>
                                 </label>
                             </div>
                         </div>
@@ -776,23 +786,23 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                         <div>
                             <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '举办形式' : 'FORMAT'} *</label>
                             <div className="flex space-x-4">
-                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border ${format === 'online' ? 'border-brand bg-brand/10' : 'border-gray-700 hover:border-gray-500'} flex-1`}>
+                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border-2 ${format === 'online' ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(212,163,115,0.2)]' : 'border-white/10 hover:border-brand/50 hover:bg-brand/5'} flex-1 transition-all`}>
                                     <input type="radio" checked={format === 'online'} onChange={() => setFormat('online')} className="hidden" />
-                                    <span className={format === 'online' ? 'text-brand' : 'text-gray-400'}>🌐 {lang === 'zh' ? '线上' : 'Online'}</span>
+                                    <span className={format === 'online' ? 'text-brand font-bold' : 'text-gray-400'}>🌐 {lang === 'zh' ? '线上' : 'Online'}</span>
                                 </label>
-                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border ${format === 'offline' ? 'border-brand bg-brand/10' : 'border-gray-700 hover:border-gray-500'} flex-1`}>
+                                <label className={`flex items-center space-x-2 cursor-pointer p-3 border-2 ${format === 'offline' ? 'border-brand bg-brand/10 shadow-[0_0_15px_rgba(212,163,115,0.2)]' : 'border-white/10 hover:border-brand/50 hover:bg-brand/5'} flex-1 transition-all`}>
                                     <input type="radio" checked={format === 'offline'} onChange={() => setFormat('offline')} className="hidden" />
-                                    <span className={format === 'offline' ? 'text-brand' : 'text-gray-400'}>📍 {lang === 'zh' ? '线下' : 'Offline'}</span>
+                                    <span className={format === 'offline' ? 'text-brand font-bold' : 'text-gray-400'}>📍 {lang === 'zh' ? '线下' : 'Offline'}</span>
                                 </label>
                             </div>
                         </div>
                     </div>
 
                     {format === 'offline' && (
-                        <div>
+                        <div className="pt-4">
                             <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '地点' : 'LOCATION'} *</label>
                             <input 
-                                className="w-full bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600"
+                                className="w-full bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 transition-all"
                                 placeholder={lang === 'zh' ? "详细地址" : "Address"}
                                 value={location}
                                 onChange={(e) => setLocation(e.target.value)}
@@ -807,41 +817,43 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                 <div className="space-y-8">
                     {/* Section 1: Organizer & Schedule */}
                     <div>
-                        <h3 className="text-brand font-mono text-lg mb-4 border-b border-brand/20 pb-2">// ORGANIZATION & SCHEDULE</h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-4">
+                        <h3 className="text-brand font-mono text-lg mb-4 border-b-2 border-brand/30 pb-2 flex items-center gap-2">
+                            <span className="text-brand/70">//</span> ORGANIZATION & SCHEDULE
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
                             <div>
                                 <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '主办方' : 'ORGANIZER'} *</label>
                                 <input 
-                                    className="w-full bg-black/50 border border-brand/20 p-3 text-ink focus:border-brand focus:outline-none"
+                                    className="w-full bg-black/50 border border-brand/30 p-3 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all"
                                     value={organizerName}
                                     onChange={(e) => setOrganizerName(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '联系方式' : 'CONTACT INFO'}</label>
-                                <div className="space-y-2">
+                                <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '联系方式' : 'CONTACT INFO'}</label>
+                                <div className="space-y-3">
                                     <input 
-                                        className="w-full bg-black/50 border border-brand/20 p-3 text-ink focus:border-brand focus:outline-none placeholder-gray-600"
+                                        className="w-full bg-black/50 border border-brand/30 p-3 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 transition-all"
                                         placeholder={lang === 'zh' ? "微信号/邮箱/电话" : "WeChat/Email"}
                                         value={contactInfo.text}
                                         onChange={(e) => setContactInfo({...contactInfo, text: e.target.value})}
                                     />
                                     <div className="flex items-center gap-4">
-                                        <div className="relative border border-dashed border-brand/30 w-full h-24 bg-black/30 flex items-center justify-center hover:border-brand/60 transition-colors">
+                                        <div className="relative border-2 border-dashed border-brand/40 w-full h-28 bg-black/40 backdrop-blur-sm flex items-center justify-center hover:border-brand/80 hover:bg-brand/5 transition-all group">
                                             {contactInfo.image ? (
                                                 <div className="relative w-full h-full group">
                                                     <img src={contactInfo.image} alt="Contact QR" className="w-full h-full object-contain" />
                                                     <button 
                                                         onClick={() => setContactInfo(prev => ({...prev, image: ''}))}
-                                                        className="absolute top-1 right-1 bg-black/80 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        className="absolute top-1 right-1 bg-black/90 text-white w-6 h-6 flex items-center justify-center rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500"
                                                     >
                                                         ✕
                                                     </button>
                                                 </div>
                                             ) : (
                                                 <div className="text-center">
-                                                    <span className="text-brand/50 text-2xl">+</span>
-                                                    <div className="text-[10px] text-gray-500 uppercase">{lang === 'zh' ? '上传二维码/名片' : 'UPLOAD QR/CARD'}</div>
+                                                    <span className="text-brand/70 text-2xl group-hover:text-brand transition-colors">⊕</span>
+                                                    <div className="text-[10px] text-brand/60 uppercase mt-1 group-hover:text-brand transition-colors">{lang === 'zh' ? '上传二维码/名片' : 'UPLOAD QR/CARD'}</div>
                                                 </div>
                                             )}
                                             <input 
@@ -856,26 +868,35 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                             </div>
                         </div>
                         
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-white/5 p-4 border border-brand/10">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 bg-gradient-to-br from-black/60 to-brand/5 p-5 border border-brand/30 backdrop-blur-sm">
                             <div>
-                                <label className="block text-brand text-[10px] font-bold mb-1 uppercase tracking-widest">{lang === 'zh' ? '报名时间' : 'REGISTRATION'} *</label>
+                                <label className="block text-brand text-[10px] font-bold mb-2 uppercase tracking-widest flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse"></span>
+                                    {lang === 'zh' ? '报名时间' : 'REGISTRATION'} *
+                                </label>
                                 <div className="space-y-2">
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={registrationStartDate} onChange={(e) => setRegistrationStartDate(e.target.value)} />
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={registrationEndDate} onChange={(e) => setRegistrationEndDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={registrationStartDate} onChange={(e) => setRegistrationStartDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={registrationEndDate} onChange={(e) => setRegistrationEndDate(e.target.value)} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-brand text-[10px] font-bold mb-1 uppercase tracking-widest">{lang === 'zh' ? '作品提交' : 'SUBMISSION'} *</label>
+                                <label className="block text-brand text-[10px] font-bold mb-2 uppercase tracking-widest flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse"></span>
+                                    {lang === 'zh' ? '作品提交' : 'SUBMISSION'} *
+                                </label>
                                 <div className="space-y-2">
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={submissionStartDate} onChange={(e) => setSubmissionStartDate(e.target.value)} />
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={submissionEndDate} onChange={(e) => setSubmissionEndDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={submissionStartDate} onChange={(e) => setSubmissionStartDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={submissionEndDate} onChange={(e) => setSubmissionEndDate(e.target.value)} />
                                 </div>
                             </div>
                             <div>
-                                <label className="block text-brand text-[10px] font-bold mb-1 uppercase tracking-widest">{lang === 'zh' ? '评审时间' : 'JUDGING'} *</label>
+                                <label className="block text-brand text-[10px] font-bold mb-2 uppercase tracking-widest flex items-center gap-1">
+                                    <span className="w-1.5 h-1.5 bg-brand rounded-full animate-pulse"></span>
+                                    {lang === 'zh' ? '评审时间' : 'JUDGING'} *
+                                </label>
                                 <div className="space-y-2">
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={judgingStartDate} onChange={(e) => setJudgingStartDate(e.target.value)} />
-                                    <input type="date" className="w-full bg-black/50 border border-brand/20 p-2 text-xs text-ink" value={judgingEndDate} onChange={(e) => setJudgingEndDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={judgingStartDate} onChange={(e) => setJudgingStartDate(e.target.value)} />
+                                    <input type="date" className="w-full bg-black/60 border border-brand/30 p-2.5 text-xs text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 transition-all" value={judgingEndDate} onChange={(e) => setJudgingEndDate(e.target.value)} />
                                 </div>
                             </div>
                         </div>
@@ -883,30 +904,32 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
                     {/* Section 2: Details & Requirements */}
                     <div>
-                        <h3 className="text-brand font-mono text-lg mb-4 border-b border-brand/20 pb-2">// DETAILS & REQUIREMENTS</h3>
-                        <div className="space-y-4">
+                        <h3 className="text-brand font-mono text-lg mb-4 border-b-2 border-brand/30 pb-2 flex items-center gap-2">
+                            <span className="text-brand/70">//</span> DETAILS & REQUIREMENTS
+                        </h3>
+                        <div className="space-y-5">
                             <div>
                                 <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '活动详情' : 'DESCRIPTION'} *</label>
                                 <textarea 
-                                    className="w-full h-32 bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600 font-mono text-sm"
+                                    className="w-full h-32 bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 font-mono text-sm transition-all"
                                     placeholder={lang === 'zh' ? "Markdown 格式支持..." : "Description..."}
                                     value={description}
                                     onChange={(e) => setDescription(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '作品要求' : 'REQUIREMENTS'}</label>
+                                <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '作品要求' : 'REQUIREMENTS'}</label>
                                 <textarea 
-                                    className="w-full h-24 bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600 font-mono text-sm"
+                                    className="w-full h-24 bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 font-mono text-sm transition-all"
                                     placeholder={lang === 'zh' ? "提交格式、技术栈限制等..." : "Submission requirements..."}
                                     value={requirements}
                                     onChange={(e) => setRequirements(e.target.value)}
                                 />
                             </div>
                             <div>
-                                <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '资源与支持' : 'RESOURCES & SUPPORT'}</label>
+                                <label className="block text-brand text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '资源与支持' : 'RESOURCES & SUPPORT'}</label>
                                 <textarea 
-                                    className="w-full h-24 bg-black/50 border border-brand/20 p-4 text-ink focus:border-brand focus:outline-none placeholder-gray-600 font-mono text-sm"
+                                    className="w-full h-24 bg-black/50 border border-brand/30 p-4 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20 placeholder-gray-600 font-mono text-sm transition-all"
                                     placeholder={lang === 'zh' ? "提供的开发资源、API、导师支持等..." : "Resources provided..."}
                                     value={resourceDetail}
                                     onChange={(e) => setResourceDetail(e.target.value)}
@@ -917,29 +940,31 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
 
                     {/* Section 3: Awards & Judging */}
                     <div>
-                        <h3 className="text-brand font-mono text-lg mb-4 border-b border-brand/20 pb-2">// AWARDS & CRITERIA</h3>
+                        <h3 className="text-brand font-mono text-lg mb-4 border-b-2 border-brand/30 pb-2 flex items-center gap-2">
+                            <span className="text-brand/70">//</span> AWARDS & CRITERIA
+                        </h3>
                         
                         {/* Awards List */}
                         <div className="mb-6">
-                            <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '奖项设置' : 'AWARDS'}</label>
-                            <div className="space-y-2 mb-3">
+                            <label className="block text-brand text-xs font-bold mb-3 uppercase tracking-widest">{lang === 'zh' ? '奖项设置' : 'AWARDS'}</label>
+                            <div className="space-y-2 mb-4">
                                 {awards.map((award, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 bg-white/5 p-2 border border-brand/10">
-                                        <span className="text-brand font-mono">#{idx+1}</span>
+                                    <div key={idx} className="flex items-center gap-2 bg-gradient-to-r from-brand/5 to-transparent p-3 border-l-2 border-brand">
+                                        <span className="text-brand font-mono font-bold">#{idx+1}</span>
                                         <div className="flex-1 text-sm">
-                                            <span className="font-bold text-ink">{award.name}</span>
-                                            <span className="mx-2 text-gray-500">|</span>
-                                            <span className="text-gray-400">{award.type === 'cash' ? `¥${award.amount}` : (award.type === 'other' ? award.prize : `¥${award.amount} + ${award.prize}`)}</span>
-                                            <span className="mx-2 text-gray-500">|</span>
+                                            <span className="font-bold text-white">{award.name}</span>
+                                            <span className="mx-2 text-brand/50">|</span>
+                                            <span className="text-brand">{award.type === 'cash' ? `¥${award.amount}` : (award.type === 'other' ? award.prize : `¥${award.amount} + ${award.prize}`)}</span>
+                                            <span className="mx-2 text-brand/50">|</span>
                                             <span className="text-gray-400">x{award.count}</span>
                                         </div>
-                                        <button onClick={() => removeAward(idx)} className="text-red-500 hover:text-red-400 px-2">✕</button>
+                                        <button onClick={() => removeAward(idx)} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 px-2 py-1 rounded transition-colors">✕</button>
                                     </div>
                                 ))}
                             </div>
-                            <div className="grid grid-cols-12 gap-2">
+                            <div className="grid grid-cols-12 gap-2 bg-black/40 p-3 border border-brand/30 backdrop-blur-sm">
                                 <select 
-                                    className="col-span-2 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-2 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     value={newAward.type}
                                     onChange={(e) => setNewAward({...newAward, type: e.target.value as any})}
                                 >
@@ -948,14 +973,14 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                                     <option value="mixed">混合</option>
                                 </select>
                                 <input 
-                                    className="col-span-3 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-3 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder="奖项名称"
                                     value={newAward.name}
                                     onChange={(e) => setNewAward({...newAward, name: e.target.value})}
                                 />
                                 <input 
                                     type="number"
-                                    className="col-span-2 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-2 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder="数量"
                                     value={newAward.count}
                                     onChange={(e) => setNewAward({...newAward, count: parseInt(e.target.value) || 0})}
@@ -963,7 +988,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                                 {(newAward.type === 'cash' || newAward.type === 'mixed') && (
                                     <input 
                                         type="number"
-                                        className="col-span-2 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                        className="col-span-2 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                         placeholder="金额"
                                         value={newAward.amount}
                                         onChange={(e) => setNewAward({...newAward, amount: parseInt(e.target.value) || 0})}
@@ -971,104 +996,104 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                                 )}
                                 {(newAward.type === 'other' || newAward.type === 'mixed') && (
                                     <input 
-                                        className="col-span-2 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                        className="col-span-2 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                         placeholder="奖品描述"
                                         value={newAward.prize}
                                         onChange={(e) => setNewAward({...newAward, prize: e.target.value})}
                                     />
                                 )}
-                                <button onClick={addAward} className="col-span-1 bg-brand text-black font-bold hover:bg-white">+</button>
+                                <button onClick={addAward} className="col-span-1 bg-brand text-black font-black hover:bg-white hover:scale-105 transition-all">+</button>
                             </div>
                         </div>
 
                         {/* Review Dimensions */}
                         <div>
-                            <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '评审标准' : 'JUDGING CRITERIA'}</label>
-                            <div className="space-y-2 mb-3">
+                            <label className="block text-brand text-xs font-bold mb-3 uppercase tracking-widest">{lang === 'zh' ? '评审标准' : 'JUDGING CRITERIA'}</label>
+                            <div className="space-y-2 mb-4">
                                 {scoringDimensions.map((dim, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 bg-white/5 p-2 border border-brand/10">
-                                        <span className="text-brand font-mono">{dim.weight}%</span>
+                                    <div key={idx} className="flex items-center gap-2 bg-gradient-to-r from-brand/5 to-transparent p-3 border-l-2 border-brand">
+                                        <span className="text-brand font-mono font-bold">{dim.weight}%</span>
                                         <div className="flex-1 text-sm">
-                                            <span className="font-bold text-ink">{dim.name}</span>
-                                            <span className="mx-2 text-gray-500">-</span>
+                                            <span className="font-bold text-white">{dim.name}</span>
+                                            <span className="mx-2 text-brand/50">-</span>
                                             <span className="text-gray-400">{dim.description}</span>
                                         </div>
-                                        <button onClick={() => removeDimension(idx)} className="text-red-500 hover:text-red-400 px-2">✕</button>
+                                        <button onClick={() => removeDimension(idx)} className="text-red-500 hover:text-red-400 hover:bg-red-500/10 px-2 py-1 rounded transition-colors">✕</button>
                                     </div>
                                 ))}
                             </div>
-                            <div className="grid grid-cols-12 gap-2">
+                            <div className="grid grid-cols-12 gap-2 bg-black/40 p-3 border border-brand/30 backdrop-blur-sm">
                                 <input 
-                                    className="col-span-3 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-3 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder="维度名称"
                                     value={newDimension.name}
                                     onChange={(e) => setNewDimension({...newDimension, name: e.target.value})}
                                 />
                                 <input 
                                     type="number"
-                                    className="col-span-2 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-2 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder="权重%"
                                     value={newDimension.weight}
                                     onChange={(e) => setNewDimension({...newDimension, weight: parseInt(e.target.value) || 0})}
                                 />
                                 <input 
-                                    className="col-span-6 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-6 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder="详细说明"
                                     value={newDimension.description}
                                     onChange={(e) => setNewDimension({...newDimension, description: e.target.value})}
                                 />
-                                <button onClick={addDimension} className="col-span-1 bg-brand text-black font-bold hover:bg-white">+</button>
+                                <button onClick={addDimension} className="col-span-1 bg-brand text-black font-black hover:bg-white hover:scale-105 transition-all">+</button>
                             </div>
                         </div>
 
                         {/* Sponsors */}
-                        <div className="mt-8 pt-6 border-t border-brand/20">
-                            <label className="block text-gray-400 text-xs font-bold mb-2 uppercase tracking-widest">{lang === 'zh' ? '赞助商 & 合作伙伴' : 'SPONSORS & PARTNERS'}</label>
+                        <div className="mt-8 pt-6 border-t-2 border-brand/30">
+                            <label className="block text-brand text-xs font-bold mb-4 uppercase tracking-widest">{lang === 'zh' ? '赞助商 & 合作伙伴' : 'SPONSORS & PARTNERS'}</label>
                             
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
                                 {sponsors.map((sponsor, idx) => (
-                                    <div key={idx} className="relative bg-white/5 border border-brand/10 p-3 group">
-                                        <div className="h-16 mb-2 flex items-center justify-center bg-black/30">
+                                    <div key={idx} className="relative bg-gradient-to-br from-brand/5 to-transparent border border-brand/30 p-3 group hover:border-brand/60 hover:shadow-[0_0_15px_rgba(212,163,115,0.15)] transition-all">
+                                        <div className="h-16 mb-2 flex items-center justify-center bg-black/40 backdrop-blur-sm">
                                             {sponsor.logo ? (
                                                 <img src={sponsor.logo} alt={sponsor.name} className="max-h-full max-w-full object-contain" />
                                             ) : (
                                                 <span className="text-gray-600 text-xs">NO LOGO</span>
                                             )}
                                         </div>
-                                        <div className="text-xs font-bold text-ink truncate">{sponsor.name}</div>
+                                        <div className="text-xs font-bold text-white truncate">{sponsor.name}</div>
                                         <div className="text-[10px] text-gray-500 truncate">{sponsor.url}</div>
                                         <button 
                                             onClick={() => removeSponsor(idx)}
-                                            className="absolute top-1 right-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            className="absolute top-1 right-1 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500/20 rounded p-0.5"
                                         >✕</button>
                                     </div>
                                 ))}
                             </div>
 
-                            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 bg-white/5 p-3 border border-brand/10">
+                            <div className="grid grid-cols-1 md:grid-cols-12 gap-2 bg-gradient-to-br from-black/60 to-brand/5 p-4 border border-brand/30 backdrop-blur-sm">
                                 <div className="col-span-1 md:col-span-2">
-                                    <div className="relative border border-dashed border-brand/30 h-10 w-full bg-black/30 flex items-center justify-center hover:border-brand/60 cursor-pointer">
+                                    <div className="relative border-2 border-dashed border-brand/40 h-12 w-full bg-black/40 backdrop-blur-sm flex items-center justify-center hover:border-brand/80 hover:bg-brand/5 transition-all cursor-pointer group">
                                         {newSponsor.logo ? (
                                             <img src={newSponsor.logo} alt="Preview" className="h-full object-contain" />
                                         ) : (
-                                            <span className="text-[10px] text-gray-500">LOGO</span>
+                                            <span className="text-brand/60 text-[10px] group-hover:text-brand transition-colors">LOGO</span>
                                         )}
                                         <input type="file" className="absolute inset-0 opacity-0 cursor-pointer" onChange={handleSponsorLogoUpload} accept="image/*" />
                                     </div>
                                 </div>
                                 <input 
-                                    className="col-span-1 md:col-span-4 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-1 md:col-span-4 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder={lang === 'zh' ? "赞助商名称" : "Sponsor Name"}
                                     value={newSponsor.name}
                                     onChange={(e) => setNewSponsor({...newSponsor, name: e.target.value})}
                                 />
                                 <input 
-                                    className="col-span-1 md:col-span-5 bg-black/50 border border-brand/20 text-xs p-2 text-ink"
+                                    className="col-span-1 md:col-span-5 bg-black/60 border border-brand/30 text-xs p-2 text-white focus:border-brand focus:outline-none focus:ring-1 focus:ring-brand/20"
                                     placeholder={lang === 'zh' ? "官网链接" : "Website URL"}
                                     value={newSponsor.url}
                                     onChange={(e) => setNewSponsor({...newSponsor, url: e.target.value})}
                                 />
-                                <button onClick={addSponsor} className="col-span-1 md:col-span-1 bg-brand text-black font-bold hover:bg-white">+</button>
+                                <button onClick={addSponsor} className="col-span-1 md:col-span-1 bg-brand text-black font-black hover:bg-white hover:scale-105 transition-all">+</button>
                             </div>
                         </div>
                     </div>
@@ -1077,13 +1102,20 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
         </div>
 
         {/* Footer Actions */}
-        <div className="p-6 border-t border-brand/20 bg-surface/80 backdrop-blur-md flex justify-between items-center">
-            <div className="text-red-500 text-sm font-bold font-mono">{error}</div>
+        <div className="p-6 border-t-2 border-brand/30 bg-gradient-to-r from-black/80 to-brand/5 backdrop-blur-md flex justify-between items-center">
+            <div className="text-red-500 text-sm font-bold font-mono flex items-center gap-2">
+                {error && (
+                    <>
+                        <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"></span>
+                        {error}
+                    </>
+                )}
+            </div>
             <div className="flex gap-4">
                 {currentStep === 2 && (
                     <button 
                         onClick={handleBack}
-                        className="px-6 py-2 border border-brand/30 text-gray-400 hover:text-brand hover:border-brand font-mono text-sm transition-colors"
+                        className="px-6 py-3 border-2 border-brand/40 text-gray-400 hover:text-brand hover:border-brand hover:bg-brand/5 font-mono text-sm transition-all"
                     >
                         {lang === 'zh' ? '上一步' : 'BACK'}
                     </button>
@@ -1092,7 +1124,7 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                 {currentStep === 1 ? (
                     <button 
                         onClick={handleNext}
-                        className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)]"
+                        className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(212,163,115,0.3)] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.4)]"
                     >
                         {lang === 'zh' ? '下一步' : 'NEXT STEP'}
                     </button>
@@ -1101,14 +1133,14 @@ export default function CreateHackathonModal({ isOpen, onClose, initialData, lan
                         <button 
                             onClick={() => handleSubmit('draft')}
                             disabled={loading}
-                            className="px-6 py-3 border border-brand text-brand font-bold uppercase hover:bg-brand/10 transition-colors disabled:opacity-50"
+                            className="px-6 py-3 border-2 border-brand text-brand font-black uppercase hover:bg-brand hover:text-black hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand disabled:hover:scale-100"
                         >
                             {lang === 'zh' ? '保存草稿' : 'SAVE DRAFT'}
                         </button>
                         <button 
                             onClick={() => handleSubmit('published')}
                             disabled={loading}
-                            className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(255,255,255,0.2)] disabled:opacity-50"
+                            className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(212,163,115,0.3)] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             {loading ? 'PROCESSING...' : (lang === 'zh' ? '发布活动' : 'PUBLISH')}
                         </button>

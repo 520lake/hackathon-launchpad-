@@ -1,80 +1,144 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import Hero from '../components/Landing/Hero';
-import { LatestEvents, About, Features, Partners, Schedule } from '../components/Landing/Sections';
-import { useAuth } from '../contexts/AuthContext';
-import { useUI } from '../contexts/UIContext';
+import { useState, useEffect } from 'react'
+import { useNavigate, useOutletContext } from 'react-router-dom'
+import axios from 'axios'
+
+// Landing Components
+import Hero from '../components/Landing/Hero'
+import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
+import CommunityHall from '../components/Landing/CommunityHall'
+
+// Modals
+import RegisterModal from '../components/RegisterModal'
+import LoginModal from '../components/LoginModal'
+import UserDashboardModal from '../components/UserDashboardModal'
+import AdminDashboardModal from '../components/AdminDashboardModal'
+import AITeamMatchModal from '../components/AITeamMatchModal'
+import ActivateOrganizerModal from '../components/ActivateOrganizerModal'
 
 interface Hackathon {
   id: number;
   title: string;
   description: string;
   start_date: string;
+  end_date: string;
   status: string;
 }
 
+interface OutletContextType {
+  isLoggedIn: boolean;
+  currentUser: any;
+  fetchCurrentUser: () => void;
+}
+
 export default function HomePage() {
-  const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
-  const { 
-    openLogin, 
-    openCreateHackathon, 
-    lang 
-  } = useUI();
+  const navigate = useNavigate()
+  const { isLoggedIn, fetchCurrentUser } = useOutletContext<OutletContextType>()
   
-  const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([]);
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false)
+  const [isLoginOpen, setIsLoginOpen] = useState(false)
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false)
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false)
+  const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
+  const [isActivateOrganizerOpen, setIsActivateOrganizerOpen] = useState(false)
+  const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([])
 
   useEffect(() => {
-    fetchLatestHackathons();
-  }, []);
+    fetchLatestHackathons()
+  }, [])
 
   const fetchLatestHackathons = async () => {
     try {
-      // Mock data if backend fails or empty
-      const res = await axios.get('http://localhost:8000/api/hackathons/?skip=0&limit=3');
-      if (res.data && Array.isArray(res.data)) {
-        setLatestHackathons(res.data);
-      }
+      const response = await axios.get('/api/v1/hackathons')
+      setLatestHackathons(response.data.slice(0, 6))
     } catch (err) {
-      console.error("Failed to fetch latest hackathons", err);
+      console.error(err)
     }
-  };
+  }
 
-  const handleCreateClick = () => {
-    if (!isAuthenticated) {
-      openLogin();
-      return;
+  const handleCreateHackathonClick = async () => {
+    if (isLoggedIn) {
+      try {
+        const token = localStorage.getItem('token')
+        
+        const res = await axios.get('/api/v1/users/me', {
+          headers: { Authorization: `Bearer ${token}` }
+        })
+        const user = res.data
+        
+        if (user.can_create_hackathon) {
+          navigate('/create')
+          return
+        }
+        
+        setIsActivateOrganizerOpen(true)
+      } catch (e: any) {
+        if (e.response && (e.response.status === 401 || e.response.status === 403)) {
+          localStorage.removeItem('token')
+          setIsLoginOpen(true)
+        }
+      }
+    } else {
+      setIsLoginOpen(true)
     }
-    openCreateHackathon();
-  };
+  }
 
-  const handleExploreClick = () => {
-    navigate('/hackathons');
-  };
+  // Navigate to event detail page
+  const openHackathonDetail = (id: number) => {
+    navigate(`/events/${id}`)
+  }
 
-  const handleAIGuideClick = () => {
-    navigate('/hackathons?mode=ai');
-  };
+  // Navigate to events list page
+  const openEventsList = (mode: 'list' | 'ai' = 'list') => {
+    navigate(`/events${mode === 'ai' ? '?mode=ai' : ''}`)
+  }
 
   return (
     <>
+      {/* Hero Section */}
       <Hero 
-        onCreateClick={handleCreateClick}
-        onExploreClick={handleExploreClick}
-        onAIGuideClick={handleAIGuideClick}
-        lang={lang}
+        onCreateClick={handleCreateHackathonClick}
+        onExploreClick={() => openEventsList('list')}
+        onAIGuideClick={() => openEventsList('ai')}
+        onCommunityClick={() => navigate('/community')}
       />
+      
+      <About />
+      
       <LatestEvents 
         hackathons={latestHackathons}
-        onDetailClick={(id) => navigate(`/hackathons/${id}`)} 
-        onViewAll={() => navigate('/hackathons')}
-        lang={lang} 
+        onDetailClick={openHackathonDetail}
+        onViewAll={() => openEventsList('list')}
       />
-      <About lang={lang} />
-      <Features lang={lang} />
-      <Schedule lang={lang} />
-      <Partners />
+      
+      <Schedule />
+
+      {/* Modals */}
+      <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />
+      <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
+      <UserDashboardModal 
+        isOpen={isDashboardOpen} 
+        onClose={() => setIsDashboardOpen(false)}
+        onHackathonSelect={openHackathonDetail}
+        onUserUpdate={fetchCurrentUser}
+        onTeamMatchClick={() => setIsTeamMatchOpen(true)}
+      />
+      <AdminDashboardModal 
+        isOpen={isAdminDashboardOpen} 
+        onClose={() => setIsAdminDashboardOpen(false)} 
+      />
+      <AITeamMatchModal
+        isOpen={isTeamMatchOpen}
+        onClose={() => setIsTeamMatchOpen(false)}
+        hackathonId={null}
+      />
+      <ActivateOrganizerModal
+        isOpen={isActivateOrganizerOpen}
+        onClose={() => setIsActivateOrganizerOpen(false)}
+        onSuccess={() => {
+          fetchCurrentUser()
+          navigate('/create')
+        }}
+      />
     </>
-  );
+  )
 }

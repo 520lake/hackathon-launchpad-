@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 from typing import List, Optional
 import time
@@ -10,6 +11,7 @@ from sqlmodel import Session, select
 from app.api import deps
 from app.models.user import User
 from app.core.config import settings
+import asyncio
 
 router = APIRouter()
 
@@ -896,3 +898,353 @@ async def generate_image(
             "url": f"https://picsum.photos/seed/{random.randint(1, 10000)}/1024/1024",
             "revised_prompt": req.prompt
         }
+
+
+# --- 社区成员AI智能匹配（流式输出）---
+
+class CommunityMatchRequest(BaseModel):
+    requirements: Optional[str] = None  # 可选的用户需求描述
+
+# 模拟匹配数据生成函数
+def generate_mock_matches(candidates, user_profile):
+    """当AI调用失败时，使用简单的本地算法生成匹配结果"""
+    import random
+    
+    matches = []
+    user_skills = set(user_profile.get("skills", "").lower().split(","))
+    
+    for candidate in candidates[:10]:  # 只处理前10个
+        candidate_skills = set((candidate.skills or "").lower().split(","))
+        
+        # 计算技能匹配度
+        common_skills = user_skills & candidate_skills
+        if common_skills:
+            score = min(60 + len(common_skills) * 10, 95)
+            reason = f"技能互补：你们都擅长{', '.join(list(common_skills)[:2])}"
+        else:
+            score = random.randint(40, 70)
+            reason = "潜在合作机会：不同技能背景可能带来新视角"
+        
+        # 根据bio调整分数
+        if user_profile.get("bio") and candidate.bio:
+            if any(word in candidate.bio.lower() for word in user_profile["bio"].lower().split()[:3]):
+                score = min(score + 10, 98)
+        
+        matches.append({
+            "user_id": candidate.id,
+            "name": candidate.nickname or candidate.full_name,
+            "match_score": score,
+            "match_reason": reason,
+            "key_skill": (candidate.skills or "").split(",")[0] if candidate.skills else "未知",
+            "why_match": f"{candidate.nickname or candidate.full_name}的技能和兴趣与你的需求较为匹配",
+            "avatar_url": candidate.avatar_url,
+            "skills": candidate.skills,
+            "interests": candidate.interests
+        })
+    
+    # 按分数排序
+    matches.sort(key=lambda x: x["match_score"], reverse=True)
+    
+    return {
+        "matches": matches[:6],
+        "summary": f"基于你的资料（{user_profile.get('skills', '暂无技能')}），为你找到了{len(matches)}位潜在队友。系统分析了技能互补性和兴趣契合度，推荐以上匹配结果。"
+    }
+
+@router.post("/community-match")
+async def community_match_stream(
+    req: CommunityMatchRequest,
+    session: Session = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    社区成员AI智能匹配 - 流式输出
+    根据当前用户的资料（技能、兴趣、个性等）自动匹配队友
+    """
+    async def generate_matches():
+        try:
+            print(f"[AI Match] Starting match for user: {current_user.id} - {current_user.nickname}")
+            yield f"data: {json.dumps({'type': 'content', 'content': '正在获取社区成员数据...'})}\n\n"
+            
+            # 获取社区中其他活跃用户（排除自己）
+            query = select(User).where(
+                User.id != current_user.id,
+                User.show_in_community == True,
+                User.is_active == True
+            )
+            candidates = session.exec(query).all()
+            
+            if not candidates:
+                # 如果没有显示在社区的用户，查找所有用户
+                candidates = session.exec(select(User).where(User.id != current_user.id)).all()
+            
+            # 限制候选人数量
+            candidates = candidates[:20]  # 减少候选人数量以加快速度
+            print(f"[AI Match] Found {len(candidates)} candidates")
+            yield f"data: {json.dumps({'type': 'content', 'content': f'找到 {len(candidates)} 位社区成员，正在分析匹配度...'})}\n\n"
+            
+            candidates_data = []
+            for c in candidates:
+                candidates_data.append({
+                    "id": c.id,
+                    "name": c.nickname or c.full_name,
+                    "skills": c.skills or "",
+                    "interests": c.interests or "",
+                    "personality": c.personality or "",
+                    "bio": c.bio or "",
+                    "community_title": c.community_title or "",
+                    "community_skills": c.community_skills or "",
+                    "mbti_type": c.personality if c.personality and len(c.personality) == 4 else None
+                })
+            
+            user_profile = {
+                "name": current_user.nickname or current_user.full_name,
+                "skills": current_user.skills or "",
+                "interests": current_user.interests or "",
+                "personality": current_user.personality or "",
+                "bio": current_user.bio or "",
+                "community_title": current_user.community_title or "",
+                "community_skills": current_user.community_skills or "",
+                "looking_for": req.requirements or "寻找志同道合的队友"
+            }
+            
+            # 构建系统提示词
+            system_prompt = """你是一个专业的团队匹配顾问。你的任务是根据用户的资料和需求，从候选人列表中找到最匹配的队友。
+
+请从以下角度分析匹配度：
+1. 技能互补性 - 对方的技能是否与你互补
+2. 兴趣契合度 - 对方是否对你的领域感兴趣
+3. 个性兼容性 - 对方的性格是否容易合作
+4. 经验匹配 - 对方的经验背景是否适合
+
+请以JSON格式返回匹配结果，格式如下：
+{
+  "matches": [
+    {
+      "user_id": 对方ID,
+      "name": "对方名字",
+      "match_score": 匹配分数(0-100),
+      "match_reason": "匹配原因",
+      "key_skill": "对方的关键技能",
+      "why_match": "为什么你们合拍"
+    }
+  ],
+  "summary": "总体分析"
+}
+
+请返回排名最靠前的5-8个匹配结果。"""
+
+            user_prompt = f"""
+当前用户资料：
+{json.dumps(user_profile, ensure_ascii=False)}
+
+社区候选人列表：
+{json.dumps(candidates_data, ensure_ascii=False)}
+
+请根据当前用户的资料，找出最合适的队友。"""
+
+            # 流式调用AI
+            print(f"[AI Match] Calling AI model: {MODEL_NAME}")
+            yield f"data: {json.dumps({'type': 'content', 'content': '正在调用AI进行分析...'})}\n\n"
+            
+            try:
+                start_time = asyncio.get_event_loop().time()
+                stream = client.chat.completions.create(
+                    model=MODEL_NAME,
+                    messages=[
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': user_prompt}
+                    ],
+                    stream=True,
+                    temperature=0.7,
+                    max_tokens=2000,  # 限制输出长度
+                    timeout=30  # 30秒超时
+                )
+                
+                # 收集完整响应用于解析JSON
+                full_content = ""
+                chunk_count = 0
+                for chunk in stream:
+                    if chunk.choices[0].delta.content:
+                        content = chunk.choices[0].delta.content
+                        full_content += content
+                        chunk_count += 1
+                        # 流式输出 - 每10个chunk输出一次，减少网络开销
+                        if chunk_count % 10 == 0:
+                            yield f"data: {json.dumps({'type': 'content', 'content': '.'})}\n\n"
+                
+                elapsed = asyncio.get_event_loop().time() - start_time
+                print(f"[AI Match] AI response received in {elapsed:.2f}s, {len(full_content)} chars")
+                yield f"data: {json.dumps({'type': 'content', 'content': f'\n分析完成，正在整理结果...'})}\n\n"
+                
+                # 解析JSON并返回结构化结果
+                try:
+                    # 提取JSON部分
+                    import re
+                    json_match = re.search(r'\{[\s\S]*\}', full_content)
+                    if json_match:
+                        result = json.loads(json_match.group())
+                        # 补充用户详细信息
+                        for m in result.get("matches", []):
+                            candidate = next((c for c in candidates if c.id == m["user_id"]), None)
+                            if candidate:
+                                m["avatar_url"] = candidate.avatar_url
+                                m["skills"] = candidate.skills
+                                m["interests"] = candidate.interests
+                        
+                        result["source"] = "ai"  # 标记为AI生成
+                        yield f"data: {json.dumps({'type': 'result', 'data': result})}\n\n"
+                        print(f"[AI Match] Successfully returned {len(result.get('matches', []))} matches from AI")
+                except Exception as e:
+                    print(f"[AI Match] Parse error: {e}")
+                    # 如果解析失败，使用模拟数据
+                    yield f"data: {json.dumps({'type': 'content', 'content': '\nAI解析结果格式异常，使用本地算法匹配...'})}\n\n"
+                    mock_result = generate_mock_matches(candidates, user_profile)
+                    mock_result["source"] = "local"
+                    yield f"data: {json.dumps({'type': 'result', 'data': mock_result})}\n\n"
+                    
+            except Exception as e:
+                print(f"[AI Match] AI call failed: {e}")
+                yield f"data: {json.dumps({'type': 'content', 'content': f'\nAI服务暂时不可用，使用本地算法匹配...'})}\n\n"
+                # AI调用失败时使用模拟数据
+                mock_result = generate_mock_matches(candidates, user_profile)
+                mock_result["source"] = "local"
+                yield f"data: {json.dumps({'type': 'result', 'data': mock_result})}\n\n"
+            
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            
+        except Exception as e:
+            print(f"Community Match Error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate_matches(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+
+
+# --- 讨论帖子AI分析 ---
+
+class DiscussionAnalyzeRequest(BaseModel):
+    discussion_id: int
+    replies_content: List[str] = []  # 评论内容列表
+
+@router.post("/analyze-discussion")
+async def analyze_discussion_stream(
+    req: DiscussionAnalyzeRequest,
+    session: Session = Depends(deps.get_session),
+    current_user: User = Depends(deps.get_current_user)
+):
+    """
+    分析讨论帖子和评论，获取AI洞察 - 流式输出
+    """
+    async def generate_analysis():
+        try:
+            from app.models.discussion import Discussion, DiscussionReply
+            
+            # 获取帖子详情
+            discussion = session.get(Discussion, req.discussion_id)
+            if not discussion:
+                yield f"data: {json.dumps({'type': 'error', 'error': '帖子不存在'})}\n\n"
+                yield f"data: {json.dumps({'type': 'done'})}\n\n"
+                return
+            
+            # 获取帖子作者
+            author = session.get(User, discussion.author_id)
+            author_name = author.nickname or author.full_name if author else "未知"
+            
+            # 获取所有评论
+            replies = session.exec(
+                select(DiscussionReply).where(DiscussionReply.discussion_id == req.discussion_id)
+            ).all()
+            
+            # 获取评论作者
+            replies_with_authors = []
+            for reply in replies:
+                reply_author = session.get(User, reply.author_id)
+                replies_with_authors.append({
+                    "content": reply.content,
+                    "author": reply_author.nickname or reply_author.full_name if reply_author else "未知",
+                    "created_at": reply.created_at.isoformat() if reply.created_at else ""
+                })
+            
+            # 构建分析请求
+            system_prompt = """你是一个社区洞察专家。你的任务是分析一个讨论帖子的内容和评论，总结出大家正在关心什么、讨论的焦点是什么。
+
+请从以下几个方面进行分析：
+1. 主题焦点 - 大家主要在讨论什么话题
+2. 情感倾向 - 大多数人的态度是积极还是消极
+3. 关键观点 - 有哪些值得注意的观点
+4. 趋势洞察 - 是否有新兴的观点或趋势
+5. 建议总结 - 可以给发帖者什么建议
+
+请用JSON格式返回分析结果：
+{
+  "topic_focus": "主要讨论话题",
+  "sentiment": "积极/中性/消极",
+  "sentiment_reason": "情感分析原因",
+  "key_points": ["关键观点1", "关键观点2"],
+  "trends": ["趋势1", "趋势2"],
+  "suggestions": ["建议1", "建议2"],
+  "summary": "总体分析摘要"
+}
+
+请用中文回复。"""
+
+            user_prompt = f"""
+帖子标题：{discussion.title}
+帖子内容：{discussion.content}
+帖子作者：{author_name}
+
+评论列表（共{len(replies_with_authors)}条）：
+{json.dumps(replies_with_authors, ensure_ascii=False)}
+
+请分析这个讨论帖子中大家在关心什么。"""
+
+            # 流式调用AI
+            stream = client.chat.completions.create(
+                model=MODEL_NAME,
+                messages=[
+                    {'role': 'system', 'content': system_prompt},
+                    {'role': 'user', 'content': user_prompt}
+                ],
+                stream=True,
+                temperature=0.7
+            )
+            
+            full_content = ""
+            for chunk in stream:
+                if chunk.choices[0].delta.content:
+                    content = chunk.choices[0].delta.content
+                    full_content += content
+                    yield f"data: {json.dumps({'type': 'content', 'content': content})}\n\n"
+                    await asyncio.sleep(0.02)
+            
+            # 解析JSON
+            try:
+                import re
+                json_match = re.search(r'\{[\s\S]*\}', full_content)
+                if json_match:
+                    result = json.loads(json_match.group())
+                    yield f"data: {json.dumps({'type': 'result', 'data': result})}\n\n"
+            except Exception as e:
+                yield f"data: {json.dumps({'type': 'error', 'error': '解析结果失败'})}\n\n"
+            
+            yield f"data: {json.dumps({'type': 'done'})}\n\n"
+            
+        except Exception as e:
+            print(f"Discussion Analyze Error: {e}")
+            yield f"data: {json.dumps({'type': 'error', 'error': str(e)})}\n\n"
+    
+    return StreamingResponse(
+        generate_analysis(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+        }
+    )
+

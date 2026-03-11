@@ -10,6 +10,7 @@ from app.models.judge import Judge, JudgeCreate, JudgeRead
 from app.models.enrollment import Enrollment
 from app.models.team_project import Team, TeamMember, Project
 from app.models.score import Score
+from app.models.notification import Notification
 
 router = APIRouter()
 
@@ -21,6 +22,35 @@ def create_hackathon(*, session: Session = Depends(get_session), hackathon: Hack
         session.add(db_hackathon)
         session.commit()
         session.refresh(db_hackathon)
+        
+        # 向所有希望接收活动通知的用户发送通知
+        # 根据用户在个人资料中的设置来决定是否接收通知
+        all_users = session.exec(
+            select(User).where(
+                User.is_active == True,
+                User.show_in_community == True
+            )
+        ).all()
+        
+        notification_count = 0
+        for user in all_users:
+            # 简单判断：向不是活动创建者的其他用户发送通知
+            if user.id != current_user.id:
+                notification = Notification(
+                    user_id=user.id,
+                    title="新活动发布",
+                    content=f"{current_user.nickname or current_user.full_name} 发布了一个新活动「{db_hackathon.title}」",
+                    type="info",
+                    category="activity",
+                    data=f'{{"hackathon_id": {db_hackathon.id}}}'
+                )
+                session.add(notification)
+                notification_count += 1
+        
+        if notification_count > 0:
+            session.commit()
+            print(f"Created {notification_count} notifications for new hackathon")
+        
         return db_hackathon
     except Exception as e:
         print(f"Error creating hackathon: {e}")

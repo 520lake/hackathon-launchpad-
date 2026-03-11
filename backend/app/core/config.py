@@ -57,7 +57,7 @@ class Settings(BaseSettings):
     MODELSCOPE_MODEL_NAME: str = "Qwen/Qwen2.5-72B-Instruct"
 
     # DeepSeek AI (Optional)
-    USE_DEEPSEEK: bool = True
+    USE_DEEPSEEK: bool = False  # 使用魔搭模型
     DEEPSEEK_API_KEY: str = "sk-f6d2ee81c3b9426e94f8254c874489d4"
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL_NAME: str = "deepseek-chat"

@@ -10,6 +10,7 @@ from app.models.discussion import (
     DiscussionReply, DiscussionReplyCreate, DiscussionReplyRead
 )
 from app.models.user import User
+from app.models.notification import Notification
 
 router = APIRouter()
 
@@ -238,6 +239,21 @@ def create_reply(
     discussion.updated_at = datetime.utcnow()
     session.add(discussion)
     session.commit()
+    
+    # 发送通知给帖子作者（如果不是自己回复自己）
+    if discussion.author_id != current_user.id:
+        author = session.get(User, discussion.author_id)
+        if author:
+            notification = Notification(
+                user_id=discussion.author_id,
+                title="收到新评论",
+                content=f"{current_user.nickname or current_user.full_name} 回复了你的帖子「{discussion.title[:20]}...」",
+                type="info",
+                category="activity",
+                data=f'{{"discussion_id": {discussion_id}, "reply_id": {reply.id}}}'
+            )
+            session.add(notification)
+            session.commit()
     
     return DiscussionReplyRead(
         **reply.model_dump(),

@@ -28,9 +28,11 @@ import {
   Calendar,
   ExternalLink,
   Plus,
-  Trash2
+  Trash2,
+  Sparkles
 } from 'lucide-react'
 import axios from 'axios'
+import AIMatchModal from '../components/AIMatchModal'
 
 // 扩展的成员数据接口
 interface MemberDetail {
@@ -1640,8 +1642,10 @@ export default function CommunityPage() {
   const navigate = useNavigate()
   const [activeTab, setActiveTab] = useState<'members' | 'discussions'>('members')
   const [selectedMember, setSelectedMember] = useState<MemberDetail | null>(null)
+  const [selectedMemberForMatch, setSelectedMemberForMatch] = useState<{ id: number; name: string; avatar: string; skills: string; bio: string } | null>(null)
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isDiscussionModalOpen, setIsDiscussionModalOpen] = useState(false)
+  const [isAIMatchOpen, setIsAIMatchOpen] = useState(false)
   const [members, setMembers] = useState<MemberDetail[]>(MOCK_MEMBERS)
   const [discussions, setDiscussions] = useState<Discussion[]>(MOCK_DISCUSSIONS)
   
@@ -1734,6 +1738,16 @@ export default function CommunityPage() {
               ))}
               <div className="pt-4 mt-4 border-t border-zinc-800">
                 <button
+                  onClick={() => {
+                    setSelectedMemberForMatch(null);
+                    setIsAIMatchOpen(true);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] text-brand hover:bg-brand/10"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  AI智能匹配
+                </button>
+                <button
                   onClick={() => setIsProfileModalOpen(true)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] text-gray-400 hover:text-white hover:bg-white/[0.03]`}
                 >
@@ -1767,48 +1781,68 @@ export default function CommunityPage() {
                           initial={{ opacity: 0, y: 20 }}
                           animate={{ opacity: 1, y: 0 }}
                           whileHover={{ y: -4 }}
-                          onClick={() => setSelectedMember(member)}
-                          className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6 cursor-pointer hover:border-zinc-700 transition-all group"
+                          className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6 cursor-pointer hover:border-zinc-700 transition-all group relative"
                         >
-                          <div className="flex items-start justify-between mb-4">
-                            <img
-                              src={member.avatar}
-                              alt={member.nickname}
-                              className="w-16 h-16 rounded-[24px] bg-zinc-800"
-                            />
-                            {member.is_virtual && (
-                              <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
-                                虚拟
-                              </span>
-                            )}
-                          </div>
+                          {/* AI匹配按钮 */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedMemberForMatch({
+                                id: member.id,
+                                name: member.nickname,
+                                avatar: member.avatar,
+                                skills: member.skills,
+                                bio: member.bio
+                              });
+                              setIsAIMatchOpen(true);
+                            }}
+                            className="absolute top-4 right-4 p-2 bg-brand/10 hover:bg-brand/20 rounded-[12px] transition-colors opacity-0 group-hover:opacity-100"
+                            title="AI匹配分析"
+                          >
+                            <Sparkles className="w-4 h-4 text-brand" />
+                          </button>
 
-                          <h3 className="text-white font-semibold mb-1 group-hover:text-brand transition-colors">
-                            {member.nickname}
-                          </h3>
-                          <p className="text-zinc-500 text-sm mb-3">{member.community_title || member.full_name}</p>
-                          
-                          <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border mb-3 ${statusConfig.color}`}>
-                            <StatusIcon className="w-3 h-3" />
-                            {statusConfig.label}
-                          </div>
+                          <div onClick={() => setSelectedMember(member)}>
+                            <div className="flex items-start justify-between mb-4">
+                              <img
+                                src={member.avatar}
+                                alt={member.nickname}
+                                className="w-16 h-16 rounded-[24px] bg-zinc-800"
+                              />
+                              {member.is_virtual && (
+                                <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-xs rounded-full border border-blue-500/20">
+                                  虚拟
+                                </span>
+                              )}
+                            </div>
 
-                          <p className="text-zinc-400 text-sm line-clamp-2 mb-4">{member.bio}</p>
+                            <h3 className="text-white font-semibold mb-1 group-hover:text-brand transition-colors">
+                              {member.nickname}
+                            </h3>
+                            <p className="text-zinc-500 text-sm mb-3">{member.community_title || member.full_name}</p>
+                            
+                            <div className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border mb-3 ${statusConfig.color}`}>
+                              <StatusIcon className="w-3 h-3" />
+                              {statusConfig.label}
+                            </div>
 
-                          <div className="flex flex-wrap gap-1.5">
-                            {member.skills?.split(',').slice(0, 3).map((skill, i) => (
-                              <span
-                                key={i}
-                                className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs rounded"
-                              >
-                                {skill.trim()}
-                              </span>
-                            ))}
-                            {member.skills?.split(',').length > 3 && (
-                              <span className="px-2 py-0.5 text-zinc-500 text-xs">
-                                +{member.skills.split(',').length - 3}
-                              </span>
-                            )}
+                            <p className="text-zinc-400 text-sm line-clamp-2 mb-4">{member.bio}</p>
+
+                            <div className="flex flex-wrap gap-1.5">
+                              {member.skills?.split(',').slice(0, 3).map((skill, i) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-xs rounded"
+                                >
+                                  {skill.trim()}
+                                </span>
+                              ))}
+                              {member.skills?.split(',').length > 3 && (
+                                <span className="px-2 py-0.5 text-zinc-500 text-xs">
+                                  +{member.skills.split(',').length - 3}
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </motion.div>
                       )
@@ -1911,6 +1945,15 @@ export default function CommunityPage() {
         isOpen={isDiscussionModalOpen}
         onClose={() => setIsDiscussionModalOpen(false)}
         onSubmit={handleCreateDiscussion}
+      />
+
+      <AIMatchModal
+        isOpen={isAIMatchOpen}
+        onClose={() => {
+          setIsAIMatchOpen(false);
+          setSelectedMemberForMatch(null);
+        }}
+        targetMember={selectedMemberForMatch}
       />
     </div>
   )

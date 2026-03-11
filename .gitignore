@@ -21,7 +21,8 @@ backend/venv/
 backend/.env
 backend/.pytest_cache/
 # backend/alembic.ini
-backend/*.db
+# 保留数据库文件用于演示
+# backend/*.db
 backend/*.sqlite3
 backend/uploads/
 

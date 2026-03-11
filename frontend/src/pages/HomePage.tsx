@@ -1,19 +1,18 @@
-import { useState, useEffect } from 'react'
-import { useNavigate, useOutletContext } from 'react-router-dom'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import { useNavigate, useOutletContext } from "react-router-dom";
+import axios from "axios";
 
 // Landing Components
-import Hero from '../components/Landing/Hero'
-import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
-import CommunityHall from '../components/Landing/CommunityHall'
+import Hero from "../components/Landing/Hero";
+import { LatestEvents, About, Schedule } from "../components/Landing/Sections";
 
 // Modals
-import RegisterModal from '../components/RegisterModal'
-import LoginModal from '../components/LoginModal'
-import UserDashboardModal from '../components/UserDashboardModal'
-import AdminDashboardModal from '../components/AdminDashboardModal'
-import AITeamMatchModal from '../components/AITeamMatchModal'
-import ActivateOrganizerModal from '../components/ActivateOrganizerModal'
+import RegisterModal from "../components/RegisterModal";
+import LoginModal from "../components/LoginModal";
+import UserDashboardModal from "../components/UserDashboardModal";
+import AdminDashboardModal from "../components/AdminDashboardModal";
+import AITeamMatchModal from "../components/AITeamMatchModal";
+import ActivateOrganizerModal from "../components/ActivateOrganizerModal";
 
 interface Hackathon {
   id: number;
@@ -31,100 +30,107 @@ interface OutletContextType {
 }
 
 export default function HomePage() {
-  const navigate = useNavigate()
-  const { isLoggedIn, fetchCurrentUser } = useOutletContext<OutletContextType>()
-  
-  const [isRegisterOpen, setIsRegisterOpen] = useState(false)
-  const [isLoginOpen, setIsLoginOpen] = useState(false)
-  const [isDashboardOpen, setIsDashboardOpen] = useState(false)
-  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false)
-  const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false)
-  const [isActivateOrganizerOpen, setIsActivateOrganizerOpen] = useState(false)
-  const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([])
+  const navigate = useNavigate();
+  const { isLoggedIn, fetchCurrentUser } =
+    useOutletContext<OutletContextType>();
+
+  const [isRegisterOpen, setIsRegisterOpen] = useState(false);
+  const [isLoginOpen, setIsLoginOpen] = useState(false);
+  const [isDashboardOpen, setIsDashboardOpen] = useState(false);
+  const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
+  const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false);
+  const [isActivateOrganizerOpen, setIsActivateOrganizerOpen] = useState(false);
+  const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([]);
 
   useEffect(() => {
-    fetchLatestHackathons()
-  }, [])
+    fetchLatestHackathons();
+  }, []);
 
   const fetchLatestHackathons = async () => {
     try {
-      const response = await axios.get('/api/v1/hackathons')
-      setLatestHackathons(response.data.slice(0, 6))
+      const response = await axios.get("/api/v1/hackathons");
+      setLatestHackathons(response.data.slice(0, 6));
     } catch (err) {
-      console.error(err)
+      console.error(err);
     }
-  }
+  };
 
   const handleCreateHackathonClick = async () => {
     if (isLoggedIn) {
       try {
-        const token = localStorage.getItem('token')
-        
-        const res = await axios.get('/api/v1/users/me', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
-        const user = res.data
-        
+        const token = localStorage.getItem("token");
+
+        const res = await axios.get("/api/v1/users/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const user = res.data;
+
         if (user.can_create_hackathon) {
-          navigate('/create')
-          return
+          navigate("/create");
+          return;
         }
-        
-        setIsActivateOrganizerOpen(true)
+
+        setIsActivateOrganizerOpen(true);
       } catch (e: any) {
-        if (e.response && (e.response.status === 401 || e.response.status === 403)) {
-          localStorage.removeItem('token')
-          setIsLoginOpen(true)
+        if (
+          e.response &&
+          (e.response.status === 401 || e.response.status === 403)
+        ) {
+          localStorage.removeItem("token");
+          setIsLoginOpen(true);
         }
       }
     } else {
-      setIsLoginOpen(true)
+      setIsLoginOpen(true);
     }
-  }
+  };
 
   // Navigate to event detail page
   const openHackathonDetail = (id: number) => {
-    navigate(`/events/${id}`)
-  }
+    navigate(`/events/${id}`);
+  };
 
   // Navigate to events list page
-  const openEventsList = (mode: 'list' | 'ai' = 'list') => {
-    navigate(`/events${mode === 'ai' ? '?mode=ai' : ''}`)
-  }
+  const openEventsList = (mode: "list" | "ai" = "list") => {
+    navigate(`/events${mode === "ai" ? "?mode=ai" : ""}`);
+  };
 
   return (
     <>
       {/* Hero Section */}
-      <Hero 
+      <Hero
         onCreateClick={handleCreateHackathonClick}
-        onExploreClick={() => openEventsList('list')}
-        onAIGuideClick={() => openEventsList('ai')}
-        onCommunityClick={() => navigate('/community')}
+        onExploreClick={() => openEventsList("list")}
+        onAIGuideClick={() => openEventsList("ai")}
+        onCommunityClick={() => navigate("/community")}
       />
-      
+
       <About />
-      
-      <LatestEvents 
+
+      <LatestEvents
         hackathons={latestHackathons}
         onDetailClick={openHackathonDetail}
-        onViewAll={() => openEventsList('list')}
+        onViewAll={() => openEventsList("list")}
       />
-      
+
       <Schedule />
 
       {/* Modals */}
-      <RegisterModal isOpen={isRegisterOpen} onClose={() => setIsRegisterOpen(false)} />
+      <RegisterModal
+        isOpen={isRegisterOpen}
+        onClose={() => setIsRegisterOpen(false)}
+      />
       <LoginModal isOpen={isLoginOpen} onClose={() => setIsLoginOpen(false)} />
-      <UserDashboardModal 
-        isOpen={isDashboardOpen} 
+      <UserDashboardModal
+        isOpen={isDashboardOpen}
         onClose={() => setIsDashboardOpen(false)}
         onHackathonSelect={openHackathonDetail}
         onUserUpdate={fetchCurrentUser}
         onTeamMatchClick={() => setIsTeamMatchOpen(true)}
       />
-      <AdminDashboardModal 
-        isOpen={isAdminDashboardOpen} 
-        onClose={() => setIsAdminDashboardOpen(false)} 
+      <AdminDashboardModal
+        isOpen={isAdminDashboardOpen}
+        onClose={() => setIsAdminDashboardOpen(false)}
       />
       <AITeamMatchModal
         isOpen={isTeamMatchOpen}
@@ -135,10 +141,10 @@ export default function HomePage() {
         isOpen={isActivateOrganizerOpen}
         onClose={() => setIsActivateOrganizerOpen(false)}
         onSuccess={() => {
-          fetchCurrentUser()
-          navigate('/create')
+          fetchCurrentUser();
+          navigate("/create");
         }}
       />
     </>
-  )
+  );
 }

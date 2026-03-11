@@ -1,106 +1,166 @@
-import { useState } from 'react'
-import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
+import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
 
 interface AIProjectAssistantProps {
-  isOpen: boolean
-  onClose: () => void
-  hackathonId?: number
-  onApplyContent?: (content: string) => void
+  isOpen?: boolean;
+  onClose?: () => void;
+  onApplyContent?: (content: string) => void;
+  currentDescription?: string;
+  mode?: "idea" | "recruitment" | "refine";
+  onIdeaSelect?: (idea: any) => void;
+  onRecruitmentGenerate?: (recruitments: any) => void;
+  onRefineDescription?: (refined: any) => void;
 }
 
-type AssistantMode = 'brainstorm' | 'recruitment' | 'polish'
+type AssistantMode = "brainstorm" | "recruitment" | "polish";
 
-export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApplyContent }: AIProjectAssistantProps) {
-  const [mode, setMode] = useState<AssistantMode>('brainstorm')
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [result, setResult] = useState<any>(null)
-  const [error, setError] = useState('')
+export default function AIProjectAssistant({
+  isOpen = true,
+  onClose,
+  onApplyContent,
+  currentDescription,
+  mode: externalMode,
+  onIdeaSelect,
+  onRecruitmentGenerate,
+  onRefineDescription,
+}: AIProjectAssistantProps) {
+  const mapExternalModeToInternal = (
+    m?: "idea" | "recruitment" | "refine",
+  ): AssistantMode => {
+    if (m === "recruitment") return "recruitment";
+    if (m === "refine") return "polish";
+    return "brainstorm";
+  };
+
+  const [mode, setMode] = useState<AssistantMode>(
+    mapExternalModeToInternal(externalMode),
+  );
+  const [input, setInput] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [result, setResult] = useState<any>(null);
+  const [error, setError] = useState("");
+
+  useEffect(() => {
+    // When used in embedded mode, sync internal mode with external prop
+    setMode(mapExternalModeToInternal(externalMode));
+    if (externalMode === "refine" && currentDescription) {
+      setInput(currentDescription);
+    }
+  }, [externalMode]);
 
   const modes = [
     {
-      id: 'brainstorm' as AssistantMode,
-      label: '创意生成',
-      icon: '💡',
-      description: '基于主题和技能生成项目创意',
-      placeholder: '输入活动主题、您的技能和兴趣，例如：AI主题，熟悉Python和React，对NLP感兴趣...'
+      id: "brainstorm" as AssistantMode,
+      label: "创意生成",
+      icon: "💡",
+      description: "基于主题和技能生成项目创意",
+      placeholder:
+        "输入活动主题、您的技能和兴趣，例如：AI主题，熟悉Python和React，对NLP感兴趣...",
     },
     {
-      id: 'recruitment' as AssistantMode,
-      label: '招募文案',
-      icon: '📢',
-      description: '生成吸引人的招募文案',
-      placeholder: '输入团队信息和招募需求，例如：寻找前端开发，团队已有3人，项目是关于...'
+      id: "recruitment" as AssistantMode,
+      label: "招募文案",
+      icon: "📢",
+      description: "生成吸引人的招募文案",
+      placeholder:
+        "输入团队信息和招募需求，例如：寻找前端开发，团队已有3人，项目是关于...",
     },
     {
-      id: 'polish' as AssistantMode,
-      label: '描述润色',
-      icon: '✨',
-      description: '优化项目描述和介绍',
-      placeholder: '粘贴您需要润色的内容...'
-    }
-  ]
+      id: "polish" as AssistantMode,
+      label: "描述润色",
+      icon: "✨",
+      description: "优化项目描述和介绍",
+      placeholder: "粘贴您需要润色的内容...",
+    },
+  ];
 
   const handleGenerate = async () => {
-    if (!input.trim()) return
-    
-    setLoading(true)
-    setError('')
-    setResult(null)
-    
+    if (!input.trim()) return;
+
+    setLoading(true);
+    setError("");
+    setResult(null);
+
     try {
-      const token = localStorage.getItem('token')
-      let res
-      
+      const token = localStorage.getItem("token");
+      let res;
+
       switch (mode) {
-        case 'brainstorm':
-          res = await axios.post('/api/v1/ai/brainstorm-ideas', {
-            theme: input,
-            skills: '',
-            interests: ''
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          setResult({ type: 'brainstorm', data: res.data.ideas })
-          break
-          
-        case 'recruitment':
+        case "brainstorm":
+          res = await axios.post(
+            "/api/v1/ai/brainstorm-ideas",
+            {
+              theme: input,
+              skills: "",
+              interests: "",
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setResult({ type: "brainstorm", data: res.data.ideas });
+          if (
+            onIdeaSelect &&
+            Array.isArray(res.data.ideas) &&
+            res.data.ideas.length > 0
+          ) {
+            onIdeaSelect(res.data.ideas[0]);
+          }
+          break;
+
+        case "recruitment":
           // 使用通用的AI生成端点
-          res = await axios.post('/api/v1/ai/generate', {
-            prompt: `生成一段招募文案：${input}`,
-            type: 'recruitment'
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          setResult({ type: 'recruitment', data: res.data.content })
-          break
-          
-        case 'polish':
-          res = await axios.post('/api/v1/ai/generate', {
-            prompt: `润色以下文本，使其更专业、更有吸引力：${input}`,
-            type: 'polish'
-          }, {
-            headers: { Authorization: `Bearer ${token}` }
-          })
-          setResult({ type: 'polish', data: res.data.content })
-          break
+          res = await axios.post(
+            "/api/v1/ai/generate",
+            {
+              prompt: `生成一段招募文案：${input}`,
+              type: "recruitment",
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setResult({ type: "recruitment", data: res.data.content });
+          if (onRecruitmentGenerate) {
+            onRecruitmentGenerate(res.data.recruitments || []);
+          }
+          break;
+
+        case "polish":
+          res = await axios.post(
+            "/api/v1/ai/generate",
+            {
+              prompt: `润色以下文本，使其更专业、更有吸引力：${input}`,
+              type: "polish",
+            },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+          setResult({ type: "polish", data: res.data.content });
+          if (onRefineDescription) {
+            onRefineDescription(res.data.content);
+          }
+          break;
       }
     } catch (e: any) {
-      setError(e.response?.data?.detail || '生成失败，请稍后重试')
+      setError(e.response?.data?.detail || "生成失败，请稍后重试");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const handleApply = (content: string) => {
     if (onApplyContent) {
-      onApplyContent(content)
-      onClose()
+      onApplyContent(content);
+      if (onClose) {
+        onClose();
+      }
     }
-  }
+  };
 
-  const currentMode = modes.find(m => m.id === mode)!
+  const currentMode = modes.find((m) => m.id === mode)!;
 
   return (
     <AnimatePresence>
@@ -114,7 +174,7 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
             onClick={onClose}
             className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50"
           />
-          
+
           {/* Modal */}
           <motion.div
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
@@ -130,12 +190,27 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">AI 项目助手</h3>
-                  <p className="text-[11px] text-gray-500">智能生成创意、文案和润色内容</p>
+                  <p className="text-[11px] text-gray-500">
+                    智能生成创意、文案和润色内容
+                  </p>
                 </div>
               </div>
-              <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              <button
+                onClick={onClose}
+                className="text-gray-500 hover:text-white transition-colors"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -143,19 +218,19 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
             {/* Mode Selection */}
             <div className="px-6 py-4 border-b border-[#222222]">
               <div className="flex gap-2">
-                {modes.map(m => (
+                {modes.map((m) => (
                   <button
                     key={m.id}
                     onClick={() => {
-                      setMode(m.id)
-                      setInput('')
-                      setResult(null)
-                      setError('')
+                      setMode(m.id);
+                      setInput("");
+                      setResult(null);
+                      setError("");
                     }}
                     className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm transition-all ${
                       mode === m.id
-                        ? 'bg-[#FBBF24]/10 border border-[#FBBF24]/50 text-[#FBBF24]'
-                        : 'border border-[#222222] text-gray-400 hover:border-gray-600 hover:text-gray-300'
+                        ? "bg-[#FBBF24]/10 border border-[#FBBF24]/50 text-[#FBBF24]"
+                        : "border border-[#222222] text-gray-400 hover:border-gray-600 hover:text-gray-300"
                     }`}
                   >
                     <span>{m.icon}</span>
@@ -163,12 +238,13 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-gray-500 mt-2">{currentMode.description}</p>
+              <p className="text-[11px] text-gray-500 mt-2">
+                {currentMode.description}
+              </p>
             </div>
 
             {/* Content */}
             <div className="flex-1 overflow-y-auto p-6">
-              {/* Input */}
               <div className="mb-6">
                 <textarea
                   value={input}
@@ -184,16 +260,41 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                   >
                     {loading ? (
                       <>
-                        <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                        <svg
+                          className="w-4 h-4 animate-spin"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                          />
                         </svg>
                         生成中...
                       </>
                     ) : (
                       <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M13 10V3L4 14h7v7l9-11h-7z"
+                          />
                         </svg>
                         生成内容
                       </>
@@ -217,34 +318,58 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                   className="space-y-4"
                 >
                   {/* Brainstorm Results */}
-                  {result.type === 'brainstorm' && (
+                  {result.type === "brainstorm" && (
                     <div className="space-y-3">
                       {result.data.map((idea: any, idx: number) => (
-                        <div key={idx} className="bg-[#111111] border border-[#222222] rounded-lg p-4">
+                        <div
+                          key={idx}
+                          className="bg-[#111111] border border-[#222222] rounded-lg p-4"
+                        >
                           <div className="flex items-start justify-between mb-2">
-                            <h4 className="text-white font-medium">{idea.title}</h4>
-                            <span className={`px-2 py-0.5 text-[10px] rounded ${
-                              idea.complexity === 'Easy' ? 'bg-emerald-500/20 text-emerald-400' :
-                              idea.complexity === 'Medium' ? 'bg-yellow-500/20 text-yellow-400' :
-                              'bg-red-500/20 text-red-400'
-                            }`}>
+                            <h4 className="text-white font-medium">
+                              {idea.title}
+                            </h4>
+                            <span
+                              className={`px-2 py-0.5 text-[10px] rounded ${
+                                idea.complexity === "Easy"
+                                  ? "bg-emerald-500/20 text-emerald-400"
+                                  : idea.complexity === "Medium"
+                                    ? "bg-yellow-500/20 text-yellow-400"
+                                    : "bg-red-500/20 text-red-400"
+                              }`}
+                            >
                               {idea.complexity}
                             </span>
                           </div>
-                          <p className="text-[12px] text-gray-400 mb-3">{idea.description}</p>
+                          <p className="text-[12px] text-gray-400 mb-3">
+                            {idea.description}
+                          </p>
                           <div className="flex flex-wrap gap-1.5 mb-3">
-                            {idea.tech_stack?.split(',').map((tech: string, i: number) => (
-                              <span key={i} className="px-2 py-0.5 bg-[#1a1a1a] text-gray-500 text-[10px] rounded">
-                                {tech.trim()}
-                              </span>
-                            ))}
+                            {idea.tech_stack
+                              ?.split(",")
+                              .map((tech: string, i: number) => (
+                                <span
+                                  key={i}
+                                  className="px-2 py-0.5 bg-[#1a1a1a] text-gray-500 text-[10px] rounded"
+                                >
+                                  {tech.trim()}
+                                </span>
+                              ))}
                           </div>
                           <div className="flex items-center justify-between">
                             <span className="text-[11px] text-gray-500">
-                              影响力: <span className="text-[#FBBF24]">{idea.impact_potential?.score || '--'}</span>/100
+                              影响力:{" "}
+                              <span className="text-[#FBBF24]">
+                                {idea.impact_potential?.score || "--"}
+                              </span>
+                              /100
                             </span>
                             <button
-                              onClick={() => handleApply(`${idea.title}\n\n${idea.description}\n\n技术栈: ${idea.tech_stack}`)}
+                              onClick={() =>
+                                handleApply(
+                                  `${idea.title}\n\n${idea.description}\n\n技术栈: ${idea.tech_stack}`,
+                                )
+                              }
                               className="text-[11px] text-[#FBBF24] hover:text-white transition-colors"
                             >
                               使用此创意 →
@@ -256,18 +381,37 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                   )}
 
                   {/* Recruitment/Polish Results */}
-                  {(result.type === 'recruitment' || result.type === 'polish') && (
+                  {(result.type === "recruitment" ||
+                    result.type === "polish") && (
                     <div className="bg-[#111111] border border-[#222222] rounded-lg p-4">
                       <pre className="text-[13px] text-gray-300 whitespace-pre-wrap font-sans leading-relaxed">
-                        {typeof result.data === 'string' ? result.data : JSON.stringify(result.data, null, 2)}
+                        {typeof result.data === "string"
+                          ? result.data
+                          : JSON.stringify(result.data, null, 2)}
                       </pre>
                       <div className="flex justify-end mt-4 pt-4 border-t border-[#222222]">
                         <button
-                          onClick={() => handleApply(typeof result.data === 'string' ? result.data : JSON.stringify(result.data))}
+                          onClick={() =>
+                            handleApply(
+                              typeof result.data === "string"
+                                ? result.data
+                                : JSON.stringify(result.data),
+                            )
+                          }
                           className="flex items-center gap-2 px-4 py-2 bg-[#FBBF24] text-black text-[12px] font-medium rounded-lg hover:bg-white transition-colors"
                         >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M5 13l4 4L19 7"
+                            />
                           </svg>
                           应用内容
                         </button>
@@ -283,8 +427,12 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
                   <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-[#111111] border border-[#222222] flex items-center justify-center">
                     <span className="text-3xl">{currentMode.icon}</span>
                   </div>
-                  <p className="text-gray-500 text-[13px]">输入内容并点击生成</p>
-                  <p className="text-gray-600 text-[11px] mt-1">AI 将为您生成专业的{currentMode.label}内容</p>
+                  <p className="text-gray-500 text-[13px]">
+                    输入内容并点击生成
+                  </p>
+                  <p className="text-gray-600 text-[11px] mt-1">
+                    AI 将为您生成专业的{currentMode.label}内容
+                  </p>
                 </div>
               )}
             </div>
@@ -292,5 +440,5 @@ export default function AIProjectAssistant({ isOpen, onClose, hackathonId, onApp
         </>
       )}
     </AnimatePresence>
-  )
+  );
 }

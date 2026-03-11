@@ -1,39 +1,20 @@
-version: '3.8'
+version: "3.8"
 
 services:
-  # Database Service
-  db:
-    image: postgres:15-alpine
-    restart: always
-    environment:
-      POSTGRES_USER: ${POSTGRES_USER:-aura_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-aura_password}
-      POSTGRES_DB: ${POSTGRES_DB:-aura_db}
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - aura_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aura_user}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Backend Service
+  # Backend Service (uses SQLite db file)
   backend:
     build:
       context: .
       dockerfile: Dockerfile.backend
     restart: always
-    depends_on:
-      db:
-        condition: service_healthy
     environment:
-      - DATABASE_URL=postgresql://${POSTGRES_USER:-aura_user}:${POSTGRES_PASSWORD:-aura_password}@db:5432/${POSTGRES_DB:-aura_db}
+      - DATABASE_URL=sqlite:///./vibebuild.db
       - SECRET_KEY=${SECRET_KEY:-change_this_secret_key}
       - BACKEND_CORS_ORIGINS=["http://localhost", "https://yourdomain.com"]
       # Add other env vars from .env.example here
     volumes:
+      # Persist and share the SQLite database file used by the backend
+      - ./vibebuild.db:/app/vibebuild.db
       - ./uploads:/app/uploads
     networks:
       - aura_network
@@ -61,6 +42,3 @@ services:
 networks:
   aura_network:
     driver: bridge
-
-volumes:
-  postgres_data:

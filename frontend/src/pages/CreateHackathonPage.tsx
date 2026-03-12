@@ -24,6 +24,9 @@ import {
   Image as ImageIcon,
 } from "lucide-react";
 import AIGenerateImageButton from "../components/AIGenerateImageButton";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 
 interface OutletContextType {
   isLoggedIn: boolean;
@@ -505,12 +508,14 @@ export default function CreateHackathonPage() {
         <div className="max-w-[1600px] mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <button
+              <Button
+                variant="ghost"
+                size="sm"
                 onClick={() => navigate("/")}
                 className="text-zinc-500 hover:text-zinc-300 transition-colors text-sm flex items-center gap-2"
               >
                 ← 返回
-              </button>
+              </Button>
               <div>
                 <h1 className="text-lg font-semibold text-zinc-100">
                   {editId ? "编辑活动" : "创建活动"}
@@ -552,9 +557,8 @@ export default function CreateHackathonPage() {
                       AI 闪电生成
                     </span>
                   </div>
-                  <input
+                  <Input
                     ref={cmdInputRef}
-                    type="text"
                     value={aiCommand.query}
                     onChange={(e) =>
                       setAiCommand((prev) => ({
@@ -564,17 +568,17 @@ export default function CreateHackathonPage() {
                     }
                     onKeyPress={(e) => e.key === "Enter" && handleAIGenerate()}
                     placeholder="描述您的黑客松想法，例如：'AI 驱动的可持续发展黑客松'"
-                    className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none"
+                    className="flex-1 bg-transparent text-sm text-zinc-200 placeholder-zinc-600 outline-none border-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus-visible:border-0 px-0"
                     disabled={aiCommand.isGenerating}
                   />
-                  <button
+                  <Button
                     onClick={handleAIGenerate}
                     disabled={aiCommand.isGenerating || !aiCommand.query.trim()}
                     className="px-4 py-2 bg-brand/20 border border-brand/30 text-brand text-xs font-medium rounded-[12px] hover:bg-brand/30 transition-colors disabled:opacity-50 flex items-center gap-2"
                   >
                     <Wand2 className="w-3 h-3" />
                     Generate
-                  </button>
+                  </Button>
                 </div>
 
                 {/* Generating Animation */}
@@ -621,8 +625,7 @@ export default function CreateHackathonPage() {
                   <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
                     活动名称 / Name *
                   </label>
-                  <input
-                    type="text"
+                  <Input
                     value={formData.name}
                     onChange={(e) =>
                       setFormData((prev) => ({ ...prev, name: e.target.value }))
@@ -636,8 +639,7 @@ export default function CreateHackathonPage() {
                   <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
                     一句话简介 / Tagline *
                   </label>
-                  <input
-                    type="text"
+                  <Input
                     value={formData.tagline}
                     onChange={(e) =>
                       setFormData((prev) => ({
@@ -665,19 +667,20 @@ export default function CreateHackathonPage() {
                           className="px-3 py-1.5 bg-zinc-900 border border-zinc-800 rounded-[12px] text-xs text-zinc-400 flex items-center gap-2"
                         >
                           #{tag}
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => removeTag(tag)}
                             className="text-zinc-600 hover:text-zinc-400 transition-colors"
                           >
                             <X className="w-3 h-3" />
-                          </button>
+                          </Button>
                         </motion.div>
                       ))}
                     </AnimatePresence>
                   </div>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
+                    <Input
                       placeholder="输入标签后按回车"
                       onKeyDown={(e) => {
                         if (e.key === "Enter") {
@@ -708,7 +711,7 @@ export default function CreateHackathonPage() {
                 <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
                   详细描述 / Detailed Description *
                 </label>
-                <textarea
+                <Textarea
                   value={formData.description}
                   onChange={(e) =>
                     setFormData((prev) => ({
@@ -737,12 +740,14 @@ export default function CreateHackathonPage() {
                     日程安排 / Timeline
                   </h2>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={addTimelinePhase}
                   className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-3">
@@ -757,8 +762,7 @@ export default function CreateHackathonPage() {
                     >
                       <div className="flex items-start gap-3">
                         <div className="flex-1 grid grid-cols-3 gap-3">
-                          <input
-                            type="text"
+                          <Input
                             value={phase.phase}
                             onChange={(e) =>
                               updateTimeline(idx, "phase", e.target.value)
@@ -766,8 +770,7 @@ export default function CreateHackathonPage() {
                             placeholder="阶段名称"
                             className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
-                          <input
-                            type="text"
+                          <Input
                             value={phase.time_offset}
                             onChange={(e) =>
                               updateTimeline(idx, "time_offset", e.target.value)
@@ -775,8 +778,7 @@ export default function CreateHackathonPage() {
                             placeholder="时间偏移 (如：Day 0)"
                             className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
-                          <input
-                            type="text"
+                          <Input
                             value={phase.description}
                             onChange={(e) =>
                               updateTimeline(idx, "description", e.target.value)
@@ -785,12 +787,14 @@ export default function CreateHackathonPage() {
                             className="bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                           />
                         </div>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeTimeline(idx)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-900/20 rounded transition-all"
                         >
                           <X className="w-3 h-3 text-red-400" />
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   ))}
@@ -809,12 +813,14 @@ export default function CreateHackathonPage() {
                     评审标准 / Criteria
                   </h2>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={addCriteria}
                   className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-3">
@@ -828,8 +834,7 @@ export default function CreateHackathonPage() {
                       className="bg-zinc-900/30 border border-zinc-800 rounded-[12px] p-4 group"
                     >
                       <div className="flex items-start gap-3 mb-3">
-                        <input
-                          type="text"
+                        <Input
                           value={dim.dimension}
                           onChange={(e) =>
                             updateCriteria(idx, "dimension", e.target.value)
@@ -838,7 +843,7 @@ export default function CreateHackathonPage() {
                           className="flex-1 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
                         />
                         <div className="flex items-center gap-2">
-                          <input
+                          <Input
                             type="number"
                             value={dim.weight}
                             onChange={(e) =>
@@ -853,14 +858,16 @@ export default function CreateHackathonPage() {
                           />
                           <span className="text-xs text-zinc-500">%</span>
                         </div>
-                        <button
+                        <Button
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeCriteria(idx)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-900/20 rounded transition-all"
                         >
                           <X className="w-3 h-3 text-red-400" />
-                        </button>
+                        </Button>
                       </div>
-                      <textarea
+                      <Textarea
                         value={dim.description}
                         onChange={(e) =>
                           updateCriteria(idx, "description", e.target.value)
@@ -901,12 +908,14 @@ export default function CreateHackathonPage() {
                     奖项设置 / Awards
                   </h2>
                 </div>
-                <button
+                <Button
+                  type="button"
+                  variant="ghost"
                   onClick={addAward}
                   className="p-2 hover:bg-zinc-900 rounded-[12px] transition-colors"
                 >
                   <Plus className="w-4 h-4 text-zinc-500" />
-                </button>
+                </Button>
               </div>
 
               <div className="space-y-3">
@@ -920,8 +929,7 @@ export default function CreateHackathonPage() {
                       className="bg-zinc-900/30 border border-zinc-800 rounded-[12px] p-4 group"
                     >
                       <div className="flex items-center gap-3">
-                        <input
-                          type="text"
+                        <Input
                           value={award.name}
                           onChange={(e) =>
                             updateAward(idx, "name", e.target.value)
@@ -931,7 +939,7 @@ export default function CreateHackathonPage() {
                         />
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-zinc-500">奖金</span>
-                          <input
+                          <Input
                             type="number"
                             value={award.prize_pool}
                             onChange={(e) =>
@@ -947,7 +955,7 @@ export default function CreateHackathonPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <span className="text-xs text-zinc-500">名额</span>
-                          <input
+                          <Input
                             type="number"
                             value={award.quota}
                             onChange={(e) =>
@@ -960,12 +968,15 @@ export default function CreateHackathonPage() {
                             className="w-16 bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700 text-center"
                           />
                         </div>
-                        <button
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
                           onClick={() => removeAward(idx)}
                           className="opacity-0 group-hover:opacity-100 p-1.5 hover:bg-red-900/20 rounded transition-all"
                         >
                           <X className="w-3 h-3 text-red-400" />
-                        </button>
+                        </Button>
                       </div>
                     </motion.div>
                   ))}
@@ -996,7 +1007,8 @@ export default function CreateHackathonPage() {
                 </h3>
 
                 <div className="flex gap-2 mb-4">
-                  <button
+                  <Button
+                    type="button"
                     onClick={() => setFormat("online")}
                     className={`flex-1 py-2.5 rounded-[12px] text-xs font-medium transition-all ${
                       format === "online"
@@ -1006,8 +1018,9 @@ export default function CreateHackathonPage() {
                   >
                     <Globe className="w-3 h-3 inline mr-1.5" />
                     线上
-                  </button>
-                  <button
+                  </Button>
+                  <Button
+                    type="button"
                     onClick={() => setFormat("offline")}
                     className={`flex-1 py-2.5 rounded-[12px] text-xs font-medium transition-all ${
                       format === "offline"
@@ -1017,12 +1030,11 @@ export default function CreateHackathonPage() {
                   >
                     <MapPin className="w-3 h-3 inline mr-1.5" />
                     线下
-                  </button>
+                  </Button>
                 </div>
 
                 {format === "offline" && (
-                  <input
-                    type="text"
+                  <Input
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     placeholder="活动地点"
@@ -1034,8 +1046,7 @@ export default function CreateHackathonPage() {
                   <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
                     主办方名称
                   </label>
-                  <input
-                    type="text"
+                  <Input
                     value={organizerName}
                     onChange={(e) => setOrganizerName(e.target.value)}
                     placeholder="主办方名称"
@@ -1073,21 +1084,24 @@ export default function CreateHackathonPage() {
                       />
                       {/* Upload Overlay */}
                       <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-3">
-                        <button
+                        <Button
+                          type="button"
                           onClick={() => fileInputRef.current?.click()}
                           disabled={uploading}
                           className="px-4 py-2 bg-brand hover:bg-brand/90 text-black text-xs font-medium rounded-[12px] transition-colors disabled:opacity-50 flex items-center gap-2"
                         >
                           <Upload className="w-3 h-3" />
                           {uploading ? "上传中..." : "更换图片"}
-                        </button>
-                        <button
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
                           onClick={() => setCoverImage("")}
                           className="px-4 py-2 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 text-zinc-300 text-xs font-medium rounded-[12px] transition-colors flex items-center gap-2"
                         >
                           <X className="w-3 h-3" />
                           移除
-                        </button>
+                        </Button>
                       </div>
                     </>
                   ) : (
@@ -1187,23 +1201,24 @@ export default function CreateHackathonPage() {
                   </div>
                 )}
 
-                <button
+                <Button
                   onClick={() => handleSubmit("published")}
                   disabled={loading}
                   className="w-full py-3 bg-brand hover:bg-brand/90 text-black text-sm font-medium rounded-[12px] transition-all disabled:opacity-50 flex items-center justify-center gap-2 shadow-[0_0_15px_rgba(234,179,8,0.3)] hover:shadow-[0_0_20px_rgba(234,179,8,0.4)]"
                 >
                   <Rocket className="w-4 h-4" />
                   {loading ? "发布中..." : "发布活动"}
-                </button>
+                </Button>
 
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => handleSubmit("draft")}
                   disabled={loading}
                   className="w-full py-3 bg-zinc-900 hover:bg-zinc-800 border border-zinc-800 text-zinc-400 text-sm font-medium rounded-[12px] transition-all disabled:opacity-50 flex items-center justify-center gap-2"
                 >
                   <Save className="w-4 h-4" />
                   保存为草稿
-                </button>
+                </Button>
               </div>
             </div>
           </div>

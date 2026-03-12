@@ -1,6 +1,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
 
 // ============================================
 // 类型定义
@@ -148,7 +149,9 @@ function SoftToast({ message, type, onClose }: ToastProps) {
         </svg>
       )}
       <span className="text-sm font-medium">{message}</span>
-      <button
+      <Button
+        variant="ghost"
+        size="icon"
         onClick={onClose}
         className="ml-2 p-1 hover:bg-white/10 rounded-full transition-colors"
       >
@@ -165,7 +168,7 @@ function SoftToast({ message, type, onClose }: ToastProps) {
             d="M6 18L18 6M6 6l12 12"
           />
         </svg>
-      </button>
+      </Button>
     </motion.div>
   );
 }

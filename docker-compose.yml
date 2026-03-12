@@ -18,8 +18,8 @@ services:
       - ./uploads:/app/uploads
     networks:
       - aura_network
-    expose:
-      - "8000"
+    ports:
+      - "8000:8000"
 
   # Frontend Service (Nginx)
   frontend:

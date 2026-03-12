@@ -5,6 +5,15 @@ import { motion } from "framer-motion";
 import HackathonCard, {
   type HackathonCardData,
 } from "../components/HackathonCardV2";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface Hackathon {
   id: number;
@@ -28,39 +37,6 @@ interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
 }
-
-// 图标组件
-const SearchIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-    />
-  </svg>
-);
-
-const ChevronDownIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M19 9l-7 7-7-7"
-    />
-  </svg>
-);
 
 const XIcon = () => (
   <svg
@@ -168,8 +144,10 @@ export default function EventsPage() {
 
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
-  const [locationFilter, setLocationFilter] = useState("");
-  const [tagFilter, setTagFilter] = useState("");
+  // Radix Select does not allow empty string values for items.
+  // Use "all" as a sentinel for "no filter".
+  const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
+  const [tagFilter, setTagFilter] = useState<"all" | string>("all");
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
@@ -202,6 +180,10 @@ export default function EventsPage() {
       id: String(hackathon.id),
       title: hackathon.title,
       description: hackathon.description,
+      // 将后端的封面图字段传递给卡片组件，
+      // 这样每个活动都可以展示自己的「应用图标 / banner」，
+      // 避免页面上全部是文字导致“太白、太空”的感觉。
+      coverImage: hackathon.cover_image,
       host: {
         name: hackathon.organizer_name || "未知主办方",
         logo: hackathon.organizer_logo,
@@ -253,9 +235,9 @@ export default function EventsPage() {
     [hackathons],
   );
 
-  // 筛选逻辑
+  // 筛选 + 排序逻辑：先按用户输入过滤，再根据排序选项调整顺序
   const filteredHackathons = useMemo(() => {
-    return hackathons.filter((h) => {
+    const filtered = hackathons.filter((h) => {
       const matchesSearch =
         !searchQuery ||
         h.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -266,8 +248,9 @@ export default function EventsPage() {
       const matchesType =
         typeFilters.length === 0 || typeFilters.includes(h.format || "offline");
       const matchesLocation =
-        !locationFilter || h.location?.includes(locationFilter);
-      const matchesTag = !tagFilter || h.theme_tags?.includes(tagFilter);
+        locationFilter === "all" || h.location?.includes(locationFilter);
+      const matchesTag =
+        tagFilter === "all" || h.theme_tags?.includes(tagFilter);
 
       return (
         matchesSearch &&
@@ -277,6 +260,40 @@ export default function EventsPage() {
         matchesTag
       );
     });
+
+    const sorted = [...filtered];
+
+    // 根据当前排序选项调整顺序，以贴近设计中“为你推荐 / 最新 / 即将截止”的体验
+    if (sortBy === "latest") {
+      sorted.sort(
+        (a, b) =>
+          new Date(b.start_date).getTime() - new Date(a.start_date).getTime(),
+      );
+    } else if (sortBy === "deadline") {
+      sorted.sort(
+        (a, b) =>
+          new Date(a.end_date).getTime() - new Date(b.end_date).getTime(),
+      );
+    } else if (sortBy === "recommended") {
+      const statusWeight: Record<string, number> = {
+        ongoing: 0,
+        registration: 1,
+        upcoming: 2,
+        published: 3,
+        ended: 4,
+      };
+
+      sorted.sort((a, b) => {
+        const weightA = statusWeight[a.status] ?? 99;
+        const weightB = statusWeight[b.status] ?? 99;
+        if (weightA !== weightB) return weightA - weightB;
+        return (
+          new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+        );
+      });
+    }
+
+    return sorted;
   }, [
     hackathons,
     searchQuery,
@@ -284,6 +301,7 @@ export default function EventsPage() {
     typeFilters,
     locationFilter,
     tagFilter,
+    sortBy,
   ]);
 
   // 转换为卡片数据
@@ -299,8 +317,8 @@ export default function EventsPage() {
     setSearchQuery("");
     setStatusFilters([]);
     setTypeFilters([]);
-    setLocationFilter("");
-    setTagFilter("");
+    setLocationFilter("all");
+    setTagFilter("all");
   };
 
   // 状态选项
@@ -348,305 +366,311 @@ export default function EventsPage() {
   ];
 
   return (
-    <div className="min-h-screen bg-[#0A0A0A]">
-      {/* 页面头部 */}
-      <div className="px-8 pt-8 pb-6">
-        {/* 返回导航 */}
-        <div className="flex items-center gap-4 mb-6">
-          <button
-            onClick={() => navigate("/")}
-            className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+    <div className="min-h-screen bg-[#050505] text-foreground">
+      {/* 页面头部：与 Figma 中的“// 探索网络”主标题区域对齐 */}
+      <div className="px-8 pt-10 pb-6">
+        <div className="max-w-6xl mx-auto">
+          {/* 返回导航保持在左上角，便于用户回到首页 */}
+          <div className="flex items-center gap-4 mb-5 text-sm text-muted-foreground">
+            <Button
+              variant="ghost"
+              size="sm"
+              className="px-2 py-1 h-7"
+              onClick={() => navigate("/")}
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
-            返回首页
-          </button>
-          <span className="text-gray-600">/</span>
-          <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">
-            探索网络
-          </span>
+              <svg
+                className="w-4 h-4 mr-1"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 19l-7-7 7-7"
+                />
+              </svg>
+              返回
+            </Button>
+            <span>/</span>
+            <span>探索网络</span>
+          </div>
+
+          {/* 居中主标题块，模仿 Figma 中的标题排版 */}
+          <div className="text-center mt-8">
+            <div className="inline-flex items-center justify-center mb-3">
+              <span className="text-muted-foreground font-mono mr-2">//</span>
+              <h1 className="text-4xl font-semibold tracking-tight text-white">
+                探索网络
+              </h1>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              浏览并筛选所有黑客松活动。
+            </p>
+          </div>
         </div>
-        <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
-          <span className="text-[#FBBF24] font-mono">//</span>
-          探索网络
-        </h1>
-        <p className="text-gray-500">浏览并筛选所有黑客松活动</p>
       </div>
 
-      {/* 主视图结构 */}
-      <div className="flex gap-10 px-8 pb-12">
-        {/* 左侧筛选侧边栏 */}
-        <div className="w-64 flex-shrink-0">
-          <div className="sticky top-6">
-            {/* 筛选标题 */}
-            <div className="flex items-center justify-between mb-6">
-              <span className="text-white font-medium">筛选</span>
-              {(statusFilters.length > 0 || locationFilter || tagFilter) && (
-                <button
-                  onClick={clearFilters}
-                  className="text-gray-500 hover:text-white transition-colors"
-                >
-                  <XIcon />
-                </button>
-              )}
-            </div>
-
-            {/* 状态筛选 */}
-            <div className="mb-6">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                状态
-              </h3>
-              <div className="space-y-2">
-                {statusOptions.map((option) => (
-                  <label
-                    key={option.value}
-                    className="flex items-center gap-3 cursor-pointer group"
-                  >
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                        statusFilters.includes(option.value)
-                          ? `${option.bgColor} ${option.borderColor}`
-                          : "border-gray-600 group-hover:border-gray-500"
-                      }`}
-                    >
-                      {statusFilters.includes(option.value) && (
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <span
-                      className={`text-sm px-2 py-0.5 rounded-full ${
-                        statusFilters.includes(option.value)
-                          ? `${option.textColor} ${option.bgLight}`
-                          : "text-gray-400"
-                      }`}
-                    >
-                      {option.label}
-                    </span>
-                  </label>
-                ))}
+      {/* 主视图结构：左侧筛选 + 右侧活动列表，与 Figma 中的两栏布局一致 */}
+      <div className="px-8 pb-12">
+        <div className="max-w-6xl mx-auto flex gap-10">
+          {/* 左侧筛选侧边栏 */}
+          <div className="w-64 flex-shrink-0">
+            <div className="sticky top-8 rounded-2xl bg-[#050505] border border-[#262626] px-5 py-6">
+              {/* 筛选标题 */}
+              <div className="flex items-center justify-between mb-6 text-sm">
+                <span className="font-medium text-white">筛选</span>
+                <span className="text-xs text-muted-foreground">
+                  共 {cardDataList.length} 个结果
+                </span>
               </div>
-            </div>
 
-            {/* 活动类型筛选 */}
-            <div className="mb-6">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                活动类型
-              </h3>
-              <div className="space-y-2">
-                {["线下", "线上", "混合"].map((type) => (
-                  <label
-                    key={type}
-                    className="flex items-center gap-3 cursor-pointer group"
-                  >
-                    <div
-                      className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                        typeFilters.includes(type)
-                          ? "bg-purple-500 border-purple-500"
-                          : "border-gray-600 group-hover:border-gray-500"
-                      }`}
+              {/* 状态筛选 */}
+              <div className="mb-6">
+                <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  状态
+                </h3>
+                <div className="space-y-2">
+                  {statusOptions.map((option) => (
+                    <label
+                      key={option.value}
+                      className="flex items-center gap-3 cursor-pointer group"
                     >
-                      {typeFilters.includes(type) && (
-                        <svg
-                          className="w-3 h-3 text-white"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={3}
-                            d="M5 13l4 4L19 7"
-                          />
-                        </svg>
-                      )}
-                    </div>
-                    <span className="text-sm text-gray-400">{type}</span>
-                  </label>
-                ))}
-              </div>
-            </div>
-
-            {/* 地点下拉 */}
-            <div className="mb-6">
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                地点
-              </h3>
-              <div className="relative">
-                <select
-                  value={locationFilter}
-                  onChange={(e) => setLocationFilter(e.target.value)}
-                  className="w-full bg-[#111111] border border-[#222222] rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:border-[#FBBF24]/50 focus:outline-none transition-colors cursor-pointer"
-                >
-                  <option value="">选择地点</option>
-                  {allLocations.map((loc) => (
-                    <option key={loc} value={loc}>
-                      {loc}
-                    </option>
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                          statusFilters.includes(option.value)
+                            ? `${option.bgColor} ${option.borderColor}`
+                            : "border-gray-600 group-hover:border-gray-500"
+                        }`}
+                      >
+                        {statusFilters.includes(option.value) && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span
+                        className={`text-sm px-2 py-0.5 rounded-full ${
+                          statusFilters.includes(option.value)
+                            ? `${option.textColor} ${option.bgLight}`
+                            : "text-gray-400"
+                        }`}
+                      >
+                        {option.label}
+                      </span>
+                    </label>
                   ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                  <ChevronDownIcon />
                 </div>
               </div>
-            </div>
 
-            {/* 标签下拉 */}
-            <div>
-              <h3 className="text-xs text-gray-500 uppercase tracking-wider mb-3">
-                标签
-              </h3>
-              <div className="relative">
-                <select
-                  value={tagFilter}
-                  onChange={(e) => setTagFilter(e.target.value)}
-                  className="w-full bg-[#111111] border border-[#222222] rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:border-[#FBBF24]/50 focus:outline-none transition-colors cursor-pointer"
-                >
-                  <option value="">选择标签</option>
-                  {allTags.map((tag) => (
-                    <option key={tag} value={tag}>
-                      {tag}
-                    </option>
+              {/* 活动类型筛选 */}
+              <div className="mb-6">
+                <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  活动类型
+                </h3>
+                <div className="space-y-2">
+                  {["线下", "线上", "混合"].map((type) => (
+                    <label
+                      key={type}
+                      className="flex items-center gap-3 cursor-pointer group"
+                    >
+                      <div
+                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
+                          typeFilters.includes(type)
+                            ? "bg-purple-500 border-purple-500"
+                            : "border-gray-600 group-hover:border-gray-500"
+                        }`}
+                      >
+                        {typeFilters.includes(type) && (
+                          <svg
+                            className="w-3 h-3 text-white"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={3}
+                              d="M5 13l4 4L19 7"
+                            />
+                          </svg>
+                        )}
+                      </div>
+                      <span className="text-sm text-gray-400">{type}</span>
+                    </label>
                   ))}
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                  <ChevronDownIcon />
+                </div>
+              </div>
+
+              {/* 地点下拉 */}
+              <div className="mb-6">
+                <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  地点
+                </h3>
+                <div className="relative">
+                  <Select
+                    value={locationFilter}
+                    onValueChange={setLocationFilter}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择地点" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">选择地点</SelectItem>
+                      {allLocations.map((loc) => (
+                        <SelectItem key={loc} value={loc}>
+                          {loc}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              {/* 标签下拉 */}
+              <div>
+                <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
+                  标签
+                </h3>
+                <div className="relative">
+                  <Select value={tagFilter} onValueChange={setTagFilter}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="选择标签" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">选择标签</SelectItem>
+                      {allTags.map((tag) => (
+                        <SelectItem key={tag} value={tag}>
+                          {tag}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* 右侧活动列表区 */}
-        <div className="flex-1 min-w-0">
-          {/* 顶部控制条 */}
-          <div className="flex items-center justify-between mb-6">
-            <span className="text-gray-500 text-sm">
-              {loading ? "加载中..." : `共 ${cardDataList.length} 个结果`}
-            </span>
-            <div className="flex items-center gap-4">
-              {/* 搜索框 */}
-              <div className="relative">
-                <div className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500">
-                  <SearchIcon />
-                </div>
-                <input
-                  type="text"
+          {/* 右侧活动列表区 */}
+          <div className="flex-1 min-w-0">
+            {/* 顶部控制条：右上角搜索 + 排序按钮区域 */}
+            <div className="flex items-center justify-end mb-6 gap-4">
+              {/* 搜索框带图标，贴合设计中的搜索输入 */}
+              <div className="relative w-[260px]">
+                <svg
+                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
+                  />
+                </svg>
+                <Input
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索黑客松..."
-                  className="w-56 bg-[#111111] border border-[#222222] rounded-lg pl-10 pr-4 py-2.5 text-sm text-white placeholder-gray-600 focus:border-[#FBBF24]/50 focus:outline-none transition-colors"
+                  placeholder="搜索黑客松活动..."
+                  className="pl-9 h-9 bg-[#111111] border-[#262626] text-sm"
                 />
               </div>
-              {/* 排序下拉 */}
-              <div className="relative">
-                <select
-                  value={sortBy}
-                  onChange={(e) => setSortBy(e.target.value)}
-                  className="w-32 bg-[#111111] border border-[#222222] rounded-lg px-4 py-2.5 text-sm text-white appearance-none focus:border-[#FBBF24]/50 focus:outline-none transition-colors cursor-pointer"
-                >
-                  <option value="all">全部活动</option>
-                  <option value="recommended">为你推荐</option>
-                  <option value="latest">最新发布</option>
-                  <option value="deadline">即将截止</option>
-                </select>
-                <div className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">
-                  <ChevronDownIcon />
-                </div>
-              </div>
+
+              {/* 排序下拉，模拟 Figma 中的“方向排序”按钮形态 */}
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-[120px] h-9 bg-[#111111] border-[#262626] text-xs text-muted-foreground">
+                  <SelectValue placeholder="排序" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="recommended">为你推荐</SelectItem>
+                  <SelectItem value="latest">最新发布</SelectItem>
+                  <SelectItem value="deadline">即将截止</SelectItem>
+                  <SelectItem value="all">不过滤</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-          </div>
 
-          {/* 页面切换加载遮罩 */}
-          {isNavigating && (
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center"
-            >
-              <div className="flex flex-col items-center gap-4">
-                <div className="w-10 h-10 border-3 border-[#FBBF24] border-t-transparent rounded-full animate-spin" />
-                <span className="text-gray-400 text-sm">加载中...</span>
-              </div>
-            </motion.div>
-          )}
+            {/* 页面切换加载遮罩 */}
+            {isNavigating && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center"
+              >
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-10 h-10 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                  <span className="text-muted-foreground text-sm">
+                    加载中...
+                  </span>
+                </div>
+              </motion.div>
+            )}
 
-          {/* 活动卡片列表 - 使用新组件 */}
-          {loading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="bg-white/[0.03] border border-white/[0.08] rounded-3xl p-5 animate-pulse"
-                >
-                  <div className="flex gap-5">
-                    <div className="w-32 h-32 bg-white/[0.05] rounded-2xl flex-shrink-0" />
-                    <div className="flex-1 space-y-3 py-2">
-                      <div className="flex gap-2">
-                        <div className="w-16 h-5 bg-white/[0.05] rounded" />
-                        <div className="w-16 h-5 bg-white/[0.05] rounded" />
+            {/* 活动卡片列表 - 使用新组件 */}
+            {loading ? (
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="bg-muted/30 border border-border rounded-3xl p-5 animate-pulse"
+                  >
+                    <div className="flex gap-5">
+                      <div className="w-32 h-32 bg-muted rounded-2xl flex-shrink-0" />
+                      <div className="flex-1 space-y-3 py-2">
+                        <div className="flex gap-2">
+                          <div className="w-16 h-5 bg-muted rounded" />
+                          <div className="w-16 h-5 bg-muted rounded" />
+                        </div>
+                        <div className="w-2/3 h-6 bg-muted rounded" />
+                        <div className="w-full h-4 bg-muted rounded" />
                       </div>
-                      <div className="w-2/3 h-6 bg-white/[0.05] rounded" />
-                      <div className="w-full h-4 bg-white/[0.05] rounded" />
-                    </div>
-                    <div className="w-48 space-y-3 py-2">
-                      <div className="w-20 h-6 bg-white/[0.05] rounded-full ml-auto" />
-                      <div className="w-full h-4 bg-white/[0.05] rounded" />
+                      <div className="w-48 space-y-3 py-2">
+                        <div className="w-20 h-6 bg-muted rounded-full ml-auto" />
+                        <div className="w-full h-4 bg-muted rounded" />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col gap-6 w-full">
-              {cardDataList.map((data, index) => (
-                <HackathonCard
-                  key={data.id}
-                  data={data}
-                  index={index}
-                  onClick={handleCardClick}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* 空状态 */}
-          {!loading && cardDataList.length === 0 && (
-            <div className="text-center py-32 bg-white/[0.02] border border-white/[0.08] rounded-3xl">
-              <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
-                暂无匹配的活动
+                ))}
               </div>
-              <button
-                onClick={clearFilters}
-                className="text-sm text-[#FBBF24] hover:text-white transition-colors duration-200"
-              >
-                清除筛选条件
-              </button>
-            </div>
-          )}
+            ) : (
+              <div className="flex flex-col gap-6 w-full">
+                {cardDataList.map((data, index) => (
+                  <HackathonCard
+                    key={data.id}
+                    data={data}
+                    index={index}
+                    onClick={handleCardClick}
+                  />
+                ))}
+              </div>
+            )}
+
+            {/* 空状态 */}
+            {!loading && cardDataList.length === 0 && (
+              <div className="text-center py-32 bg-muted/30 border border-border rounded-3xl">
+                <div className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-4">
+                  暂无匹配的活动
+                </div>
+                <Button variant="link" onClick={clearFilters}>
+                  清除筛选条件
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>

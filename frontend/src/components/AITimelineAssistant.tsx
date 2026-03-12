@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
 
 // ============================================
 // 类型定义
@@ -283,19 +284,23 @@ export default function AITimelineAssistant({
               </div>
               <div className="flex items-center gap-3">
                 {completedCount > 0 && (
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="xs"
                     onClick={handleRestart}
-                    className="text-[11px] text-gray-500 hover:text-white transition-colors"
+                    className="h-7 px-3 text-[11px] text-gray-500 hover:text-white transition-colors"
                   >
                     重新开始
-                  </button>
+                  </Button>
                 )}
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={onClose}
                   className="w-8 h-8 flex items-center justify-center rounded-lg text-gray-500 hover:text-white hover:bg-white/5 transition-colors"
                 >
                   <CloseIcon />
-                </button>
+                </Button>
               </div>
             </div>
 
@@ -340,7 +345,9 @@ export default function AITimelineAssistant({
                       >
                         {/* 节点 */}
                         <div className="relative z-10 flex-shrink-0">
-                          <button
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             onClick={() => handleStepClick(step.id)}
                             disabled={loading && !isActive}
                             className={`
@@ -358,7 +365,7 @@ export default function AITimelineAssistant({
                             `}
                           >
                             {isCompleted ? <CheckIcon /> : step.icon}
-                          </button>
+                          </Button>
                         </div>
 
                         {/* 内容卡片 */}
@@ -419,7 +426,7 @@ export default function AITimelineAssistant({
                                   </p>
                                 )}
 
-                                <button
+                                <Button
                                   onClick={handleGenerate}
                                   disabled={loading || !input.trim()}
                                   className="w-full py-2.5 bg-[#FBBF24] text-black text-[12px] font-medium rounded-lg hover:bg-[#F59E0B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
@@ -453,7 +460,7 @@ export default function AITimelineAssistant({
                                       生成内容
                                     </>
                                   )}
-                                </button>
+                                </Button>
                               </motion.div>
                             )}
 
@@ -470,7 +477,7 @@ export default function AITimelineAssistant({
                                   </p>
                                 </div>
                                 <div className="flex gap-2 mt-2">
-                                  <button
+                                  <Button
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleApply(step.id);
@@ -478,8 +485,10 @@ export default function AITimelineAssistant({
                                     className="flex-1 py-1.5 bg-[#FBBF24]/10 border border-[#FBBF24]/30 text-[#FBBF24] text-[11px] rounded hover:bg-[#FBBF24]/20 transition-colors"
                                   >
                                     应用内容
-                                  </button>
-                                  <button
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="xs"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       handleStepClick(step.id);
@@ -487,7 +496,7 @@ export default function AITimelineAssistant({
                                     className="px-3 py-1.5 text-gray-500 text-[11px] hover:text-white transition-colors"
                                   >
                                     重新生成
-                                  </button>
+                                  </Button>
                                 </div>
                               </motion.div>
                             )}
@@ -527,12 +536,12 @@ export function AITimelineAssistantDemo() {
 
   return (
     <div className="p-8 bg-[#0A0A0A] min-h-screen">
-      <button
+      <Button
         onClick={() => setIsOpen(true)}
         className="px-6 py-3 bg-[#FBBF24] text-black font-medium rounded-lg hover:bg-[#F59E0B] transition-colors"
       >
         打开 AI 助手
-      </button>
+      </Button>
 
       <div className="mt-8 space-y-4">
         <h3 className="text-white font-medium">已应用的内容：</h3>

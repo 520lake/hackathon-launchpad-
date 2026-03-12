@@ -1,6 +1,15 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 
 interface InvitationCode {
   id: number;
@@ -152,18 +161,21 @@ export default function AdminPage() {
         )}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center gap-4">
-            <button
+            <Button
+              variant="ghost"
+              size="sm"
               onClick={() => navigate("/")}
-              className="text-gray-400 hover:text-white transition-colors"
+              className="text-gray-400 hover:text-white transition-colors px-2 py-1"
             >
               ← 返回
-            </button>
+            </Button>
             <h1 className="text-2xl font-bold text-white">管理面板</h1>
           </div>
         </div>
 
         <div className="flex gap-4 mb-8">
-          <button
+          <Button
+            variant={activeTab === "codes" ? "default" : "outline"}
             onClick={() => setActiveTab("codes")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === "codes"
@@ -172,8 +184,9 @@ export default function AdminPage() {
             }`}
           >
             邀请码管理
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={activeTab === "users" ? "default" : "outline"}
             onClick={() => setActiveTab("users")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               activeTab === "users"
@@ -182,49 +195,49 @@ export default function AdminPage() {
             }`}
           >
             用户管理
-          </button>
+          </Button>
         </div>
 
         {activeTab === "codes" && (
           <div className="space-y-4">
             <div className="flex justify-end">
-              <button
+              <Button
                 onClick={generateCode}
                 disabled={generating}
                 className="px-4 py-2 bg-brand text-black font-medium rounded-md hover:bg-white transition-colors disabled:opacity-50"
               >
                 {generating ? "生成中..." : "生成新邀请码"}
-              </button>
+              </Button>
             </div>
 
             <div className="bg-gray-900 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-800">
-                  <tr>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+              <Table>
+                <TableHeader className="bg-gray-800">
+                  <TableRow>
+                    <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                       ID
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                       邀请码
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                       状态
-                    </th>
-                    <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                    </TableHead>
+                    <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                       创建时间
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-800">
+                    </TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-800">
                   {codes.map((code) => (
-                    <tr key={code.id} className="hover:bg-gray-800/50">
-                      <td className="px-4 py-3 text-sm text-gray-400">
+                    <TableRow key={code.id} className="hover:bg-gray-800/50">
+                      <TableCell className="px-4 py-3 text-sm text-gray-400">
                         {code.id}
-                      </td>
-                      <td className="px-4 py-3 text-sm text-brand font-mono">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-sm text-brand font-mono">
                         {code.code}
-                      </td>
-                      <td className="px-4 py-3">
+                      </TableCell>
+                      <TableCell className="px-4 py-3">
                         <span
                           className={`px-2 py-1 text-xs rounded ${
                             code.is_used
@@ -234,14 +247,14 @@ export default function AdminPage() {
                         >
                           {code.is_used ? "已使用" : "未使用"}
                         </span>
-                      </td>
-                      <td className="px-4 py-3 text-sm text-gray-400">
+                      </TableCell>
+                      <TableCell className="px-4 py-3 text-sm text-gray-400">
                         {new Date(code.created_at).toLocaleString("zh-CN")}
-                      </td>
-                    </tr>
+                      </TableCell>
+                    </TableRow>
                   ))}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
               {codes.length === 0 && (
                 <div className="p-8 text-center text-gray-500">暂无邀请码</div>
               )}
@@ -251,42 +264,42 @@ export default function AdminPage() {
 
         {activeTab === "users" && (
           <div className="bg-gray-900 rounded-lg overflow-hidden">
-            <table className="w-full">
-              <thead className="bg-gray-800">
-                <tr>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+            <Table>
+              <TableHeader className="bg-gray-800">
+                <TableRow>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     ID
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     邮箱
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     姓名
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     状态
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     组织者
-                  </th>
-                  <th className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
+                  </TableHead>
+                  <TableHead className="px-4 py-3 text-left text-xs font-medium text-gray-400 uppercase">
                     超级管理员
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-800">
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody className="divide-y divide-gray-800">
                 {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-800/50">
-                    <td className="px-4 py-3 text-sm text-gray-400">
+                  <TableRow key={user.id} className="hover:bg-gray-800/50">
+                    <TableCell className="px-4 py-3 text-sm text-gray-400">
                       {user.id}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-white">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-white">
                       {user.email}
-                    </td>
-                    <td className="px-4 py-3 text-sm text-gray-300">
+                    </TableCell>
+                    <TableCell className="px-4 py-3 text-sm text-gray-300">
                       {user.full_name || "-"}
-                    </td>
-                    <td className="px-4 py-3">
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
                       <span
                         className={`px-2 py-1 text-xs rounded ${
                           user.is_active
@@ -296,9 +309,11 @@ export default function AdminPage() {
                       >
                         {user.is_active ? "活跃" : "禁用"}
                       </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Button
+                        variant="outline"
+                        size="xs"
                         onClick={() =>
                           toggleUserPermission(
                             user.id,
@@ -313,10 +328,12 @@ export default function AdminPage() {
                         }`}
                       >
                         {user.can_create_hackathon ? "✓ 是" : "✗ 否"}
-                      </button>
-                    </td>
-                    <td className="px-4 py-3">
-                      <button
+                      </Button>
+                    </TableCell>
+                    <TableCell className="px-4 py-3">
+                      <Button
+                        variant="outline"
+                        size="xs"
                         onClick={() =>
                           toggleUserPermission(
                             user.id,
@@ -331,12 +348,12 @@ export default function AdminPage() {
                         }`}
                       >
                         {user.is_superuser ? "✓ 是" : "✗ 否"}
-                      </button>
-                    </td>
-                  </tr>
+                      </Button>
+                    </TableCell>
+                  </TableRow>
                 ))}
-              </tbody>
-            </table>
+              </TableBody>
+            </Table>
           </div>
         )}
       </div>

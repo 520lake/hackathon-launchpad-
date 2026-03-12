@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import axios from "axios";
+import { Button } from "@/components/ui/button";
 
 interface AIProjectAssistantProps {
   isOpen?: boolean;
@@ -195,7 +196,9 @@ export default function AIProjectAssistant({
                   </p>
                 </div>
               </div>
-              <button
+              <Button
+                variant="ghost"
+                size="icon"
                 onClick={onClose}
                 className="text-gray-500 hover:text-white transition-colors"
               >
@@ -212,15 +215,17 @@ export default function AIProjectAssistant({
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-              </button>
+              </Button>
             </div>
 
             {/* Mode Selection */}
             <div className="px-6 py-4 border-b border-[#222222]">
               <div className="flex gap-2">
                 {modes.map((m) => (
-                  <button
+                  <Button
                     key={m.id}
+                    type="button"
+                    variant={mode === m.id ? "default" : "outline"}
                     onClick={() => {
                       setMode(m.id);
                       setInput("");
@@ -235,7 +240,7 @@ export default function AIProjectAssistant({
                   >
                     <span>{m.icon}</span>
                     <span>{m.label}</span>
-                  </button>
+                  </Button>
                 ))}
               </div>
               <p className="text-[11px] text-gray-500 mt-2">
@@ -253,7 +258,7 @@ export default function AIProjectAssistant({
                   className="w-full h-32 bg-[#111111] border border-[#222222] rounded-lg px-4 py-3 text-[13px] text-white placeholder-gray-600 focus:border-[#FBBF24]/50 focus:outline-none resize-none"
                 />
                 <div className="flex justify-end mt-3">
-                  <button
+                  <Button
                     onClick={handleGenerate}
                     disabled={loading || !input.trim()}
                     className="flex items-center gap-2 px-5 py-2 bg-[#FBBF24] text-black text-[13px] font-medium rounded-lg hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
@@ -299,7 +304,7 @@ export default function AIProjectAssistant({
                         生成内容
                       </>
                     )}
-                  </button>
+                  </Button>
                 </div>
               </div>
 
@@ -364,16 +369,18 @@ export default function AIProjectAssistant({
                               </span>
                               /100
                             </span>
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="xs"
                               onClick={() =>
                                 handleApply(
                                   `${idea.title}\n\n${idea.description}\n\n技术栈: ${idea.tech_stack}`,
                                 )
                               }
-                              className="text-[11px] text-[#FBBF24] hover:text-white transition-colors"
+                              className="text-[11px] text-[#FBBF24] hover:text-white transition-colors px-2 py-1"
                             >
                               使用此创意 →
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -390,7 +397,7 @@ export default function AIProjectAssistant({
                           : JSON.stringify(result.data, null, 2)}
                       </pre>
                       <div className="flex justify-end mt-4 pt-4 border-t border-[#222222]">
-                        <button
+                        <Button
                           onClick={() =>
                             handleApply(
                               typeof result.data === "string"
@@ -414,7 +421,7 @@ export default function AIProjectAssistant({
                             />
                           </svg>
                           应用内容
-                        </button>
+                        </Button>
                       </div>
                     </div>
                   )}

@@ -24,6 +24,18 @@ import {
   Trash2,
   Zap,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Switch } from "@/components/ui/switch";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 // 扩展的成员数据接口
 interface MemberDetail {
@@ -1541,19 +1553,20 @@ function CreateDiscussionModal({
       >
         <div className="flex items-center justify-between p-6 border-b border-zinc-800">
           <h2 className="text-xl font-semibold text-white">发布讨论</h2>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             className="text-zinc-500 hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
-          </button>
+          </Button>
         </div>
 
         <div className="p-6 space-y-4 overflow-y-auto max-h-[60vh]">
           <div>
             <label className="block text-sm text-zinc-400 mb-2">标题</label>
-            <input
-              type="text"
+            <Input
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="请输入讨论标题..."
@@ -1563,7 +1576,7 @@ function CreateDiscussionModal({
 
           <div>
             <label className="block text-sm text-zinc-400 mb-2">内容</label>
-            <textarea
+            <Textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="分享你的想法、经验或问题..."
@@ -1575,8 +1588,7 @@ function CreateDiscussionModal({
           <div>
             <label className="block text-sm text-zinc-400 mb-2">标签</label>
             <div className="flex gap-2 mb-2">
-              <input
-                type="text"
+              <Input
                 value={tagInput}
                 onChange={(e) => setTagInput(e.target.value)}
                 onKeyPress={(e) =>
@@ -1585,12 +1597,13 @@ function CreateDiscussionModal({
                 placeholder="添加标签，按回车确认"
                 className="flex-1 bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
               />
-              <button
+              <Button
+                type="button"
                 onClick={handleAddTag}
                 className="px-4 py-2 bg-zinc-800 text-white rounded-[24px] hover:bg-zinc-700 transition-colors"
               >
                 添加
-              </button>
+              </Button>
             </div>
             <div className="flex flex-wrap gap-2">
               {tags.map((tag) => (
@@ -1599,12 +1612,14 @@ function CreateDiscussionModal({
                   className="inline-flex items-center gap-1 px-3 py-1 bg-brand/20 text-brand rounded-full text-sm"
                 >
                   {tag}
-                  <button
+                  <Button
+                    variant="ghost"
+                    size="icon"
                     onClick={() => handleRemoveTag(tag)}
                     className="hover:text-white"
                   >
                     <X className="w-3 h-3" />
-                  </button>
+                  </Button>
                 </span>
               ))}
             </div>
@@ -1612,20 +1627,21 @@ function CreateDiscussionModal({
         </div>
 
         <div className="flex justify-end gap-3 p-6 border-t border-zinc-800">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             className="px-6 py-2 text-zinc-400 hover:text-white transition-colors rounded-[24px]"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSubmit}
             disabled={!title.trim() || !content.trim()}
             className="px-6 py-2 bg-brand text-black font-medium rounded-[24px] hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             <Send className="w-4 h-4" />
             发布
-          </button>
+          </Button>
         </div>
       </motion.div>
     </div>
@@ -1658,12 +1674,14 @@ function MemberDetailModal({
         {/* Header */}
         <div className="relative">
           <div className="h-32 bg-gradient-to-r from-brand/20 via-brand/10 to-transparent" />
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             className="absolute top-4 right-4 p-2 bg-black/50 rounded-full text-zinc-400 hover:text-white transition-colors"
           >
             <X className="w-5 h-5" />
-          </button>
+          </Button>
 
           <div className="absolute -bottom-12 left-6">
             <img
@@ -1916,374 +1934,363 @@ function CommunityProfileModal({
               完善你的社区展示信息，让更多人了解你
             </p>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
             className="text-zinc-500 hover:text-white transition-colors"
           >
             <X className="w-6 h-6" />
-          </button>
+          </Button>
         </div>
 
-        {/* Tabs */}
-        <div className="flex border-b border-zinc-800">
-          {[
-            { id: "basic", label: "基本信息", icon: UserPlus },
-            { id: "skills", label: "技能雷达", icon: Code2 },
-            { id: "projects", label: "黑客松经历", icon: Award },
-          ].map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id as typeof activeTab)}
-              className={`flex items-center gap-2 px-6 py-3 text-sm font-medium transition-colors ${
-                activeTab === tab.id
-                  ? "text-brand border-b-2 border-brand"
-                  : "text-zinc-400 hover:text-white"
-              }`}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)}>
+          <TabsList className="w-full justify-start rounded-none bg-transparent border-b border-zinc-800 px-2">
+            <TabsTrigger
+              value="basic"
+              className="data-[state=active]:text-brand data-[state=active]:border-b-2 data-[state=active]:border-brand rounded-none"
             >
-              <tab.icon className="w-4 h-4" />
-              {tab.label}
-            </button>
-          ))}
-        </div>
+              <UserPlus className="w-4 h-4 mr-2" />
+              基本信息
+            </TabsTrigger>
+            <TabsTrigger
+              value="skills"
+              className="data-[state=active]:text-brand data-[state=active]:border-b-2 data-[state=active]:border-brand rounded-none"
+            >
+              <Code2 className="w-4 h-4 mr-2" />
+              技能雷达
+            </TabsTrigger>
+            <TabsTrigger
+              value="projects"
+              className="data-[state=active]:text-brand data-[state=active]:border-b-2 data-[state=active]:border-brand rounded-none"
+            >
+              <Award className="w-4 h-4 mr-2" />
+              黑客松经历
+            </TabsTrigger>
+          </TabsList>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[60vh]">
-          {/* Basic Info Tab */}
-          {activeTab === "basic" && (
-            <div className="space-y-6">
-              {/* Visibility Toggle */}
-              <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-[24px]">
-                <div className="flex items-center gap-3">
-                  <div
-                    className={`p-2 rounded-lg ${showInCommunity ? "bg-brand/20" : "bg-zinc-700"}`}
-                  >
-                    {showInCommunity ? (
-                      <Eye className="w-5 h-5 text-brand" />
-                    ) : (
-                      <EyeOff className="w-5 h-5 text-zinc-400" />
-                    )}
-                  </div>
-                  <div>
-                    <h3 className="text-white font-medium">在社区大厅展示</h3>
-                    <p className="text-sm text-zinc-500">
-                      开启后其他用户可以在社区大厅看到你的资料
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowInCommunity(!showInCommunity)}
-                  className={`relative w-14 h-8 rounded-[24px] transition-colors ${
-                    showInCommunity ? "bg-brand" : "bg-zinc-700"
-                  }`}
-                >
-                  <div
-                    className={`absolute top-1 w-6 h-6 rounded-[20px] bg-white transition-transform ${
-                      showInCommunity ? "translate-x-7" : "translate-x-1"
-                    }`}
-                  />
-                </button>
-              </div>
-
-              {/* Status */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  当前状态
-                </label>
-                <div className="relative">
-                  <select
-                    value={status}
-                    onChange={(e) => setStatus(e.target.value as typeof status)}
-                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white appearance-none focus:outline-none focus:border-brand cursor-pointer"
-                  >
-                    {Object.entries(STATUS_MAP).map(([key, config]) => (
-                      <option key={key} value={key}>
-                        {config.label}
-                      </option>
-                    ))}
-                  </select>
-                  <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">
-                    <svg
-                      className="w-4 h-4 text-zinc-500"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
+          <div className="p-6 overflow-y-auto max-h-[60vh]">
+            <TabsContent value="basic" className="mt-0">
+              <div className="space-y-6">
+                {/* Visibility Toggle */}
+                <div className="flex items-center justify-between p-4 bg-zinc-800/50 rounded-[24px]">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className={`p-2 rounded-lg ${showInCommunity ? "bg-brand/20" : "bg-zinc-700"}`}
                     >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M19 9l-7 7-7-7"
-                      />
-                    </svg>
+                      {showInCommunity ? (
+                        <Eye className="w-5 h-5 text-brand" />
+                      ) : (
+                        <EyeOff className="w-5 h-5 text-zinc-400" />
+                      )}
+                    </div>
+                    <div>
+                      <h3 className="text-white font-medium">在社区大厅展示</h3>
+                      <p className="text-sm text-zinc-500">
+                        开启后其他用户可以在社区大厅看到你的资料
+                      </p>
+                    </div>
                   </div>
+                  <Switch
+                    checked={showInCommunity}
+                    onCheckedChange={setShowInCommunity}
+                  />
                 </div>
-                <p className="text-xs text-zinc-500 mt-2">
-                  当前选择:{" "}
-                  <span className="text-brand">{STATUS_MAP[status].label}</span>
-                </p>
-              </div>
 
-              {/* Title & Location */}
-              <div className="grid grid-cols-2 gap-4">
+                {/* Status */}
                 <div>
                   <label className="block text-sm text-zinc-400 mb-2">
-                    职位/头衔
+                    当前状态
                   </label>
-                  <input
-                    type="text"
-                    value={communityTitle}
-                    onChange={(e) => setCommunityTitle(e.target.value)}
-                    placeholder="例如：全栈工程师"
+                  <Select
+                    value={status}
+                    onValueChange={(v) => setStatus(v as any)}
+                  >
+                    <SelectTrigger className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl text-white">
+                      <SelectValue placeholder="选择状态" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-zinc-900 border border-zinc-800 text-white">
+                      {Object.entries(STATUS_MAP).map(([key, config]) => (
+                        <SelectItem
+                          key={key}
+                          value={key}
+                          className="text-white"
+                        >
+                          {config.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-zinc-500 mt-2">
+                    当前选择:{" "}
+                    <span className="text-brand">
+                      {STATUS_MAP[status].label}
+                    </span>
+                  </p>
+                </div>
+
+                {/* Title & Location */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      职位/头衔
+                    </label>
+                    <Input
+                      value={communityTitle}
+                      onChange={(e) => setCommunityTitle(e.target.value)}
+                      placeholder="例如：全栈工程师"
+                      className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      所在城市
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                      <Input
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        placeholder="例如：北京"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Links */}
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      GitHub
+                    </label>
+                    <div className="relative">
+                      <Github className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                      <Input
+                        value={github}
+                        onChange={(e) => setGithub(e.target.value)}
+                        placeholder="https://github.com/username"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <label className="block text-sm text-zinc-400 mb-2">
+                      个人主页
+                    </label>
+                    <div className="relative">
+                      <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
+                      <Input
+                        value={portfolio}
+                        onChange={(e) => setPortfolio(e.target.value)}
+                        placeholder="https://yourwebsite.com"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Short Bio */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">
+                    简短介绍
+                  </label>
+                  <Textarea
+                    value={communityBio}
+                    onChange={(e) => setCommunityBio(e.target.value)}
+                    placeholder="用一句话介绍自己..."
+                    rows={2}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand resize-none"
+                  />
+                </div>
+
+                {/* Extended Bio */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">
+                    详细介绍
+                  </label>
+                  <Textarea
+                    value={extendedBio}
+                    onChange={(e) => setExtendedBio(e.target.value)}
+                    placeholder="详细介绍你的技术背景、经验和兴趣..."
+                    rows={4}
+                    className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand resize-none"
+                  />
+                </div>
+
+                {/* Skills */}
+                <div>
+                  <label className="block text-sm text-zinc-400 mb-2">
+                    技能标签（用逗号分隔）
+                  </label>
+                  <Input
+                    value={communitySkills}
+                    onChange={(e) => setCommunitySkills(e.target.value)}
+                    placeholder="React, Node.js, Python, AI..."
                     className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-2">
-                    所在城市
-                  </label>
-                  <div className="relative">
-                    <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input
-                      type="text"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                      placeholder="例如：北京"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
-                    />
+              </div>
+            </TabsContent>
+
+            {/* Skills Radar Tab */}
+            <TabsContent value="skills" className="mt-0">
+              <div className="space-y-6">
+                <div className="flex items-center justify-center py-8">
+                  <div className="bg-zinc-800/50 rounded-[24px] p-8">
+                    <RadarChart data={radar} size={200} />
                   </div>
                 </div>
-              </div>
 
-              {/* Links */}
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-2">
-                    GitHub
-                  </label>
-                  <div className="relative">
-                    <Github className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input
-                      type="text"
-                      value={github}
-                      onChange={(e) => setGithub(e.target.value)}
-                      placeholder="https://github.com/username"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="block text-sm text-zinc-400 mb-2">
-                    个人主页
-                  </label>
-                  <div className="relative">
-                    <Globe className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-500" />
-                    <input
-                      type="text"
-                      value={portfolio}
-                      onChange={(e) => setPortfolio(e.target.value)}
-                      placeholder="https://yourwebsite.com"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl pl-11 pr-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Short Bio */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  简短介绍
-                </label>
-                <textarea
-                  value={communityBio}
-                  onChange={(e) => setCommunityBio(e.target.value)}
-                  placeholder="用一句话介绍自己..."
-                  rows={2}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand resize-none"
-                />
-              </div>
-
-              {/* Extended Bio */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  详细介绍
-                </label>
-                <textarea
-                  value={extendedBio}
-                  onChange={(e) => setExtendedBio(e.target.value)}
-                  placeholder="详细介绍你的技术背景、经验和兴趣..."
-                  rows={4}
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand resize-none"
-                />
-              </div>
-
-              {/* Skills */}
-              <div>
-                <label className="block text-sm text-zinc-400 mb-2">
-                  技能标签（用逗号分隔）
-                </label>
-                <input
-                  type="text"
-                  value={communitySkills}
-                  onChange={(e) => setCommunitySkills(e.target.value)}
-                  placeholder="React, Node.js, Python, AI..."
-                  className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-4 py-3 text-white placeholder-zinc-500 focus:outline-none focus:border-brand"
-                />
-              </div>
-            </div>
-          )}
-
-          {/* Skills Radar Tab */}
-          {activeTab === "skills" && (
-            <div className="space-y-6">
-              <div className="flex items-center justify-center py-8">
-                <div className="bg-zinc-800/50 rounded-[24px] p-8">
-                  <RadarChart data={radar} size={200} />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                {[
-                  { key: "frontend", label: "前端开发", icon: Code2 },
-                  { key: "backend", label: "后端开发", icon: Boxes },
-                  { key: "product", label: "产品思维", icon: Lightbulb },
-                  { key: "design", label: "设计能力", icon: Palette },
-                  { key: "ai", label: "AI/ML", icon: Zap },
-                  { key: "devops", label: "DevOps", icon: Briefcase },
-                ].map(({ key, label, icon: Icon }) => (
-                  <div key={key} className="bg-zinc-800/50 rounded-[24px] p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Icon className="w-4 h-4 text-brand" />
-                      <span className="text-white text-sm">{label}</span>
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { key: "frontend", label: "前端开发", icon: Code2 },
+                    { key: "backend", label: "后端开发", icon: Boxes },
+                    { key: "product", label: "产品思维", icon: Lightbulb },
+                    { key: "design", label: "设计能力", icon: Palette },
+                    { key: "ai", label: "AI/ML", icon: Zap },
+                    { key: "devops", label: "DevOps", icon: Briefcase },
+                  ].map(({ key, label, icon: Icon }) => (
+                    <div
+                      key={key}
+                      className="bg-zinc-800/50 rounded-[24px] p-4"
+                    >
+                      <div className="flex items-center gap-2 mb-3">
+                        <Icon className="w-4 h-4 text-brand" />
+                        <span className="text-white text-sm">{label}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={radar[key as keyof typeof radar]}
+                          onChange={(e) =>
+                            handleRadarChange(
+                              key as keyof typeof radar,
+                              parseInt(e.target.value),
+                            )
+                          }
+                          className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-brand"
+                        />
+                        <span className="text-brand font-mono w-10 text-right">
+                          {radar[key as keyof typeof radar]}
+                        </span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        value={radar[key as keyof typeof radar]}
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+
+            {/* Projects Tab */}
+            <TabsContent value="projects" className="mt-0">
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-white font-medium">黑客松经历</h3>
+                  <Button
+                    variant="outline"
+                    onClick={handleAddProject}
+                    className="flex items-center gap-2 px-4 py-2 bg-brand/10 text-brand rounded-[24px] hover:bg-brand/20 transition-colors text-sm"
+                  >
+                    <Plus className="w-4 h-4" />
+                    添加经历
+                  </Button>
+                </div>
+
+                <div className="space-y-4">
+                  {pastProjects.map((project, index) => (
+                    <div
+                      key={index}
+                      className="bg-zinc-800/50 rounded-[24px] p-4 space-y-3"
+                    >
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1 grid grid-cols-2 gap-3">
+                          <Input
+                            value={project.name}
+                            onChange={(e) =>
+                              handleUpdateProject(index, "name", e.target.value)
+                            }
+                            placeholder="项目名称"
+                            className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
+                          />
+                          <Input
+                            value={project.year}
+                            onChange={(e) =>
+                              handleUpdateProject(index, "year", e.target.value)
+                            }
+                            placeholder="年份"
+                            className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
+                          />
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => handleRemoveProject(index)}
+                          className="ml-3 p-2 text-zinc-500 hover:text-red-400 transition-colors"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+
+                      <Input
+                        value={project.award || ""}
                         onChange={(e) =>
-                          handleRadarChange(
-                            key as keyof typeof radar,
-                            parseInt(e.target.value),
+                          handleUpdateProject(index, "award", e.target.value)
+                        }
+                        placeholder="获奖情况（可选）"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
+                      />
+
+                      <Input
+                        value={project.tech.join(", ")}
+                        onChange={(e) =>
+                          handleUpdateProject(
+                            index,
+                            "tech",
+                            e.target.value
+                              .split(",")
+                              .map((t) => t.trim())
+                              .filter(Boolean),
                           )
                         }
-                        className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer accent-brand"
+                        placeholder="技术栈（用逗号分隔）"
+                        className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
                       />
-                      <span className="text-brand font-mono w-10 text-right">
-                        {radar[key as keyof typeof radar]}
-                      </span>
                     </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
+                  ))}
 
-          {/* Projects Tab */}
-          {activeTab === "projects" && (
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-white font-medium">黑客松经历</h3>
-                <button
-                  onClick={handleAddProject}
-                  className="flex items-center gap-2 px-4 py-2 bg-brand/10 text-brand rounded-[24px] hover:bg-brand/20 transition-colors text-sm"
-                >
-                  <Plus className="w-4 h-4" />
-                  添加经历
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {pastProjects.map((project, index) => (
-                  <div
-                    key={index}
-                    className="bg-zinc-800/50 rounded-[24px] p-4 space-y-3"
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 grid grid-cols-2 gap-3">
-                        <input
-                          type="text"
-                          value={project.name}
-                          onChange={(e) =>
-                            handleUpdateProject(index, "name", e.target.value)
-                          }
-                          placeholder="项目名称"
-                          className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
-                        />
-                        <input
-                          type="text"
-                          value={project.year}
-                          onChange={(e) =>
-                            handleUpdateProject(index, "year", e.target.value)
-                          }
-                          placeholder="年份"
-                          className="bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
-                        />
-                      </div>
-                      <button
-                        onClick={() => handleRemoveProject(index)}
-                        className="ml-3 p-2 text-zinc-500 hover:text-red-400 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
+                  {pastProjects.length === 0 && (
+                    <div className="text-center py-12 text-zinc-500">
+                      <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                      <p>还没有添加黑客松经历</p>
+                      <p className="text-sm mt-1">
+                        点击上方按钮添加你的参赛经历
+                      </p>
                     </div>
-
-                    <input
-                      type="text"
-                      value={project.award || ""}
-                      onChange={(e) =>
-                        handleUpdateProject(index, "award", e.target.value)
-                      }
-                      placeholder="获奖情况（可选）"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
-                    />
-
-                    <input
-                      type="text"
-                      value={project.tech.join(", ")}
-                      onChange={(e) =>
-                        handleUpdateProject(
-                          index,
-                          "tech",
-                          e.target.value
-                            .split(",")
-                            .map((t) => t.trim())
-                            .filter(Boolean),
-                        )
-                      }
-                      placeholder="技术栈（用逗号分隔）"
-                      className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-3 py-2 text-white placeholder-zinc-500 focus:outline-none focus:border-brand text-sm"
-                    />
-                  </div>
-                ))}
-
-                {pastProjects.length === 0 && (
-                  <div className="text-center py-12 text-zinc-500">
-                    <Award className="w-12 h-12 mx-auto mb-3 opacity-50" />
-                    <p>还没有添加黑客松经历</p>
-                    <p className="text-sm mt-1">点击上方按钮添加你的参赛经历</p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
-            </div>
-          )}
-        </div>
+            </TabsContent>
+          </div>
+        </Tabs>
 
         {/* Footer */}
         <div className="flex justify-end gap-3 p-6 border-t border-zinc-800">
-          <button
+          <Button
+            variant="ghost"
             onClick={onClose}
             className="px-6 py-2 text-zinc-400 hover:text-white transition-colors rounded-[24px]"
           >
             取消
-          </button>
-          <button
+          </Button>
+          <Button
             onClick={handleSave}
             className="px-6 py-2 bg-brand text-black font-medium rounded-[24px] hover:bg-white transition-colors flex items-center gap-2"
           >
             <Edit3 className="w-4 h-4" />
             保存设置
-          </button>
+          </Button>
         </div>
       </motion.div>
     </div>
@@ -2430,12 +2437,13 @@ export default function CommunityPage() {
           className="mb-8"
         >
           <div className="flex items-center gap-4 mb-6 py-2">
-            <button
+            <Button
+              variant="ghost"
               onClick={() => navigate("/")}
               className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-4 py-2 hover:bg-surface rounded-[16px]"
             >
               <span>←</span> 返回大厅
-            </button>
+            </Button>
             <span className="text-ink-dim/30">/</span>
             <span className="text-brand text-sm font-bold tracking-wide px-4 py-2 bg-brand/5 rounded-[16px]">
               社区大厅
@@ -2456,7 +2464,8 @@ export default function CommunityPage() {
           <div className="w-56 flex-shrink-0">
             <nav className="sticky top-24 space-y-2">
               {menuItems.map((item) => (
-                <button
+                <Button
+                  variant="ghost"
                   key={item.id}
                   onClick={() => setActiveTab(item.id as any)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] ${
@@ -2467,16 +2476,17 @@ export default function CommunityPage() {
                 >
                   {item.icon}
                   {item.label}
-                </button>
+                </Button>
               ))}
               <div className="pt-4 mt-4 border-t border-zinc-800">
-                <button
+                <Button
+                  variant="ghost"
                   onClick={() => setIsProfileModalOpen(true)}
                   className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] text-gray-400 hover:text-white hover:bg-white/[0.03]`}
                 >
                   <SettingsNavIcon />
                   资料设置
-                </button>
+                </Button>
               </div>
             </nav>
           </div>
@@ -2575,13 +2585,13 @@ export default function CommunityPage() {
                 >
                   {/* New Discussion Button */}
                   <div className="flex justify-end mb-6">
-                    <button
+                    <Button
                       onClick={() => setIsDiscussionModalOpen(true)}
                       className="flex items-center gap-2 px-4 py-2 bg-brand text-black font-medium rounded-[24px] hover:bg-white transition-colors"
                     >
                       <Plus className="w-4 h-4" />
                       发布讨论
-                    </button>
+                    </Button>
                   </div>
 
                   {discussions.map((discussion) => (

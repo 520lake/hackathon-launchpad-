@@ -1,163 +1,185 @@
-import { useState, useEffect } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
-import axios from 'axios'
-import { Bell, Trash2, CheckCircle, AlertCircle, Info } from 'lucide-react'
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion, AnimatePresence } from "framer-motion";
+import axios from "axios";
+import { Bell, Trash2, CheckCircle, AlertCircle, Info } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 interface Notification {
-  id: number
-  title: string
-  content: string
-  type: string
-  category: string
-  is_read: boolean
-  created_at: string
+  id: number;
+  title: string;
+  content: string;
+  type: string;
+  category: string;
+  is_read: boolean;
+  created_at: string;
 }
 
 export default function NotificationCenterPage() {
-  const navigate = useNavigate()
-  const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(true)
-  const [filter, setFilter] = useState<'all' | 'unread'>('all')
-  const [categoryFilter, setCategoryFilter] = useState<string>('all')
-  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>({})
+  const navigate = useNavigate();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [filter, setFilter] = useState<"all" | "unread">("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [categoryCounts, setCategoryCounts] = useState<Record<string, number>>(
+    {},
+  );
+  const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null);
 
   useEffect(() => {
-    fetchNotifications()
-    fetchCategoryCounts()
-  }, [categoryFilter])
+    fetchNotifications();
+    fetchCategoryCounts();
+  }, [categoryFilter]);
 
   const fetchNotifications = async () => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    
-    setLoading(true)
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    setLoading(true);
     try {
-      const res = await axios.get('/api/v1/notifications', {
+      const res = await axios.get("/api/v1/notifications", {
         headers: { Authorization: `Bearer ${token}` },
-        params: { limit: 100 }
-      })
-      setNotifications(res.data)
+        params: { limit: 100 },
+      });
+      setNotifications(res.data);
     } catch (e) {
-      console.error(e)
+      console.error(e);
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   const markAsRead = async (id: number) => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
-      await axios.post(`/api/v1/notifications/${id}/read`, {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+      await axios.post(
+        `/api/v1/notifications/${id}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, is_read: true } : n)),
+      );
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
-  }
+  };
 
   const markAllAsRead = async () => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
-      await axios.post('/api/v1/notifications/read-all', {}, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setNotifications(prev => prev.map(n => ({ ...n, is_read: true })))
+      await axios.post(
+        "/api/v1/notifications/read-all",
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
-  }
+  };
 
   const deleteNotification = async (id: number) => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    
-    if (!confirm('确定要删除这条通知吗？')) return
-    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
       await axios.delete(`/api/v1/notifications/${id}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      setNotifications(prev => prev.filter(n => n.id !== id))
-      fetchCategoryCounts()
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      setNotifications((prev) => prev.filter((n) => n.id !== id));
+      fetchCategoryCounts();
     } catch (e) {
-      console.error(e)
+      console.error(e);
     }
-  }
+  };
 
   const fetchCategoryCounts = async () => {
-    const token = localStorage.getItem('token')
-    if (!token) return
-    
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
     try {
-      const categories = ['activity', 'system', 'promotion', 'general']
-      const counts: Record<string, number> = {}
-      
+      const categories = ["activity", "system", "promotion", "general"];
+      const counts: Record<string, number> = {};
+
       for (const cat of categories) {
-        const res = await axios.get('/api/v1/notifications/unread-count', {
+        const res = await axios.get("/api/v1/notifications/unread-count", {
           headers: { Authorization: `Bearer ${token}` },
-          params: { category: cat }
-        })
-        counts[cat] = res.data.unread_count || 0
+          params: { category: cat },
+        });
+        counts[cat] = res.data.unread_count || 0;
       }
-      
-      setCategoryCounts(counts)
+
+      setCategoryCounts(counts);
     } catch (e) {
-      console.error('Failed to fetch category counts:', e)
+      console.error("Failed to fetch category counts:", e);
     }
-  }
+  };
 
   const formatTime = (dateStr: string) => {
-    const date = new Date(dateStr)
-    const now = new Date()
-    const diff = now.getTime() - date.getTime()
-    const minutes = Math.floor(diff / 60000)
-    const hours = Math.floor(minutes / 60)
-    const days = Math.floor(hours / 24)
-    
-    if (minutes < 1) return '刚刚'
-    if (minutes < 60) return `${minutes}分钟前`
-    if (hours < 24) return `${hours}小时前`
-    if (days < 7) return `${days}天前`
-    return date.toLocaleDateString('zh-CN')
-  }
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diff = now.getTime() - date.getTime();
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(minutes / 60);
+    const days = Math.floor(hours / 24);
+
+    if (minutes < 1) return "刚刚";
+    if (minutes < 60) return `${minutes}分钟前`;
+    if (hours < 24) return `${hours}小时前`;
+    if (days < 7) return `${days}天前`;
+    return date.toLocaleDateString("zh-CN");
+  };
 
   const getTypeIcon = (type: string) => {
     switch (type) {
-      case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />
-      case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />
-      case 'error':
-        return <AlertCircle className="w-5 h-5 text-red-500" />
-      case 'system':
-        return <Bell className="w-5 h-5 text-brand" />
+      case "success":
+        return <CheckCircle className="w-5 h-5 text-green-500" />;
+      case "warning":
+        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+      case "error":
+        return <AlertCircle className="w-5 h-5 text-red-500" />;
+      case "system":
+        return <Bell className="w-5 h-5 text-brand" />;
       default:
-        return <Info className="w-5 h-5 text-blue-500" />
+        return <Info className="w-5 h-5 text-blue-500" />;
     }
-  }
+  };
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'success':
-        return 'border-green-500/20'
-      case 'warning':
-        return 'border-yellow-500/20'
-      case 'error':
-        return 'border-red-500/20'
-      case 'system':
-        return 'border-brand/20'
+      case "success":
+        return "border-green-500/20";
+      case "warning":
+        return "border-yellow-500/20";
+      case "error":
+        return "border-red-500/20";
+      case "system":
+        return "border-brand/20";
       default:
-        return 'border-blue-500/20'
+        return "border-blue-500/20";
     }
-  }
+  };
 
-  const unreadCount = notifications.filter(n => !n.is_read).length
+  const unreadCount = notifications.filter((n) => !n.is_read).length;
 
   return (
     <div className="min-h-screen bg-black pt-20">
@@ -178,12 +200,13 @@ export default function NotificationCenterPage() {
                 </span>
               )}
             </h1>
-            <button
-              onClick={() => navigate('/profile')}
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/profile")}
               className="text-gray-400 hover:text-white transition-colors"
             >
               ← 返回个人中心
-            </button>
+            </Button>
           </div>
           <p className="text-gray-400 text-sm">
             查看所有系统通知、活动提醒和AI协作消息
@@ -192,22 +215,22 @@ export default function NotificationCenterPage() {
 
         {/* Filter Tabs */}
         <div className="flex flex-wrap gap-2 mb-6">
-          <button
-            onClick={() => setFilter('all')}
+          <Button
+            onClick={() => setFilter("all")}
             className={`px-4 py-2 rounded-[16px] text-sm font-medium transition-colors ${
-              filter === 'all'
-                ? 'bg-brand text-black'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              filter === "all"
+                ? "bg-brand text-black"
+                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
             }`}
           >
             全部通知
-          </button>
-          <button
-            onClick={() => setFilter('unread')}
+          </Button>
+          <Button
+            onClick={() => setFilter("unread")}
             className={`px-4 py-2 rounded-[16px] text-sm font-medium transition-colors ${
-              filter === 'unread'
-                ? 'bg-brand text-black'
-                : 'bg-gray-800 text-gray-300 hover:bg-gray-700'
+              filter === "unread"
+                ? "bg-brand text-black"
+                : "bg-gray-800 text-gray-300 hover:bg-gray-700"
             }`}
           >
             未读通知
@@ -216,85 +239,85 @@ export default function NotificationCenterPage() {
                 {unreadCount}
               </span>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Category Filter Tabs */}
         <div className="flex flex-wrap gap-2 mb-6 border-b border-gray-800 pb-2">
-          <button
-            onClick={() => setCategoryFilter('all')}
+          <Button
+            onClick={() => setCategoryFilter("all")}
             className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors ${
-              categoryFilter === 'all'
-                ? 'bg-white text-black'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              categoryFilter === "all"
+                ? "bg-white text-black"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             全部分类
-          </button>
-          <button
-            onClick={() => setCategoryFilter('activity')}
+          </Button>
+          <Button
+            onClick={() => setCategoryFilter("activity")}
             className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
-              categoryFilter === 'activity'
-                ? 'bg-[#FBBF24] text-black'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              categoryFilter === "activity"
+                ? "bg-[#FBBF24] text-black"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#FBBF24]"></span>
             活动提醒
-            {categoryCounts['activity'] > 0 && (
+            {categoryCounts["activity"] > 0 && (
               <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
-                {categoryCounts['activity']}
+                {categoryCounts["activity"]}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setCategoryFilter('system')}
+          </Button>
+          <Button
+            onClick={() => setCategoryFilter("system")}
             className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
-              categoryFilter === 'system'
-                ? 'bg-[#3B82F6] text-black'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              categoryFilter === "system"
+                ? "bg-[#3B82F6] text-black"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#3B82F6]"></span>
             系统公告
-            {categoryCounts['system'] > 0 && (
+            {categoryCounts["system"] > 0 && (
               <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
-                {categoryCounts['system']}
+                {categoryCounts["system"]}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setCategoryFilter('promotion')}
+          </Button>
+          <Button
+            onClick={() => setCategoryFilter("promotion")}
             className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
-              categoryFilter === 'promotion'
-                ? 'bg-[#10B981] text-black'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              categoryFilter === "promotion"
+                ? "bg-[#10B981] text-black"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-[#10B981]"></span>
             新活动推送
-            {categoryCounts['promotion'] > 0 && (
+            {categoryCounts["promotion"] > 0 && (
               <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
-                {categoryCounts['promotion']}
+                {categoryCounts["promotion"]}
               </span>
             )}
-          </button>
-          <button
-            onClick={() => setCategoryFilter('general')}
+          </Button>
+          <Button
+            onClick={() => setCategoryFilter("general")}
             className={`px-3 py-1.5 rounded-[16px] text-xs font-medium transition-colors flex items-center gap-2 ${
-              categoryFilter === 'general'
-                ? 'bg-gray-600 text-black'
-                : 'bg-gray-800 text-gray-400 hover:bg-gray-700'
+              categoryFilter === "general"
+                ? "bg-gray-600 text-black"
+                : "bg-gray-800 text-gray-400 hover:bg-gray-700"
             }`}
           >
             <span className="w-2 h-2 rounded-full bg-gray-600"></span>
             其他消息
-            {categoryCounts['general'] > 0 && (
+            {categoryCounts["general"] > 0 && (
               <span className="px-1.5 py-0.5 bg-black/30 rounded-[16px] text-[10px]">
-                {categoryCounts['general']}
+                {categoryCounts["general"]}
               </span>
             )}
-          </button>
+          </Button>
         </div>
 
         {/* Notifications List */}
@@ -306,7 +329,11 @@ export default function NotificationCenterPage() {
           <div className="space-y-3">
             <AnimatePresence mode="popLayout">
               {notifications
-                .filter(n => (filter === 'all' || !n.is_read) && (categoryFilter === 'all' || n.category === categoryFilter))
+                .filter(
+                  (n) =>
+                    (filter === "all" || !n.is_read) &&
+                    (categoryFilter === "all" || n.category === categoryFilter),
+                )
                 .map((notification) => (
                   <motion.div
                     key={notification.id}
@@ -321,43 +348,49 @@ export default function NotificationCenterPage() {
                       <div className="flex-shrink-0 mt-0.5">
                         {getTypeIcon(notification.type)}
                       </div>
-                      
+
                       {/* Content */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-2">
-                          <h3 className={`text-base font-semibold ${notification.is_read ? 'text-gray-400' : 'text-white'}`}>
+                          <h3
+                            className={`text-base font-semibold ${notification.is_read ? "text-gray-400" : "text-white"}`}
+                          >
                             {notification.title}
                           </h3>
                           <span className="text-[10px] text-gray-500 whitespace-nowrap ml-2">
                             {formatTime(notification.created_at)}
                           </span>
                         </div>
-                        
+
                         <p className="text-gray-400 text-sm mb-3 leading-relaxed">
                           {notification.content}
                         </p>
-                        
+
                         {/* Actions */}
                         <div className="flex items-center gap-3">
                           {!notification.is_read && (
-                            <button
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               onClick={() => markAsRead(notification.id)}
-                              className="text-xs text-brand hover:text-white transition-colors flex items-center gap-1"
+                              className="h-auto px-0 py-0 text-xs text-brand hover:text-white transition-colors flex items-center gap-1"
                             >
                               <CheckCircle className="w-3 h-3" />
                               标记已读
-                            </button>
+                            </Button>
                           )}
-                          <button
-                            onClick={() => deleteNotification(notification.id)}
-                            className="text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1"
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setDeleteTargetId(notification.id)}
+                            className="h-auto px-0 py-0 text-xs text-gray-500 hover:text-red-400 transition-colors flex items-center gap-1"
                           >
                             <Trash2 className="w-3 h-3" />
                             删除
-                          </button>
+                          </Button>
                         </div>
                       </div>
-                      
+
                       {/* Unread Dot */}
                       {!notification.is_read && (
                         <div className="absolute top-5 right-5 w-2 h-2 bg-brand rounded-full animate-pulse" />
@@ -366,7 +399,7 @@ export default function NotificationCenterPage() {
                   </motion.div>
                 ))}
             </AnimatePresence>
-            
+
             {notifications.length === 0 && (
               <div className="text-center py-20 text-gray-500">
                 <Bell className="w-16 h-16 mx-auto mb-4 opacity-20" />
@@ -380,15 +413,45 @@ export default function NotificationCenterPage() {
         {/* Empty State Actions */}
         {notifications.length > 0 && (
           <div className="mt-8 flex justify-center">
-            <button
+            <Button
+              variant="outline"
               onClick={markAllAsRead}
               className="px-6 py-2 border border-gray-700 text-gray-400 text-sm rounded-[16px] hover:text-white hover:border-gray-600 transition-colors"
             >
               标记全部已读
-            </button>
+            </Button>
           </div>
         )}
+
+        <AlertDialog
+          open={deleteTargetId !== null}
+          onOpenChange={(open) => !open && setDeleteTargetId(null)}
+        >
+          <AlertDialogContent className="bg-[#0A0A0A] border border-[#222222] text-white">
+            <AlertDialogHeader>
+              <AlertDialogTitle>删除通知</AlertDialogTitle>
+              <AlertDialogDescription className="text-gray-400">
+                确定要删除这条通知吗？此操作无法撤销。
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel className="border border-[#333] bg-transparent text-gray-300 hover:bg-white/5">
+                取消
+              </AlertDialogCancel>
+              <AlertDialogAction
+                className="bg-red-500 text-white hover:bg-red-600"
+                onClick={() => {
+                  if (deleteTargetId !== null)
+                    deleteNotification(deleteTargetId);
+                  setDeleteTargetId(null);
+                }}
+              >
+                删除
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
     </div>
-  )
+  );
 }

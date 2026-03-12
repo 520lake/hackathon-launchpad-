@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useLayoutEffect } from "react";
 import axios from "axios";
 import gsap from "gsap";
 import AIGenerateImageButton from "./AIGenerateImageButton";
+import { Button } from "@/components/ui/button";
 
 interface CreateHackathonModalProps {
   isOpen: boolean;
@@ -1589,31 +1590,33 @@ export default function CreateHackathonModal({
           </div>
           <div className="flex gap-4">
             {currentStep === 2 && (
-              <button
+              <Button
+                variant="outline"
                 onClick={handleBack}
                 className="px-6 py-3 border-2 border-brand/40 text-gray-400 hover:text-brand hover:border-brand hover:bg-brand/5 font-mono text-sm transition-all"
               >
                 {lang === "zh" ? "上一步" : "BACK"}
-              </button>
+              </Button>
             )}
 
             {currentStep === 1 ? (
-              <button
+              <Button
                 onClick={handleNext}
                 className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(212,163,115,0.3)] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.4)]"
               >
                 {lang === "zh" ? "下一步" : "NEXT STEP"}
-              </button>
+              </Button>
             ) : (
               <>
-                <button
+                <Button
+                  variant="outline"
                   onClick={() => handleSubmit("draft")}
                   disabled={loading}
                   className="px-6 py-3 border-2 border-brand text-brand font-black uppercase hover:bg-brand hover:text-black hover:scale-105 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-brand disabled:hover:scale-100"
                 >
                   {lang === "zh" ? "保存草稿" : "SAVE DRAFT"}
-                </button>
-                <button
+                </Button>
+                <Button
                   onClick={() => handleSubmit("published")}
                   disabled={loading}
                   className="px-8 py-3 bg-brand text-black font-black uppercase hover:bg-white hover:scale-105 transition-all shadow-[4px_4px_0px_0px_rgba(212,163,115,0.3)] hover:shadow-[2px_2px_0px_0px_rgba(255,255,255,0.4)] disabled:opacity-50 disabled:cursor-not-allowed"
@@ -1623,7 +1626,7 @@ export default function CreateHackathonModal({
                     : lang === "zh"
                       ? "发布活动"
                       : "PUBLISH"}
-                </button>
+                </Button>
               </>
             )}
           </div>

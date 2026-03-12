@@ -213,6 +213,11 @@ export default function EventDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   
+  // Join team confirmation
+  const [showJoinConfirm, setShowJoinConfirm] = useState(false)
+  const [joiningTeamId, setJoiningTeamId] = useState<number | null>(null)
+  const [joiningTeamName, setJoiningTeamName] = useState('')
+  
   // 判断当前用户是否为活动发起者
   const isOrganizer = hackathon?.organizer_id === currentUser?.id
   
@@ -282,17 +287,21 @@ export default function EventDetailPage() {
       })
       setEnrollment(res.data)
       
-      // Fetch my team
-      const teamRes = await axios.get(`/api/v1/teams/my?hackathon_id=${hackathonId}`, {
+      // Fetch my team - API returns list, find the one for this hackathon
+      const teamRes = await axios.get(`/api/v1/teams/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setMyTeam(teamRes.data)
+      // Filter teams for current hackathon
+      const myTeamsInHackathon = teamRes.data.filter((t: Team) => t.hackathon_id === parseInt(hackathonId || '0'))
+      setMyTeam(myTeamsInHackathon.length > 0 ? myTeamsInHackathon[0] : null)
       
-      // Fetch my project
-      const projRes = await axios.get(`/api/v1/projects/my?hackathon_id=${hackathonId}`, {
+      // Fetch my project - API returns list, get first one for this hackathon
+      const projRes = await axios.get(`/api/v1/projects/me`, {
         headers: { Authorization: `Bearer ${token}` }
       })
-      setMyProject(projRes.data)
+      // Filter projects for current hackathon (via team.hackathon_id)
+      const myProjectsInHackathon = projRes.data.filter((p: Project) => p.team?.hackathon_id === parseInt(hackathonId || '0'))
+      setMyProject(myProjectsInHackathon.length > 0 ? myProjectsInHackathon[0] : null)
     } catch (e) {
       console.error(e)
     }
@@ -319,14 +328,26 @@ export default function EventDetailPage() {
     }
   }
 
-  const handleJoinTeam = async (teamId: number) => {
+  const handleJoinTeamClick = (teamId: number, teamName: string) => {
+    setJoiningTeamId(teamId)
+    setJoiningTeamName(teamName)
+    setShowJoinConfirm(true)
+  }
+
+  const handleConfirmJoinTeam = async () => {
+    if (!joiningTeamId) return
+    
     try {
       const token = localStorage.getItem('token')
-      await axios.post(`/api/v1/teams/${teamId}/join`, {}, {
+      await axios.post(`/api/v1/teams/${joiningTeamId}/join`, {}, {
         headers: { Authorization: `Bearer ${token}` }
       })
+      setShowJoinConfirm(false)
+      setJoiningTeamId(null)
+      setJoiningTeamName('')
       fetchTeams()
       fetchEnrollment()
+      alert('加入战队成功！')
     } catch (e: any) {
       alert(e.response?.data?.detail || '加入失败')
     }
@@ -775,22 +796,22 @@ export default function EventDetailPage() {
                 <div className="space-y-8">
                   {/* 我的项目区域 - 仅登录用户可见 */}
                   {isLoggedIn && (
-                    <div className="border-b border-white/[0.08] pb-8">
+                    <div className="border-b border-zinc-800 pb-8">
                       <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-3">
                         <span className="w-5 h-[2px] bg-brand"></span>
                         我的项目
                       </h3>
                       {!myTeam && !myProject ? (
-                        <div className="border border-white/[0.08] p-6 rounded-[16px]">
+                        <div className="bg-zinc-900 border border-zinc-800 p-6 rounded-[24px]">
                           <div className="flex flex-col gap-4">
                             <div>
                               <p className="text-white text-sm font-medium">开始您的黑客松之旅</p>
-                              <p className="text-[12px] text-gray-600 mt-1">选择适合您的方式参与</p>
+                              <p className="text-[12px] text-zinc-500 mt-1">选择适合您的方式参与</p>
                             </div>
                             <div className="flex flex-wrap gap-3">
                               <button 
                                 onClick={handleCreatePersonalTeam}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[24px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
@@ -799,7 +820,7 @@ export default function EventDetailPage() {
                               </button>
                               <button 
                                 onClick={() => setIsCreateTeamOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-white/[0.15] text-white text-sm hover:bg-white hover:text-black transition-colors rounded-[16px]"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-800 border border-zinc-700 text-white text-sm hover:bg-zinc-700 transition-colors rounded-[24px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
@@ -808,7 +829,7 @@ export default function EventDetailPage() {
                               </button>
                               <button 
                                 onClick={() => setActiveTab('participants')}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-[16px]"
+                                className="flex items-center gap-2 px-5 py-2.5 bg-zinc-800 border border-brand/30 text-brand text-sm hover:bg-brand/10 transition-colors rounded-[24px]"
                               >
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -820,43 +841,146 @@ export default function EventDetailPage() {
                         </div>
                       ) : (
                         <div className="space-y-4">
-                          {/* 项目卡片 */}
-                          <div className="border border-white/[0.08] rounded-[16px]">
-                            <div className="flex">
-                              <div className="w-[3px] bg-brand" />
-                              <div className="flex-1 p-6">
-                                <div className="flex items-start gap-6">
-                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] rounded-[16px] flex items-center justify-center flex-shrink-0">
-                                    {myProject?.cover_image ? (
-                                      <img src={myProject.cover_image} className="w-full h-full object-cover" />
-                                    ) : (
-                                      <span className="text-2xl font-bold text-white/20">{(myProject?.title || '未命名')[0]}</span>
-                                    )}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-white mb-2">{myProject?.title || '未命名项目'}</h4>
-                                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">{myProject?.description || '暂无描述'}</p>
-                                    <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                      {myProject?.tech_stack && <span>技术栈: {myProject.tech_stack}</span>}
-                                      {myProject?.total_score && <span className="text-brand">得分: {myProject.total_score.toFixed(1)}</span>}
-                                      {myTeam && (
-                                        <span className="flex items-center gap-1">
-                                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
-                                          </svg>
-                                          {myTeam.name} ({myTeam.members?.length || 1}/{myTeam.max_members || '-'})
+                          {/* 战队信息卡片 */}
+                          {myTeam && (
+                            <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] overflow-hidden">
+                              <div className="p-5">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <div className="w-14 h-14 rounded-[20px] bg-gradient-to-br from-brand/20 to-brand/5 border border-brand/20 flex items-center justify-center">
+                                      <span className="text-xl font-bold text-brand">{myTeam.name[0].toUpperCase()}</span>
+                                    </div>
+                                    <div>
+                                      <div className="flex items-center gap-3 mb-1">
+                                        <h4 className="text-lg font-semibold text-white">{myTeam.name}</h4>
+                                        <span className={`px-2.5 py-0.5 text-[10px] rounded-full ${myTeam.max_members === 1 ? 'bg-zinc-800 text-zinc-400' : 'bg-brand/20 text-brand'}`}>
+                                          {myTeam.max_members === 1 ? '个人项目' : '团队项目'}
                                         </span>
-                                      )}
+                                      </div>
+                                      <p className="text-sm text-zinc-400">{myTeam.description || '暂无描述'}</p>
                                     </div>
                                   </div>
-                                  <button 
-                                    onClick={() => setIsSubmitOpen(true)}
-                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors rounded-[16px]"
-                                  >
-                                    编辑项目
-                                  </button>
+                                  {myTeam.max_members > 1 && (
+                                    <button 
+                                      onClick={() => setIsRecruitOpen(true)}
+                                      className="flex items-center gap-1.5 px-4 py-2 bg-brand/10 text-brand text-[12px] font-medium rounded-[24px] hover:bg-brand/20 transition-colors"
+                                    >
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                                      </svg>
+                                      招募成员
+                                    </button>
+                                  )}
                                 </div>
+                                
+                                {/* 成员统计 */}
+                                <div className="flex items-center gap-6 mt-4 pt-4 border-t border-zinc-800">
+                                  <div className="flex items-center gap-2 text-[12px] text-zinc-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                                    </svg>
+                                    <span>成员 {myTeam.members?.length || 1}/{myTeam.max_members || '-'}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2 text-[12px] text-zinc-400">
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    </svg>
+                                    <span>队长: {myTeam.members?.find(m => m.user_id === myTeam.leader_id)?.user?.nickname || '我'}</span>
+                                  </div>
+                                </div>
+                                
+                                {/* 成员列表 */}
+                                {myTeam.members && myTeam.members.length > 0 && (
+                                  <div className="mt-4">
+                                    <div className="flex flex-wrap gap-2">
+                                      {myTeam.members.map((member) => (
+                                        <div key={member.id} className="flex items-center gap-2 px-3 py-2 bg-zinc-800/50 rounded-xl border border-zinc-700/50">
+                                          <div className="w-7 h-7 rounded-full bg-zinc-700 flex items-center justify-center overflow-hidden">
+                                            {member.user?.avatar_url ? (
+                                              <img src={member.user.avatar_url} className="w-full h-full object-cover" />
+                                            ) : (
+                                              <span className="text-[11px] text-zinc-300">
+                                                {(member.user?.nickname || member.user?.full_name || '?')[0]}
+                                              </span>
+                                            )}
+                                          </div>
+                                          <span className="text-[12px] text-zinc-300">
+                                            {member.user?.nickname || member.user?.full_name || '成员'}
+                                          </span>
+                                          {member.user_id === myTeam.leader_id && (
+                                            <span className="text-[9px] px-1.5 py-0.5 bg-brand/20 text-brand rounded-full">队长</span>
+                                          )}
+                                        </div>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
                               </div>
+                            </div>
+                          )}
+
+                          {/* 项目卡片 */}
+                          <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] overflow-hidden">
+                            <div className="p-6">
+                              <div className="flex items-start gap-5">
+                                <div className="w-28 h-20 bg-zinc-800 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden border border-zinc-700">
+                                  {myProject?.cover_image ? (
+                                    <img src={myProject.cover_image} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <span className="text-2xl font-bold text-zinc-600">{(myProject?.title || '未命名')[0]}</span>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <h4 className="text-base font-semibold text-white mb-1 truncate">{myProject?.title || '未命名项目'}</h4>
+                                  <p className="text-sm text-zinc-400 mb-3 line-clamp-2">{myProject?.description || '暂无描述，点击编辑项目添加详情'}</p>
+                                  <div className="flex items-center gap-3 flex-wrap">
+                                    {myProject?.tech_stack && (
+                                      <span className="px-2.5 py-1 bg-zinc-800 text-zinc-400 text-[11px] rounded-lg border border-zinc-700">
+                                        {myProject.tech_stack}
+                                      </span>
+                                    )}
+                                    {myProject?.total_score ? (
+                                      <span className="flex items-center gap-1 px-2.5 py-1 bg-brand/10 text-brand text-[11px] rounded-lg border border-brand/20">
+                                        <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                                        </svg>
+                                        {myProject.total_score.toFixed(1)}分
+                                      </span>
+                                    ) : (
+                                      <span className="px-2.5 py-1 bg-zinc-800 text-zinc-500 text-[11px] rounded-lg border border-zinc-700">
+                                        待评审
+                                      </span>
+                                    )}
+                                  </div>
+                                </div>
+                                <button 
+                                  onClick={() => setIsSubmitOpen(true)}
+                                  className="flex items-center gap-2 px-4 py-2 bg-zinc-800 text-white text-[12px] font-medium rounded-[24px] hover:bg-zinc-700 transition-colors border border-zinc-700"
+                                >
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={myProject?.id ? "M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" : "M12 4v16m8-8H4"} />
+                                  </svg>
+                                  {myProject?.id ? '编辑项目' : '提交作品'}
+                                </button>
+                              </div>
+                              
+                              {/* 项目链接 */}
+                              {(myProject?.repo_url || myProject?.demo_url) && (
+                                <div className="flex items-center gap-3 mt-4 pt-4 border-t border-zinc-800">
+                                  {myProject?.repo_url && (
+                                    <a href={myProject.repo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700">
+                                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                                      代码仓库
+                                    </a>
+                                  )}
+                                  {myProject?.demo_url && (
+                                    <a href={myProject.demo_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1.5 px-3 py-1.5 bg-zinc-800 text-zinc-300 text-[11px] rounded-lg hover:bg-zinc-700 transition-colors border border-zinc-700">
+                                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/></svg>
+                                      演示链接
+                                    </a>
+                                  )}
+                                </div>
+                              )}
                             </div>
                           </div>
 
@@ -864,39 +988,39 @@ export default function EventDetailPage() {
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                             <button 
                               onClick={() => setIsAIAssistantOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-[24px] hover:bg-zinc-700 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                               </svg>
-                              <span className="text-sm text-white">AI 助手</span>
+                              <span className="text-sm text-zinc-300">AI 助手</span>
                             </button>
                             <button 
                               onClick={() => setIsTeamMatchOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-[24px] hover:bg-zinc-700 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
                               </svg>
-                              <span className="text-sm text-white">智能组队</span>
+                              <span className="text-sm text-zinc-300">智能组队</span>
                             </button>
                             <button 
                               onClick={() => setIsRecruitOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-[24px] hover:bg-zinc-700 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
                               </svg>
-                              <span className="text-sm text-white">发布招募</span>
+                              <span className="text-sm text-zinc-300">发布招募</span>
                             </button>
                             <button 
                               onClick={() => navigate('/community')}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                              className="flex items-center gap-2 px-4 py-3 bg-zinc-800 border border-zinc-700 rounded-[24px] hover:bg-zinc-700 transition-colors"
                             >
                               <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
                               </svg>
-                              <span className="text-sm text-white">招募大厅</span>
+                              <span className="text-sm text-zinc-300">招募大厅</span>
                             </button>
                           </div>
                         </div>
@@ -908,35 +1032,39 @@ export default function EventDetailPage() {
                   <div>
                     <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
                       <span className="w-5 h-[2px] bg-brand"></span>
-                      所有作品 <span className="text-[12px] text-gray-600 font-normal ml-2">{galleryProjects.length} 个</span>
+                      所有作品 <span className="text-[12px] text-zinc-500 font-normal ml-2">{galleryProjects.length} 个</span>
                     </h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       {galleryProjects.map(proj => (
-                        <div key={proj.id} className="group border border-white/[0.08] bg-black hover:border-brand/30 transition-all flex">
-                          <div className="w-[3px] bg-gray-700 group-hover:bg-brand transition-colors" />
-                          <div className="flex-1 p-4 flex gap-4">
-                            <div className="w-20 h-16 bg-white/[0.02] flex-shrink-0">
+                        <div key={proj.id} className="group bg-zinc-900 border border-zinc-800 rounded-[24px] overflow-hidden hover:border-brand/30 transition-all">
+                          <div className="p-4 flex gap-4">
+                            <div className="w-20 h-16 bg-zinc-800 rounded-2xl flex-shrink-0 overflow-hidden border border-zinc-700">
                               {proj.cover_image ? (
                                 <img src={proj.cover_image} className="w-full h-full object-cover" />
                               ) : (
-                                <div className="w-full h-full flex items-center justify-center text-white/20 font-bold">{proj.title[0]}</div>
+                                <div className="w-full h-full flex items-center justify-center text-zinc-600 font-bold text-lg">{proj.title[0]}</div>
                               )}
                             </div>
                             <div className="flex-1 min-w-0">
                               <h5 className="font-medium text-white text-sm mb-1 truncate group-hover:text-brand transition-colors">{proj.title}</h5>
-                              <p className="text-[12px] text-gray-500 line-clamp-1">{proj.description}</p>
-                              <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
-                                <span>{proj.team?.name}</span>
-                                {proj.total_score && <span className="text-brand">{proj.total_score.toFixed(1)}分</span>}
+                              <p className="text-[12px] text-zinc-500 line-clamp-1">{proj.description}</p>
+                              <div className="flex items-center gap-3 mt-2">
+                                <span className="text-[11px] text-zinc-600 bg-zinc-800/50 px-2 py-0.5 rounded-lg">{proj.team?.name}</span>
+                                {proj.total_score && (
+                                  <span className="flex items-center gap-1 text-[11px] text-brand">
+                                    <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+                                    {proj.total_score.toFixed(1)}
+                                  </span>
+                                )}
                               </div>
                             </div>
                           </div>
                         </div>
                       ))}
                       {galleryProjects.length === 0 && (
-                        <div className="col-span-2 text-center py-16 border border-white/[0.05]">
-                          <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">暂无作品</div>
-                          <p className="text-[12px] text-gray-500 mt-2">活动作品将在这里展示</p>
+                        <div className="col-span-2 text-center py-16 bg-zinc-900 border border-zinc-800 rounded-[24px]">
+                          <div className="text-[11px] tracking-[0.2em] text-zinc-600 uppercase">暂无作品</div>
+                          <p className="text-[12px] text-zinc-500 mt-2">活动作品将在这里展示</p>
                         </div>
                       )}
                     </div>
@@ -944,22 +1072,22 @@ export default function EventDetailPage() {
                 </div>
               )}
 
-              {/* PARTICIPANTS TAB - 参赛人员与组队 (List Row 布局) */}
+              {/* PARTICIPANTS TAB - 参赛人员与组队 */}
               {activeTab === 'participants' && (
                 <div className="space-y-8">
                   {/* 筛选条 */}
-                  <div className="flex items-center gap-4 pb-6 border-b border-[#222222]">
+                  <div className="flex items-center gap-4 pb-6 border-b border-zinc-800">
                     <div className="flex items-center gap-2">
-                      <span className="text-[11px] text-gray-500 uppercase tracking-wider">身份:</span>
+                      <span className="text-[11px] text-zinc-500 uppercase tracking-wider">身份:</span>
                       <div className="flex gap-1">
                         {[{key: 'all', label: '全部'}, {key: 'individual', label: '个人'}, {key: 'team', label: '团队'}].map(item => (
                           <button 
                             key={item.key}
                             onClick={() => setIdentityFilter(item.key as any)}
-                            className={`px-3 py-1.5 text-[11px] rounded-md transition-colors duration-200 ease-in-out ${
+                            className={`px-3 py-1.5 text-[11px] rounded-[24px] transition-colors duration-200 ease-in-out ${
                               identityFilter === item.key 
-                                ? 'bg-[#FBBF24] text-black font-medium' 
-                                : 'border border-[#222222] text-gray-500 hover:text-white hover:border-gray-600'
+                                ? 'bg-brand text-black font-medium' 
+                                : 'border border-zinc-700 text-zinc-400 hover:text-white hover:border-zinc-600'
                             }`}
                           >
                             {item.label}
@@ -973,14 +1101,14 @@ export default function EventDetailPage() {
                         value={locationSearch}
                         onChange={e => setLocationSearch(e.target.value)}
                         placeholder="搜索地点..."
-                        className="bg-transparent border border-[#222222] rounded-md px-3 py-1.5 text-[12px] text-white placeholder-gray-600 focus:border-[#FBBF24]/50 outline-none w-40 transition-colors duration-200"
+                        className="bg-zinc-900 border border-zinc-800 rounded-[24px] px-4 py-1.5 text-[12px] text-white placeholder-zinc-600 focus:border-brand/50 outline-none w-40 transition-colors duration-200"
                       />
                       <button 
                         onClick={() => {
                           setIdentityFilter('all')
                           setLocationSearch('')
                         }}
-                        className="text-[11px] text-gray-500 hover:text-[#FBBF24] transition-colors duration-200"
+                        className="text-[11px] text-zinc-500 hover:text-brand transition-colors duration-200"
                       >
                         重置
                       </button>
@@ -989,27 +1117,27 @@ export default function EventDetailPage() {
 
                   {/* 统计信息 */}
                   <div className="grid grid-cols-3 gap-4">
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">总参赛者</div>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-5">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">总参赛者</div>
                       <div className="text-2xl font-bold text-white">{participants.length}</div>
                     </div>
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">团队数</div>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-5">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">团队数</div>
                       <div className="text-2xl font-bold text-white">{teams.length}</div>
                     </div>
-                    <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl p-5">
-                      <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-1">招募中</div>
-                      <div className="text-2xl font-bold text-[#FBBF24]">{teams.filter(t => t.recruitments && t.recruitments.length > 0).length}</div>
+                    <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-5">
+                      <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-1">招募中</div>
+                      <div className="text-2xl font-bold text-brand">{teams.filter(t => t.recruitments && t.recruitments.length > 0).length}</div>
                     </div>
                   </div>
 
-                  {/* 团队列表 - List Row 布局 */}
-                  <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden">
-                    <div className="px-6 py-4 border-b border-[#222222]">
+                  {/* 团队列表 */}
+                  <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] overflow-hidden">
+                    <div className="px-6 py-4 border-b border-zinc-800">
                       <h4 className="text-sm font-medium text-white flex items-center gap-3">
-                        <span className="text-[#FBBF24] font-mono">//</span>
+                        <span className="text-brand font-mono">//</span>
                         团队 & 招募
-                        <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-md">{teams.length}</span>
+                        <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[11px] rounded-[24px]">{teams.length}</span>
                       </h4>
                     </div>
                     
@@ -1018,35 +1146,35 @@ export default function EventDetailPage() {
                         {teams.map((team, idx) => (
                           <div 
                             key={team.id} 
-                            className={`flex items-center gap-5 px-6 py-5 hover:bg-[#111111] transition-colors duration-200 ease-in-out cursor-pointer ${
-                              idx !== teams.length - 1 ? 'border-b border-[#222222]' : ''
+                            className={`flex items-center gap-5 px-6 py-5 hover:bg-zinc-800/50 transition-colors duration-200 ease-in-out cursor-pointer ${
+                              idx !== teams.length - 1 ? 'border-b border-zinc-800' : ''
                             }`}
                           >
                             {/* Avatar */}
-                            <div className="w-12 h-12 rounded-full bg-[#111111] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                            <div className="w-14 h-14 rounded-[20px] bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
                               {team.members?.[0]?.user?.avatar_url ? (
                                 <img src={team.members[0].user.avatar_url} className="w-full h-full object-cover" />
                               ) : (
-                                <span className="text-lg font-bold text-gray-500">{team.name[0].toUpperCase()}</span>
+                                <span className="text-xl font-bold text-zinc-500">{team.name[0].toUpperCase()}</span>
                               )}
                             </div>
 
                             {/* Info */}
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-3 mb-1">
-                                <h5 className="text-[14px] font-semibold text-white">{team.name}</h5>
+                                <h5 className="text-[14px] font-semibold text-white group-hover:text-brand transition-colors">{team.name}</h5>
                                 {team.recruitments && team.recruitments.length > 0 && (
-                                  <span className="px-2 py-0.5 text-[10px] bg-emerald-500/20 text-emerald-400 rounded-[16px]">招募中</span>
+                                  <span className="px-2 py-0.5 text-[10px] bg-brand/20 text-brand rounded-full border border-brand/20">招募中</span>
                                 )}
-                                <span className="text-[11px] text-gray-600 font-mono">{team.members?.length || 0}人</span>
+                                <span className="text-[11px] text-zinc-500 font-mono">{team.members?.length || 0}人</span>
                               </div>
-                              <p className="text-[12px] text-gray-500 truncate">{team.description || '暂无描述'}</p>
+                              <p className="text-[12px] text-zinc-400 truncate">{team.description || '暂无描述'}</p>
                             </div>
 
                             {/* Recruitment Tags */}
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {team.recruitments?.slice(0, 3).map(r => (
-                                <span key={r.id} className="px-2 py-1 text-[10px] border border-[#333] text-gray-400 rounded-[16px]">招{r.role}</span>
+                                <span key={r.id} className="px-2 py-1 text-[10px] bg-zinc-800 text-zinc-400 rounded-[24px] border border-zinc-700">招{r.role}</span>
                               ))}
                             </div>
 
@@ -1054,13 +1182,13 @@ export default function EventDetailPage() {
                             <div className="flex items-center gap-2 flex-shrink-0">
                               {!myTeam && enrollment && (
                                 <button 
-                                  onClick={(e) => { e.stopPropagation(); handleJoinTeam(team.id); }} 
-                                  className="px-3 py-1.5 text-[11px] bg-[#FBBF24] text-black font-medium rounded-[16px] hover:bg-white transition-colors duration-200"
+                                  onClick={(e) => { e.stopPropagation(); handleJoinTeamClick(team.id, team.name); }} 
+                                  className="px-3 py-1.5 text-[11px] bg-brand text-black font-medium rounded-[24px] hover:bg-white transition-colors duration-200"
                                 >
                                   + 加入
                                 </button>
                               )}
-                              <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-[16px] hover:text-white hover:border-gray-500 transition-colors duration-200">
+                              <button className="px-3 py-1.5 text-[11px] bg-zinc-800 text-zinc-300 rounded-[24px] hover:bg-zinc-700 transition-colors duration-200 border border-zinc-700">
                                 联系
                               </button>
                             </div>
@@ -1068,11 +1196,11 @@ export default function EventDetailPage() {
                         ))}
                       </div>
                     ) : (
-                      <div className="text-center py-12 text-gray-600 text-sm">暂无团队</div>
+                      <div className="text-center py-12 text-zinc-500 text-sm">暂无团队</div>
                     )}
                   </div>
 
-                  {/* 个人参赛者 - List Row 布局 */}
+                  {/* 个人参赛者 */}
                   {(() => {
                     // 从团队成员中提取所有已组队的 user_id
                     const teamMemberIds = new Set(
@@ -1080,12 +1208,12 @@ export default function EventDetailPage() {
                     )
                     const individualParticipants = participants.filter(p => !teamMemberIds.has(p.user_id))
                     return (
-                      <div className="bg-[#0A0A0A] border border-[#222222] rounded-xl overflow-hidden">
-                        <div className="px-6 py-4 border-b border-[#222222]">
+                      <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] overflow-hidden">
+                        <div className="px-6 py-4 border-b border-zinc-800">
                           <h4 className="text-sm font-medium text-white flex items-center gap-3">
-                            <span className="text-[#FBBF24] font-mono">//</span>
+                            <span className="text-brand font-mono">//</span>
                             个人参赛者
-                            <span className="px-2 py-0.5 bg-[#111111] text-gray-500 text-[11px] rounded-[16px]">{individualParticipants.length}</span>
+                            <span className="px-2 py-0.5 bg-zinc-800 text-zinc-400 text-[11px] rounded-[24px]">{individualParticipants.length}</span>
                           </h4>
                         </div>
                         
@@ -1094,51 +1222,51 @@ export default function EventDetailPage() {
                             {individualParticipants.map((p: any, idx: number) => (
                               <div 
                                 key={p.user_id} 
-                                className={`flex items-center gap-4 px-6 py-4 hover:bg-[#111111] transition-colors duration-200 ease-in-out ${
-                                  idx !== individualParticipants.length - 1 ? 'border-b border-[#222222]' : ''
+                                className={`flex items-center gap-4 px-6 py-4 hover:bg-zinc-800/50 transition-colors duration-200 ease-in-out ${
+                                  idx !== individualParticipants.length - 1 ? 'border-b border-zinc-800' : ''
                                 }`}
                               >
-                                {/* Avatar - 纯圆形 */}
-                                <div className="w-10 h-10 rounded-full bg-[#111111] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+                                {/* Avatar */}
+                                <div className="w-12 h-12 rounded-[20px] bg-zinc-800 border border-zinc-700 flex items-center justify-center flex-shrink-0 overflow-hidden">
                                   {p.avatar_url ? (
                                     <img src={p.avatar_url} className="w-full h-full object-cover" />
                                   ) : (
-                                    <span className="text-sm font-medium text-gray-500">{p.nickname?.[0] || '?'}</span>
+                                    <span className="text-lg font-medium text-zinc-400">{p.nickname?.[0] || '?'}</span>
                                   )}
                                 </div>
 
                                 {/* Info */}
                                 <div className="flex-1 min-w-0">
-                                  <div className="text-sm text-white">{p.nickname || '匿名'}</div>
-                                  <div className="text-[11px] text-gray-500">{p.bio || '个人参赛'}</div>
+                                  <div className="text-sm font-medium text-white mb-0.5">{p.nickname || '匿名'}</div>
+                                  <div className="text-[11px] text-zinc-400">{p.bio || '个人参赛'}</div>
                                 </div>
 
                                 {/* Skills */}
                                 {p.skills && p.skills.length > 0 && (
                                   <div className="flex items-center gap-1 flex-shrink-0">
                                     {p.skills.slice(0, 3).map((skill: string, i: number) => (
-                                      <span key={i} className="px-2 py-0.5 text-[10px] border border-[#333] text-gray-500 rounded-[16px]">{skill}</span>
+                                      <span key={i} className="px-2 py-0.5 text-[10px] bg-zinc-800 text-zinc-400 rounded-[24px] border border-zinc-700">{skill}</span>
                                     ))}
                                   </div>
                                 )}
 
                                 {/* Action */}
-                                <button className="px-3 py-1.5 text-[11px] border border-[#333] text-gray-400 rounded-md hover:text-white hover:border-gray-500 transition-colors duration-200 flex-shrink-0">
+                                <button className="px-3 py-1.5 text-[11px] bg-zinc-800 text-zinc-300 rounded-[24px] hover:bg-zinc-700 transition-colors duration-200 flex-shrink-0 border border-zinc-700">
                                   查看
                                 </button>
                               </div>
                             ))}
                           </div>
                         ) : (
-                          <div className="text-center py-12 text-gray-600 text-sm">暂无个人参赛者</div>
+                          <div className="text-center py-12 text-zinc-500 text-sm">暂无个人参赛者</div>
                         )}
                       </div>
                     )
                   })()}
 
                   {teams.length === 0 && participants.length === 0 && (
-                    <div className="text-center py-20 bg-[#0A0A0A] border border-[#222222] rounded-xl">
-                      <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">暂无参赛者</div>
+                    <div className="text-center py-20 bg-zinc-900 border border-zinc-800 rounded-[24px]">
+                      <div className="text-[11px] tracking-[0.2em] text-zinc-500 uppercase">暂无参赛者</div>
                     </div>
                   )}
                 </div>
@@ -1166,34 +1294,34 @@ export default function EventDetailPage() {
           <div className="hidden md:block w-72 flex-shrink-0" style={{ flexBasis: '25%' }}>
             <div className="sticky top-24 space-y-6">
               {/* 右侧边栏操作区 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6">
                 {!myTeam ? (
                   <>
                     <button 
                       onClick={() => setIsCreateTeamOpen(true)}
-                      className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-[16px] hover:bg-white transition-colors duration-200 mb-4"
+                      className="w-full py-3 bg-brand text-black font-bold rounded-[24px] hover:bg-white transition-colors duration-200 mb-4"
                     >
                       创建战队
                     </button>
-                    <p className="text-[11px] text-gray-500 text-center">创建战队后即可参与活动和提交作品</p>
+                    <p className="text-[11px] text-zinc-500 text-center">创建战队后即可参与活动和提交作品</p>
                   </>
                 ) : (
                   <>
                     <div className="text-center mb-4">
-                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-[11px] rounded-[16px]">
+                      <div className="inline-flex items-center gap-2 px-3 py-1.5 bg-brand/10 border border-brand/20 text-brand text-[11px] rounded-[24px]">
                         <span>✓</span> 已参与
                       </div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
                       <button 
                         onClick={() => setActiveTab('participants')}
-                        className="py-2 border border-white/10 text-[11px] text-white rounded-[16px] hover:bg-[#111111] transition-colors duration-200"
+                        className="py-2 border border-zinc-700 text-[11px] text-white rounded-[24px] hover:bg-zinc-800 transition-colors duration-200"
                       >
                         组队广场
                       </button>
                       <button 
                         onClick={() => setIsSubmitOpen(true)}
-                        className="py-2 bg-[#FBBF24] text-black text-[11px] font-medium rounded-[16px] hover:bg-white transition-colors duration-200"
+                        className="py-2 bg-brand text-black text-[11px] font-medium rounded-[24px] hover:bg-white transition-colors duration-200"
                       >
                         提交作品
                       </button>
@@ -1203,42 +1331,42 @@ export default function EventDetailPage() {
               </div>
 
               {/* 倒计时 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">活动倒计时</div>
+              <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-4">活动倒计时</div>
                 <CountdownTimer targetDate={hackathon.registration_end_date || hackathon.end_date} />
               </div>
 
               {/* 时间轴 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">时间轴</div>
-                <div className="space-y-4 relative pl-4 border-l border-[#222222]">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-[24px] p-6">
+                <div className="text-[10px] text-zinc-500 uppercase tracking-wider mb-4">时间轴</div>
+                <div className="space-y-4 relative pl-4 border-l border-zinc-800">
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
-                    <div className="text-[10px] text-[#FBBF24] font-mono mb-1">
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-brand rounded-full"></div>
+                    <div className="text-[10px] text-brand font-mono mb-1">
                       {hackathon.registration_start_date ? new Date(hackathon.registration_start_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
                     <div className="text-[12px] text-white">报名开启</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-zinc-600 rounded-full"></div>
+                    <div className="text-[10px] text-zinc-500 font-mono mb-1">
                       {hackathon.registration_end_date ? new Date(hackathon.registration_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
-                    <div className="text-[12px] text-gray-400">报名截止</div>
+                    <div className="text-[12px] text-zinc-400">报名截止</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-zinc-600 rounded-full"></div>
+                    <div className="text-[10px] text-zinc-500 font-mono mb-1">
                       {hackathon.submission_end_date ? new Date(hackathon.submission_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
-                    <div className="text-[12px] text-gray-400">提交截止</div>
+                    <div className="text-[12px] text-zinc-400">提交截止</div>
                   </div>
                   <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
+                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-zinc-600 rounded-full"></div>
+                    <div className="text-[10px] text-zinc-500 font-mono mb-1">
                       {hackathon.judging_end_date ? new Date(hackathon.judging_end_date).toLocaleDateString('zh-CN') : '待定'}
                     </div>
-                    <div className="text-[12px] text-gray-400">结果公布</div>
+                    <div className="text-[12px] text-zinc-400">结果公布</div>
                   </div>
                 </div>
               </div>
@@ -1358,12 +1486,12 @@ export default function EventDetailPage() {
                 <p className="text-sm text-gray-400">此操作不可撤销</p>
               </div>
             </div>
-            
+
             <p className="text-gray-300 mb-6 text-sm leading-relaxed">
               您确定要删除活动 <span className="text-white font-medium">"{hackathon?.title}"</span> 吗？
               删除后，所有相关数据（报名、团队、作品等）都将被永久删除。
             </p>
-            
+
             <div className="flex gap-3">
               <button
                 onClick={() => setShowDeleteConfirm(false)}
@@ -1385,6 +1513,45 @@ export default function EventDetailPage() {
                 ) : (
                   '确认删除'
                 )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Join Team Confirmation Modal */}
+      {showJoinConfirm && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#0A0A0A] border border-[#222222] rounded-[20px] max-w-md w-full p-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 rounded-full bg-brand/10 flex items-center justify-center">
+                <svg className="w-6 h-6 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                </svg>
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-white">确认加入战队</h3>
+                <p className="text-sm text-gray-400">加入后将可以参与该战队的项目</p>
+              </div>
+            </div>
+
+            <p className="text-gray-300 mb-6 text-sm leading-relaxed">
+              您确定要加入战队 <span className="text-brand font-medium">"{joiningTeamName}"</span> 吗？
+              加入后您将成为该战队的成员，可以共同开发项目。
+            </p>
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowJoinConfirm(false)}
+                className="flex-1 px-4 py-2.5 border border-[#333333] text-gray-300 rounded-[12px] hover:border-gray-500 hover:text-white transition-colors text-sm font-medium"
+              >
+                取消
+              </button>
+              <button
+                onClick={handleConfirmJoinTeam}
+                className="flex-1 px-4 py-2.5 bg-brand text-black rounded-[12px] hover:bg-white transition-colors text-sm font-medium font-semibold"
+              >
+                确认加入
               </button>
             </div>
           </div>

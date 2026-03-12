@@ -13,15 +13,26 @@ from app.models.enrollment import Enrollment, EnrollmentStatus
 router = APIRouter()
 
 @router.post("", response_model=TeamRead)
-def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate, hackathon_id: int, current_user: User = Depends(get_current_user)):
+def create_team(*, session: Session = Depends(get_session), team_in: TeamCreate, current_user: User = Depends(get_current_user)):
     """
     Create a team for a hackathon.
     """
+    hackathon_id = team_in.hackathon_id
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
+    
+    # Check if user already has a team in this hackathon
+    existing_team = session.exec(
+        select(Team).join(TeamMember).where(
+            Team.hackathon_id == hackathon_id,
+            TeamMember.user_id == current_user.id
+        )
+    ).first()
+    if existing_team:
+        raise HTTPException(status_code=400, detail="You already have a team in this hackathon")
         
-    team_data = team_in.dict()
+    team_data = team_in.dict(exclude={'hackathon_id'})
     team = Team(**team_data, hackathon_id=hackathon_id, leader_id=current_user.id)
     session.add(team)
     session.commit()

@@ -38,7 +38,8 @@ class TeamMemberReadWithUser(TeamMemberRead):
     user: Optional[UserRead] = None
 
 class TeamCreate(TeamBase):
-    pass
+    hackathon_id: int
+    max_members: Optional[int] = 5
 
 class TeamRead(TeamBase):
     id: int

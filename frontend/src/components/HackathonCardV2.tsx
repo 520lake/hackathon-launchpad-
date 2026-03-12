@@ -102,34 +102,9 @@ const STATUS_MAP: Record<
 // 图标组件
 // ============================================
 
-/**
- * 小圆形图标的通用容器
- * - 用于在彩色圆形背景中居中展示图形 / 字母
- */
-const CircularBadge = ({
-  children,
-  className = "",
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) => (
-  <div
-    className={`
-      inline-flex items-center justify-center
-      rounded-full
-      bg-gradient-to-br from-[#7367F0] via-[#9F7AEA] to-[#F472B6]
-      text-xs font-semibold text-white
-      shadow-[0_0_20px_rgba(115,103,240,0.45)]
-      ${className}
-    `}
-  >
-    {children}
-  </div>
-);
-
 const CalendarIcon = () => (
   <svg
-    className="w-4 h-4"
+    className="w-4 h-4 flex-shrink-0"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -145,7 +120,7 @@ const CalendarIcon = () => (
 
 const LocationIcon = () => (
   <svg
-    className="w-4 h-4"
+    className="w-4 h-4 flex-shrink-0"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -167,33 +142,20 @@ const LocationIcon = () => (
 
 const TrophyIcon = () => (
   <svg
-    className="w-4 h-4"
+    className="w-4 h-4 flex-shrink-0"
     fill="none"
     stroke="currentColor"
+    strokeWidth={1.5}
+    strokeLinecap="round"
+    strokeLinejoin="round"
     viewBox="0 0 24 24"
   >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7"
-    />
-  </svg>
-);
-
-const BuildingIcon = () => (
-  <svg
-    className="w-3 h-3"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-    />
+    <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+    <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+    <path d="M4 22h16" />
+    <path d="M10 14.66V17c0 .55-.47.98-.97 1.21C7.85 18.75 7 20.24 7 22" />
+    <path d="M14 14.66V17c0 .55.47.98.97 1.21C16.15 18.75 17 20.24 17 22" />
+    <path d="M18 2H6v7a6 6 0 0 0 12 0V2Z" />
   </svg>
 );
 
@@ -260,7 +222,7 @@ export default function HackathonCard({
       `}
     >
       {/* 内部三栏布局：与 Figma “Event Card” 结构一致 */}
-      <div className="flex flex-row items-center gap-5 px-5 py-4">
+      <div className="flex flex-row items-center gap-5 p-5">
         {/* ========== 左区：固定尺寸的缩略图方块 ========== */}
         <div className="flex-shrink-0">
           {/* 
@@ -304,25 +266,25 @@ export default function HackathonCard({
           </div>
 
           {/* 主标题：一行，字号和颜色参考设计稿 */}
-          <h3 className="text-[20px] font-normal text-white truncate">
+          <h3 className="text-[20px] font-normal text-white truncate leading-none">
             {data.title}
           </h3>
 
           {/* 活动简介：最多展示两行，颜色偏浅灰，减弱信息权重 */}
           {data.description && (
-            <p className="text-[14px] leading-[16px] text-[#ccc] line-clamp-2">
+            <p className="text-[14px] leading-[20px] text-[#ccc] line-clamp-2">
               {data.description}
             </p>
           )}
 
           {/* 主办方信息行：左边“主办方：”，中间为 logo 占位，右边是公司名称 */}
-          <div className="flex items-center gap-2 mt-1 text-[14px]">
+          <div className="flex items-center gap-2 text-[14px]">
             <span className="text-[#999]">主办方：</span>
             <div className="flex items-center gap-2">
-              <div className="h-[24px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
+              <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
                 <span className="text-[12px] text-[#666]">标志</span>
               </div>
-              <div className="h-6 w-px bg-[#333]" />
+              <div className="h-[20px] w-px bg-[#333]" />
               <span className="text-[14px] text-[#999] truncate">
                 {data.host.name || "公司名称"}
               </span>
@@ -330,8 +292,11 @@ export default function HackathonCard({
           </div>
         </div>
 
+        {/* 中区与右区之间的竖线分隔符，与 Figma 设计稿一致 */}
+        <div className="shrink-0 w-px h-[125px] bg-[#333]" />
+
         {/* ========== 右区：状态徽章 + 时间 / 地点 / 奖金信息 ========== */}
-        <div className="flex-shrink-0 w-[220px] flex flex-col gap-3 items-start">
+        <div className="flex-shrink-0 w-[190px] min-w-0 flex flex-col gap-3 items-start overflow-hidden">
           {/* 状态胶囊：颜色根据状态映射配置来确定 */}
           <span
             className={`
@@ -348,21 +313,21 @@ export default function HackathonCard({
           </span>
 
           {/* 时间 */}
-          <div className="flex items-center gap-2 text-[14px] text-[#ccc]">
+          <div className="flex items-center gap-2 text-[14px] text-[#ccc] max-w-full">
             <CalendarIcon />
-            <span className="truncate">{data.dateRange}</span>
+            <span className="truncate min-w-0">{data.dateRange}</span>
           </div>
 
-          {/* 地点 */}
-          <div className="flex items-center gap-2 text-[12px] text-[#ccc]">
+          {/* 地点 — Figma 中地点文字为 12px，比其他信息行稍小 */}
+          <div className="flex items-center gap-2 text-[12px] text-[#ccc] max-w-full">
             <LocationIcon />
-            <span className="truncate">{data.location}</span>
+            <span className="truncate min-w-0">{data.location}</span>
           </div>
 
           {/* 奖金信息 */}
-          <div className="flex items-center gap-2 text-[14px] text-[#ccc]">
+          <div className="flex items-center gap-2 text-[14px] text-[#ccc] max-w-full">
             <TrophyIcon />
-            <span className="truncate">{data.prizeText}</span>
+            <span className="truncate min-w-0">{data.prizeText}</span>
           </div>
         </div>
       </div>

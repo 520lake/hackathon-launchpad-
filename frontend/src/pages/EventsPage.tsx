@@ -14,6 +14,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import MultipleSelector, {
+  type Option,
+} from "@/components/ui/multiple-selector";
+import { Checkbox } from "@/components/ui/checkbox";
+import { RotateCcw } from "lucide-react";
 
 interface Hackathon {
   id: number;
@@ -38,33 +43,22 @@ interface OutletContextType {
   currentUser: any;
 }
 
-const XIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={2}
-      d="M6 18L18 6M6 6l12 12"
-    />
-  </svg>
-);
+// 格式化日期范围：同年 "YYYY.M.D - M.D"，跨年 "YYYY.M.D - YYYY.M.D"，无前导零
+const formatDateRange = (startStr: string, endStr: string) => {
+  if (!startStr || !endStr) return "待定";
+  const start = new Date(startStr);
+  const end = new Date(endStr);
+  const sy = start.getFullYear();
+  const sm = start.getMonth() + 1;
+  const sd = start.getDate();
+  const ey = end.getFullYear();
+  const em = end.getMonth() + 1;
+  const ed = end.getDate();
 
-// 格式化日期
-const formatDate = (dateStr: string) => {
-  if (!dateStr) return "待定";
-  const date = new Date(dateStr);
-  return date
-    .toLocaleDateString("zh-CN", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    })
-    .replace("/", ".");
+  if (sy === ey) {
+    return `${sy}.${sm}.${sd} - ${em}.${ed}`;
+  }
+  return `${sy}.${sm}.${sd} - ${ey}.${em}.${ed}`;
 };
 
 // 解析奖金
@@ -115,7 +109,7 @@ const MOCK_DATA: HackathonCardData[] = [
     host: { name: "Aurathon 官方", logo: "" },
     tags: ["AI", "机器学习", "创新赛"],
     status: "ongoing",
-    dateRange: "2026.01.15 - 2026.03.01",
+    dateRange: "2026.1.15 - 3.1",
     location: "线上 + 上海市",
     prizeText: "¥ 50万 + GPU 算力支持 + 投资机会",
   },
@@ -127,7 +121,7 @@ const MOCK_DATA: HackathonCardData[] = [
     host: { name: "Blockchain Labs", logo: "" },
     tags: ["Web3", "区块链", "DeFi"],
     status: "published",
-    dateRange: "2026.03.01 - 2026.03.15",
+    dateRange: "2026.3.1 - 3.15",
     location: "线上",
     prizeText: "¥ 20万 + 代币激励",
   },
@@ -144,10 +138,8 @@ export default function EventsPage() {
 
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
-  // Radix Select does not allow empty string values for items.
-  // Use "all" as a sentinel for "no filter".
-  const [locationFilter, setLocationFilter] = useState<"all" | string>("all");
-  const [tagFilter, setTagFilter] = useState<"all" | string>("all");
+  const [locationFilters, setLocationFilters] = useState<Option[]>([]);
+  const [tagFilters, setTagFilters] = useState<Option[]>([]);
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
@@ -195,7 +187,7 @@ export default function EventsPage() {
           .filter(Boolean)
           .slice(0, 3) || [],
       status: hackathon.status,
-      dateRange: `${formatDate(hackathon.start_date)} - ${formatDate(hackathon.end_date)}`,
+      dateRange: formatDateRange(hackathon.start_date, hackathon.end_date),
       location: hackathon.location || "线上",
       prizeText: parseAwards(hackathon.awards_detail),
       isOrganizer, // 添加标识，用于卡片显示
@@ -211,7 +203,7 @@ export default function EventsPage() {
   };
 
   // 从所有活动中提取唯一标签和地点
-  const allTags = useMemo(
+  const allTags: Option[] = useMemo(
     () =>
       Array.from(
         new Set(
@@ -223,15 +215,15 @@ export default function EventsPage() {
                 .filter(Boolean) || [],
           ),
         ),
-      ),
+      ).map((tag) => ({ value: tag, label: tag })),
     [hackathons],
   );
 
-  const allLocations = useMemo(
+  const allLocations: Option[] = useMemo(
     () =>
       Array.from(
         new Set(hackathons.map((h) => h.location).filter(Boolean) as string[]),
-      ),
+      ).map((loc) => ({ value: loc, label: loc })),
     [hackathons],
   );
 
@@ -248,9 +240,11 @@ export default function EventsPage() {
       const matchesType =
         typeFilters.length === 0 || typeFilters.includes(h.format || "offline");
       const matchesLocation =
-        locationFilter === "all" || h.location?.includes(locationFilter);
+        locationFilters.length === 0 ||
+        locationFilters.some((f) => h.location?.includes(f.value));
       const matchesTag =
-        tagFilter === "all" || h.theme_tags?.includes(tagFilter);
+        tagFilters.length === 0 ||
+        tagFilters.some((f) => h.theme_tags?.includes(f.value));
 
       return (
         matchesSearch &&
@@ -299,8 +293,8 @@ export default function EventsPage() {
     searchQuery,
     statusFilters,
     typeFilters,
-    locationFilter,
-    tagFilter,
+    locationFilters,
+    tagFilters,
     sortBy,
   ]);
 
@@ -317,8 +311,8 @@ export default function EventsPage() {
     setSearchQuery("");
     setStatusFilters([]);
     setTypeFilters([]);
-    setLocationFilter("all");
-    setTagFilter("all");
+    setLocationFilters([]);
+    setTagFilters([]);
   };
 
   // 状态选项
@@ -379,7 +373,7 @@ export default function EventsPage() {
               onClick={() => navigate("/")}
             >
               <svg
-                className="w-4 h-4 mr-1"
+                className="w-4 h-4 mr-1 flex-shrink-0"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -418,12 +412,26 @@ export default function EventsPage() {
           {/* 左侧筛选侧边栏 */}
           <div className="w-64 flex-shrink-0">
             <div className="sticky top-8 rounded-2xl bg-[#050505] border border-[#262626] px-5 py-6">
-              {/* 筛选标题 */}
+              {/* 筛选标题 + 重置按钮（无筛选时隐藏但保留占位，避免布局跳动） */}
               <div className="flex items-center justify-between mb-6 text-sm">
                 <span className="font-medium text-white">筛选</span>
-                <span className="text-xs text-muted-foreground">
-                  共 {cardDataList.length} 个结果
-                </span>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={`h-6 px-2 text-xs text-muted-foreground hover:text-white transition-opacity ${
+                    searchQuery ||
+                    statusFilters.length > 0 ||
+                    typeFilters.length > 0 ||
+                    locationFilters.length > 0 ||
+                    tagFilters.length > 0
+                      ? "opacity-100"
+                      : "opacity-0 pointer-events-none"
+                  }`}
+                  onClick={clearFilters}
+                >
+                  <RotateCcw className="w-3 h-3 mr-1 flex-shrink-0" />
+                  重置
+                </Button>
               </div>
 
               {/* 状态筛选 */}
@@ -432,45 +440,46 @@ export default function EventsPage() {
                   状态
                 </h3>
                 <div className="space-y-2">
-                  {statusOptions.map((option) => (
-                    <label
-                      key={option.value}
-                      className="flex items-center gap-3 cursor-pointer group"
-                    >
+                  {statusOptions.map((option) => {
+                    const isChecked = statusFilters.includes(option.value);
+                    return (
                       <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                          statusFilters.includes(option.value)
-                            ? `${option.bgColor} ${option.borderColor}`
-                            : "border-gray-600 group-hover:border-gray-500"
-                        }`}
+                        key={option.value}
+                        className="flex items-center gap-3 cursor-pointer"
+                        onClick={() =>
+                          setStatusFilters((prev) =>
+                            isChecked
+                              ? prev.filter((v) => v !== option.value)
+                              : [...prev, option.value],
+                          )
+                        }
                       >
-                        {statusFilters.includes(option.value) && (
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
+                        {/* Shadcn Checkbox — Radix-based, fully accessible */}
+                        <Checkbox
+                          id={`status-${option.value}`}
+                          checked={isChecked}
+                          onCheckedChange={() =>
+                            setStatusFilters((prev) =>
+                              isChecked
+                                ? prev.filter((v) => v !== option.value)
+                                : [...prev, option.value],
+                            )
+                          }
+                          className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <label
+                          htmlFor={`status-${option.value}`}
+                          className={`text-sm px-2 py-0.5 rounded-full cursor-pointer ${
+                            isChecked
+                              ? `${option.textColor} ${option.bgLight}`
+                              : "text-gray-400"
+                          }`}
+                        >
+                          {option.label}
+                        </label>
                       </div>
-                      <span
-                        className={`text-sm px-2 py-0.5 rounded-full ${
-                          statusFilters.includes(option.value)
-                            ? `${option.textColor} ${option.bgLight}`
-                            : "text-gray-400"
-                        }`}
-                      >
-                        {option.label}
-                      </span>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
@@ -480,128 +489,136 @@ export default function EventsPage() {
                   活动类型
                 </h3>
                 <div className="space-y-2">
-                  {["线下", "线上", "混合"].map((type) => (
-                    <label
-                      key={type}
-                      className="flex items-center gap-3 cursor-pointer group"
-                    >
+                  {["线下", "线上", "混合"].map((type) => {
+                    const isChecked = typeFilters.includes(type);
+                    return (
                       <div
-                        className={`w-4 h-4 rounded border flex items-center justify-center transition-colors ${
-                          typeFilters.includes(type)
-                            ? "bg-purple-500 border-purple-500"
-                            : "border-gray-600 group-hover:border-gray-500"
-                        }`}
+                        key={type}
+                        className="flex items-center gap-3 cursor-pointer"
+                        onClick={() =>
+                          setTypeFilters((prev) =>
+                            isChecked
+                              ? prev.filter((v) => v !== type)
+                              : [...prev, type],
+                          )
+                        }
                       >
-                        {typeFilters.includes(type) && (
-                          <svg
-                            className="w-3 h-3 text-white"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={3}
-                              d="M5 13l4 4L19 7"
-                            />
-                          </svg>
-                        )}
+                        {/* Shadcn Checkbox — Radix-based, fully accessible */}
+                        <Checkbox
+                          id={`type-${type}`}
+                          checked={isChecked}
+                          onCheckedChange={() =>
+                            setTypeFilters((prev) =>
+                              isChecked
+                                ? prev.filter((v) => v !== type)
+                                : [...prev, type],
+                            )
+                          }
+                          className="border-gray-600 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+                        />
+                        <label
+                          htmlFor={`type-${type}`}
+                          className="text-sm text-gray-400 cursor-pointer"
+                        >
+                          {type}
+                        </label>
                       </div>
-                      <span className="text-sm text-gray-400">{type}</span>
-                    </label>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
 
-              {/* 地点下拉 */}
+              {/* 地点下拉 - 多选 */}
               <div className="mb-6">
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
                   地点
                 </h3>
-                <div className="relative">
-                  <Select
-                    value={locationFilter}
-                    onValueChange={setLocationFilter}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择地点" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">选择地点</SelectItem>
-                      {allLocations.map((loc) => (
-                        <SelectItem key={loc} value={loc}>
-                          {loc}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <MultipleSelector
+                  value={locationFilters}
+                  onChange={setLocationFilters}
+                  defaultOptions={allLocations}
+                  options={allLocations}
+                  placeholder="选择地点"
+                  hidePlaceholderWhenSelected
+                  emptyIndicator={
+                    <p className="text-center text-sm text-muted-foreground">
+                      无匹配地点
+                    </p>
+                  }
+                  className="border-[#262626] bg-transparent text-sm"
+                  badgeClassName="bg-[#2a2a2a] text-gray-300 border-none text-[10px]"
+                />
               </div>
 
-              {/* 标签下拉 */}
+              {/* 标签下拉 - 多选 */}
               <div>
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
                   标签
                 </h3>
-                <div className="relative">
-                  <Select value={tagFilter} onValueChange={setTagFilter}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="选择标签" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">选择标签</SelectItem>
-                      {allTags.map((tag) => (
-                        <SelectItem key={tag} value={tag}>
-                          {tag}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                <MultipleSelector
+                  value={tagFilters}
+                  onChange={setTagFilters}
+                  defaultOptions={allTags}
+                  options={allTags}
+                  placeholder="选择标签"
+                  hidePlaceholderWhenSelected
+                  emptyIndicator={
+                    <p className="text-center text-sm text-muted-foreground">
+                      无匹配标签
+                    </p>
+                  }
+                  className="border-[#262626] bg-transparent text-sm"
+                  badgeClassName="bg-[#2a2a2a] text-gray-300 border-none text-[10px]"
+                />
               </div>
             </div>
           </div>
 
           {/* 右侧活动列表区 */}
           <div className="flex-1 min-w-0">
-            {/* 顶部控制条：右上角搜索 + 排序按钮区域 */}
-            <div className="flex items-center justify-end mb-6 gap-4">
-              {/* 搜索框带图标，贴合设计中的搜索输入 */}
-              <div className="relative w-[260px]">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
-                  />
-                </svg>
-                <Input
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="搜索黑客松活动..."
-                  className="pl-9 h-9 bg-[#111111] border-[#262626] text-sm"
-                />
-              </div>
+            {/* 顶部控制条：左侧结果数 + 右侧搜索和排序 */}
+            <div className="flex items-center justify-between mb-6 gap-4">
+              <span className="text-sm text-muted-foreground whitespace-nowrap">
+                共 {cardDataList.length} 个结果
+              </span>
 
-              {/* 排序下拉，模拟 Figma 中的“方向排序”按钮形态 */}
-              <Select value={sortBy} onValueChange={setSortBy}>
-                <SelectTrigger className="w-[120px] h-9 bg-[#111111] border-[#262626] text-xs text-muted-foreground">
-                  <SelectValue placeholder="排序" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="recommended">为你推荐</SelectItem>
-                  <SelectItem value="latest">最新发布</SelectItem>
-                  <SelectItem value="deadline">即将截止</SelectItem>
-                  <SelectItem value="all">不过滤</SelectItem>
-                </SelectContent>
-              </Select>
+              <div className="flex items-center gap-3">
+                {/* 搜索框带图标 */}
+                <div className="relative w-[260px]">
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex-shrink-0 text-muted-foreground"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M21 21l-4.35-4.35M11 18a7 7 0 100-14 7 7 0 000 14z"
+                    />
+                  </svg>
+                  <Input
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    placeholder="搜索黑客松活动..."
+                    className="pl-9 h-8 bg-[#111111] border-[#262626] text-sm"
+                  />
+                </div>
+
+                {/* 排序下拉 */}
+                <Select value={sortBy} onValueChange={setSortBy}>
+                  <SelectTrigger className="w-[120px] h-8 bg-[#111111] border-[#262626] text-sm text-muted-foreground">
+                    <SelectValue placeholder="排序" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="recommended">为你推荐</SelectItem>
+                    <SelectItem value="latest">最新发布</SelectItem>
+                    <SelectItem value="deadline">即将截止</SelectItem>
+                    <SelectItem value="all">不过滤</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
 
             {/* 页面切换加载遮罩 */}

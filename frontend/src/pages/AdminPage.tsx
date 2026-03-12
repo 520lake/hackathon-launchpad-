@@ -153,7 +153,7 @@ export default function AdminPage() {
 
   return (
     <div className="min-h-screen bg-black pt-20">
-      <div className="max-w-6xl mx-auto px-6 py-8">
+      <div className="max-w-7xl mx-auto px-6 py-8">
         {authError && (
           <div className="mb-4 rounded border border-red-500/40 bg-red-500/10 px-4 py-2 text-sm text-red-400">
             {authError}

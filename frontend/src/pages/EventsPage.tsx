@@ -362,8 +362,8 @@ export default function EventsPage() {
   return (
     <div className="min-h-screen bg-[#050505] text-foreground">
       {/* 页面头部：与 Figma 中的“// 探索网络”主标题区域对齐 */}
-      <div className="px-8 pt-10 pb-6">
-        <div className="max-w-6xl mx-auto">
+      <div className="px-6 pt-10 pb-6">
+        <div className="max-w-7xl mx-auto">
           {/* 返回导航保持在左上角，便于用户回到首页 */}
           <div className="flex items-center gap-4 mb-5 text-sm text-muted-foreground">
             <Button
@@ -407,8 +407,8 @@ export default function EventsPage() {
       </div>
 
       {/* 主视图结构：左侧筛选 + 右侧活动列表，与 Figma 中的两栏布局一致 */}
-      <div className="px-8 pb-12">
-        <div className="max-w-6xl mx-auto flex gap-10">
+      <div className="px-6 pb-12">
+        <div className="max-w-7xl mx-auto flex gap-10">
           {/* 左侧筛选侧边栏 */}
           <div className="w-64 flex-shrink-0">
             <div className="sticky top-8 rounded-2xl bg-[#050505] border border-[#262626] px-5 py-6">

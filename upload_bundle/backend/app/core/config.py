@@ -44,14 +44,14 @@ class Settings(BaseSettings):
     WECHAT_APP_SECRET: str = "wx_test_secret"
     WECHAT_TOKEN: str = "vibebuild_token"
 
-    # ModelScope AI
-    MODELSCOPE_API_KEY: str = "ms-0767c073-e36b-4ad9-af59-eeb9e4889c16"
+    # ModelScope AI — set keys via environment variables or .env file
+    MODELSCOPE_API_KEY: str = ""
     MODELSCOPE_BASE_URL: str = "https://api-inference.modelscope.cn/v1"
     MODELSCOPE_MODEL_NAME: str = "Qwen/Qwen2.5-72B-Instruct"
 
     # DeepSeek AI (Optional)
     USE_DEEPSEEK: bool = True
-    DEEPSEEK_API_KEY: str = "sk-f6d2ee81c3b9426e94f8254c874489d4"
+    DEEPSEEK_API_KEY: str = ""
     DEEPSEEK_BASE_URL: str = "https://api.deepseek.com"
     DEEPSEEK_MODEL_NAME: str = "deepseek-chat"
 

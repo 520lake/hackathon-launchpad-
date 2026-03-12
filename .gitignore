@@ -31,6 +31,14 @@ backend/uploads/
 *.swp
 *.swo
 
+# Deploy artifacts — never commit .env files with real secrets
+deploy_temp/**/.env
+deploy_temp/**/.env.*
+deploy_bundle/**/.env
+deploy_bundle/**/.env.*
+upload_bundle/**/.env
+upload_bundle/**/.env.*
+
 # OS
 .DS_Store
 Thumbs.db

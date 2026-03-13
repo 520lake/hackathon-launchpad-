@@ -31,6 +31,12 @@ backend/uploads/
 *.swp
 *.swo
 
+# Root .env — contains local database paths and secrets
+.env
+
+# Database
+vibebuild.db
+
 # Deploy artifacts — never commit .env files with real secrets
 deploy_temp/**/.env
 deploy_temp/**/.env.*

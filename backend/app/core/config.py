@@ -72,7 +72,7 @@ class Settings(BaseSettings):
 
     class Config:
         case_sensitive = True
-        env_file = ".env"
+        env_file = "../.env"
 
 settings = Settings()
 # [ModelScope Compatibility] FORCE the key to be this string for demo stability. 

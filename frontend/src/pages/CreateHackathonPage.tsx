@@ -22,11 +22,20 @@ import {
   Loader2,
   Upload,
   Image as ImageIcon,
+  GripVertical,
+  Pencil,
 } from "lucide-react";
 import AIGenerateImageButton from "../components/AIGenerateImageButton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
 
 interface OutletContextType {
   isLoggedIn: boolean;
@@ -61,6 +70,11 @@ interface FormData {
   timeline: TimelinePhase[];
   criteria: CriteriaDimension[];
   awards: AwardItem[];
+}
+
+interface HostItem {
+  name: string;
+  logo?: string;
 }
 
 interface AICommandState {
@@ -113,7 +127,7 @@ export default function CreateHackathonPage() {
   // UI State
   const [format, setFormat] = useState<"online" | "offline">("online");
   const [location, setLocation] = useState("");
-  const [organizerName, setOrganizerName] = useState("");
+  const [hosts, setHosts] = useState<HostItem[]>([]);
   const [coverImage, setCoverImage] = useState("");
   const [aiCommand, setAiCommand] = useState<AICommandState>({
     isGenerating: false,
@@ -124,6 +138,18 @@ export default function CreateHackathonPage() {
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Host dialog state — editingHostIndex tracks which host is being edited;
+  // null means the dialog is in "add new host" mode
+  const [hostDialogOpen, setHostDialogOpen] = useState(false);
+  const [newHostName, setNewHostName] = useState("");
+  const [newHostLogo, setNewHostLogo] = useState("");
+  const [hostLogoUploading, setHostLogoUploading] = useState(false);
+  const hostLogoInputRef = useRef<HTMLInputElement>(null);
+  const [editingHostIndex, setEditingHostIndex] = useState<number | null>(null);
+
+  // Drag-reorder state for the hosts list
+  const dragIndexRef = useRef<number | null>(null);
 
   // Refs for animations
   const cmdInputRef = useRef<HTMLInputElement>(null);
@@ -171,7 +197,14 @@ export default function CreateHackathonPage() {
       });
       setFormat(data.format || "online");
       setLocation(data.location || "");
-      setOrganizerName(data.organizer_name || "");
+      // Load hosts from the backend response (now included in hackathon GET)
+      if (data.hosts && data.hosts.length > 0) {
+        setHosts(
+          data.hosts.map((h: any) => ({ name: h.name, logo: h.logo || "" })),
+        );
+      } else if (data.organizer_name) {
+        setHosts([{ name: data.organizer_name }]);
+      }
       setCoverImage(data.cover_image || "");
     } catch (e) {
       console.error(e);
@@ -357,7 +390,93 @@ export default function CreateHackathonPage() {
     }));
   };
 
-  // Image Upload Handler
+  // ---- Host management helpers ----
+
+  const handleHostLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      setError("请上传图片文件");
+      return;
+    }
+    if (file.size > 500 * 1024) {
+      setError("主办方 Logo 大小不能超过 500 KB");
+      return;
+    }
+    setHostLogoUploading(true);
+    setError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await axios.post("/api/v1/upload/image", fd, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+      setNewHostLogo(res.data.url);
+    } catch {
+      setError("Logo 上传失败");
+    } finally {
+      setHostLogoUploading(false);
+    }
+  };
+
+  // Opens the dialog pre-populated with an existing host's data for editing
+  const openEditHostDialog = (idx: number) => {
+    const host = hosts[idx];
+    setEditingHostIndex(idx);
+    setNewHostName(host.name);
+    setNewHostLogo(host.logo || "");
+    setHostDialogOpen(true);
+  };
+
+  // Handles both adding a new host and saving edits to an existing one
+  const confirmAddHost = () => {
+    if (!newHostName.trim()) return;
+
+    if (editingHostIndex !== null) {
+      setHosts((prev) =>
+        prev.map((h, i) =>
+          i === editingHostIndex
+            ? { name: newHostName.trim(), logo: newHostLogo || undefined }
+            : h,
+        ),
+      );
+    } else {
+      setHosts((prev) => [
+        ...prev,
+        { name: newHostName.trim(), logo: newHostLogo || undefined },
+      ]);
+    }
+
+    setNewHostName("");
+    setNewHostLogo("");
+    setEditingHostIndex(null);
+    setHostDialogOpen(false);
+  };
+
+  const removeHost = (idx: number) => {
+    setHosts((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  // HTML5 drag-and-drop reorder handlers
+  const handleHostDragStart = (idx: number) => {
+    dragIndexRef.current = idx;
+  };
+
+  const handleHostDragOver = (e: React.DragEvent, idx: number) => {
+    e.preventDefault();
+    if (dragIndexRef.current === null || dragIndexRef.current === idx) return;
+    setHosts((prev) => {
+      const updated = [...prev];
+      const [removed] = updated.splice(dragIndexRef.current!, 1);
+      updated.splice(idx, 0, removed);
+      dragIndexRef.current = idx;
+      return updated;
+    });
+  };
+
+  const handleHostDragEnd = () => {
+    dragIndexRef.current = null;
+  };
+
+  // ---- Image Upload Handler ----
   const handleImageUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
       setError("请上传图片文件");
@@ -416,13 +535,16 @@ export default function CreateHackathonPage() {
       setError("请填写活动描述");
       return;
     }
+    if (hosts.length === 0) {
+      setError("请至少添加一个主办方");
+      return;
+    }
 
     setLoading(true);
     try {
       const token = localStorage.getItem("token");
 
-      // 计算日期 - 处理空timeline的情况
-      let days = 30; // 默认30天
+      let days = 30;
       if (formData.timeline && formData.timeline.length > 0) {
         const dates = formData.timeline
           .map((t) => {
@@ -439,6 +561,7 @@ export default function CreateHackathonPage() {
         Date.now() + days * 24 * 60 * 60 * 1000,
       ).toISOString();
 
+      // Use the first host's name as organizer_name for backward compatibility
       const payload = {
         title: formData.name,
         subtitle: formData.tagline,
@@ -447,7 +570,7 @@ export default function CreateHackathonPage() {
         theme_tags: formData.tags.join(","),
         format,
         location: format === "offline" ? location : "线上",
-        organizer_name: organizerName,
+        organizer_name: hosts[0]?.name || "",
         start_date: startDate,
         end_date: endDate,
         awards_detail: JSON.stringify(formData.awards),
@@ -455,17 +578,60 @@ export default function CreateHackathonPage() {
         status,
       };
 
+      let hackathonId: number;
+
       if (editId) {
-        // 编辑时保持原有状态，不修改status字段
         const updatePayload = { ...payload };
         delete (updatePayload as any).status;
         await axios.patch(`/api/v1/hackathons/${editId}`, updatePayload, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        hackathonId = parseInt(editId);
+
+        // When editing, delete existing hosts and re-create them in the current order
+        const existingHosts = await axios.get(
+          `/api/v1/hackathons/${hackathonId}/hosts`,
+        );
+        for (const eh of existingHosts.data) {
+          // Keep at least one host: skip delete if it's the last one; we'll overwrite via PATCH
+          if (existingHosts.data.length > 1 || hosts.length > 0) {
+            try {
+              await axios.delete(
+                `/api/v1/hackathons/${hackathonId}/hosts/${eh.id}`,
+                {
+                  headers: { Authorization: `Bearer ${token}` },
+                },
+              );
+            } catch {
+              // Ignore if last-host guard triggers; we re-add immediately
+            }
+          }
+        }
+        for (const h of hosts) {
+          await axios.post(
+            `/api/v1/hackathons/${hackathonId}/hosts`,
+            { name: h.name, logo: h.logo || null },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+        }
       } else {
-        await axios.post("/api/v1/hackathons", payload, {
+        const res = await axios.post("/api/v1/hackathons", payload, {
           headers: { Authorization: `Bearer ${token}` },
         });
+        hackathonId = res.data.id;
+
+        // Create host records for the newly created hackathon
+        for (const h of hosts) {
+          await axios.post(
+            `/api/v1/hackathons/${hackathonId}/hosts`,
+            { name: h.name, logo: h.logo || null },
+            {
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+        }
       }
       navigate("/events");
     } catch (e: any) {
@@ -473,7 +639,6 @@ export default function CreateHackathonPage() {
       console.error("Error response:", e.response?.data);
       const errorDetail = e.response?.data?.detail;
       if (Array.isArray(errorDetail)) {
-        // Pydantic validation error
         setError(
           errorDetail
             .map((err: any) => `${err.loc?.join(".")}: ${err.msg}`)
@@ -1042,16 +1207,83 @@ export default function CreateHackathonPage() {
                   />
                 )}
 
+                {/* Hosts section */}
                 <div className="mt-4 pt-4 border-t border-zinc-800">
-                  <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-2">
-                    主办方名称
-                  </label>
-                  <Input
-                    value={organizerName}
-                    onChange={(e) => setOrganizerName(e.target.value)}
-                    placeholder="主办方名称"
-                    className="w-full bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-xs text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
-                  />
+                  <div className="flex items-center justify-between mb-2">
+                    <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider">
+                      主办方 / Hosts *
+                    </label>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setEditingHostIndex(null);
+                        setNewHostName("");
+                        setNewHostLogo("");
+                        setHostDialogOpen(true);
+                      }}
+                      className="p-1 hover:bg-zinc-900 rounded-[8px] transition-colors"
+                    >
+                      <Plus className="w-3.5 h-3.5 text-zinc-500" />
+                    </Button>
+                  </div>
+
+                  {hosts.length === 0 && (
+                    <p className="text-[10px] text-amber-400/80 mb-2">
+                      至少添加一个主办方
+                    </p>
+                  )}
+
+                  {/* Draggable host list */}
+                  <div className="space-y-1.5">
+                    {hosts.map((h, idx) => (
+                      <div
+                        key={idx}
+                        draggable
+                        onDragStart={() => handleHostDragStart(idx)}
+                        onDragOver={(e) => handleHostDragOver(e, idx)}
+                        onDragEnd={handleHostDragEnd}
+                        className="flex items-center gap-2 bg-zinc-900/60 border border-zinc-800 rounded-[8px] px-2 py-1.5 group cursor-grab active:cursor-grabbing"
+                      >
+                        <GripVertical className="w-3 h-3 text-zinc-600 flex-shrink-0" />
+                        {h.logo ? (
+                          <img
+                            src={h.logo}
+                            alt={h.name}
+                            className="w-8 h-8 rounded object-contain bg-zinc-800 flex-shrink-0"
+                          />
+                        ) : (
+                          <div className="w-8 h-8 rounded bg-zinc-800 flex items-center justify-center flex-shrink-0">
+                            <span className="text-[10px] text-zinc-500">
+                              {h.name[0]}
+                            </span>
+                          </div>
+                        )}
+                        <span className="text-xs text-zinc-300 truncate flex-1">
+                          {h.name}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEditHostDialog(idx)}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-zinc-800 rounded transition-all flex-shrink-0"
+                        >
+                          <Pencil className="w-3 h-3 text-zinc-400" />
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => removeHost(idx)}
+                          className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-900/20 rounded transition-all flex-shrink-0"
+                        >
+                          <X className="w-3 h-3 text-red-400" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
@@ -1224,6 +1456,122 @@ export default function CreateHackathonPage() {
           </div>
         </div>
       </main>
+
+      {/* Add Host Dialog */}
+      <Dialog
+        open={hostDialogOpen}
+        onOpenChange={(open) => {
+          setHostDialogOpen(open);
+          if (!open) {
+            setEditingHostIndex(null);
+            setNewHostName("");
+            setNewHostLogo("");
+          }
+        }}
+      >
+        <DialogContent className="bg-[#0A0A0A] border border-zinc-800 text-zinc-200 sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-zinc-100">
+              {editingHostIndex !== null ? "编辑主办方" : "添加主办方"}
+            </DialogTitle>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            {/* Host name */}
+            <div>
+              <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">
+                名称 *
+              </label>
+              <Input
+                value={newHostName}
+                onChange={(e) => setNewHostName(e.target.value.slice(0, 25))}
+                placeholder="主办方名称"
+                maxLength={25}
+                className="w-full bg-zinc-900 border border-zinc-800 rounded-[12px] px-3 py-2 text-sm text-zinc-200 placeholder-zinc-600 outline-none focus:border-zinc-700"
+              />
+              <p className="text-[10px] text-zinc-600 mt-1 text-right">
+                {newHostName.length}/25
+              </p>
+            </div>
+
+            {/* Logo upload */}
+            <div>
+              <label className="block text-[10px] font-mono text-zinc-500 uppercase tracking-wider mb-1.5">
+                Logo（可选）
+              </label>
+              {newHostLogo ? (
+                <div className="flex items-center gap-3">
+                  <img
+                    src={newHostLogo}
+                    alt="logo preview"
+                    className="w-16 h-16 rounded-[8px] object-contain bg-zinc-900 border border-zinc-800"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setNewHostLogo("")}
+                    className="text-xs text-zinc-400 hover:text-red-400"
+                  >
+                    移除
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  onClick={() => hostLogoInputRef.current?.click()}
+                  className="w-full h-20 bg-zinc-900 border border-dashed border-zinc-700 rounded-[12px] flex flex-col items-center justify-center cursor-pointer hover:border-zinc-600 transition-colors"
+                >
+                  {hostLogoUploading ? (
+                    <Loader2 className="w-5 h-5 animate-spin text-zinc-500" />
+                  ) : (
+                    <>
+                      <Upload className="w-4 h-4 text-zinc-500 mb-1" />
+                      <p className="text-[10px] text-zinc-500">
+                        点击上传 Logo（最大 500 KB）
+                      </p>
+                    </>
+                  )}
+                </div>
+              )}
+              <input
+                ref={hostLogoInputRef}
+                type="file"
+                accept="image/*"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) handleHostLogoUpload(file);
+                  e.target.value = "";
+                }}
+                className="hidden"
+              />
+            </div>
+          </div>
+
+          <DialogFooter className="bg-transparent border-t-0 p-0 m-0 flex-row justify-end gap-2 pt-2">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => {
+                setHostDialogOpen(false);
+                setNewHostName("");
+                setNewHostLogo("");
+                setEditingHostIndex(null);
+              }}
+              className="bg-zinc-900 border-zinc-800 text-zinc-400 text-xs rounded-[12px]"
+            >
+              取消
+            </Button>
+            <Button
+              type="button"
+              onClick={confirmAddHost}
+              disabled={!newHostName.trim()}
+              className="bg-brand hover:bg-brand/90 text-black text-xs font-medium rounded-[12px] disabled:opacity-50"
+            >
+              {editingHostIndex !== null ? "保存修改" : "确认添加"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

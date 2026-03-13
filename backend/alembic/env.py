@@ -12,6 +12,7 @@ from app.models.enrollment import Enrollment
 from app.models.judge import Judge
 from app.models.score import Score
 from app.models.community import CommunityPost, CommunityComment
+from app.models.hackathon_host import HackathonHost
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides

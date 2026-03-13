@@ -45,6 +45,13 @@ interface Recruitment {
   team?: Team;
 }
 
+interface HackathonHostItem {
+  id: number;
+  name: string;
+  logo?: string;
+  display_order: number;
+}
+
 interface Hackathon {
   id: number;
   title: string;
@@ -75,6 +82,7 @@ interface Hackathon {
   sponsors_detail?: string;
   status: string;
   organizer_id: number;
+  hosts?: HackathonHostItem[];
 }
 
 interface TeamMember {
@@ -1727,27 +1735,49 @@ export default function EventDetailPage() {
                 </div>
               </div>
 
-              {/* 主办方信息 */}
+              {/* 主办方信息 — shows all hosts from the backend */}
               <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">
                   主办方
                 </div>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 bg-[#111111] border border-[#333] rounded-full flex items-center justify-center">
-                    <span className="text-xl font-bold text-gray-500">
-                      {hackathon.organizer_name?.[0] || "A"}
-                    </span>
-                  </div>
-                  <div>
-                    <div className="text-sm text-white font-medium">
-                      {hackathon.organizer_name || "Aura 平台"}
-                    </div>
-                    {hackathon.contact_info && (
-                      <div className="text-[11px] text-gray-500 mt-1">
-                        {hackathon.contact_info}
+                <div className="space-y-3">
+                  {(hackathon.hosts && hackathon.hosts.length > 0
+                    ? hackathon.hosts
+                    : [
+                        {
+                          id: 0,
+                          name: hackathon.organizer_name || "Aura 平台",
+                          display_order: 0,
+                        },
+                      ]
+                  ).map((host) => (
+                    <div
+                      key={host.id || host.name}
+                      className="flex items-center gap-4"
+                    >
+                      <div className="w-12 h-12 bg-[#111111] border border-[#333] rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {host.logo ? (
+                          <img
+                            src={host.logo}
+                            alt={host.name}
+                            className="w-12 h-12 rounded-full object-cover"
+                          />
+                        ) : (
+                          <span className="text-xl font-bold text-gray-500">
+                            {host.name?.[0] || "A"}
+                          </span>
+                        )}
                       </div>
-                    )}
-                  </div>
+                      <div className="text-sm text-white font-medium truncate">
+                        {host.name}
+                      </div>
+                    </div>
+                  ))}
+                  {hackathon.contact_info && (
+                    <div className="text-[11px] text-gray-500 mt-1 pt-2 border-t border-[#222222]">
+                      {hackathon.contact_info}
+                    </div>
+                  )}
                 </div>
               </div>
 

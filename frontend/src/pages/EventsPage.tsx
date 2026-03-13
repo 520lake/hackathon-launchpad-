@@ -33,9 +33,14 @@ interface Hackathon {
   format?: string;
   location?: string;
   organizer_name?: string;
-  organizer_logo?: string;
   awards_detail?: string;
   organizer_id?: number;
+  hosts?: Array<{
+    id: number;
+    name: string;
+    logo?: string;
+    display_order: number;
+  }>;
 }
 
 interface OutletContextType {
@@ -176,12 +181,10 @@ export default function EventsPage() {
       // 这样每个活动都可以展示自己的「应用图标 / banner」，
       // 避免页面上全部是文字导致“太白、太空”的感觉。
       coverImage: hackathon.cover_image,
-      hosts: [
-        {
-          name: hackathon.organizer_name || "未知主办方",
-          logo: hackathon.organizer_logo,
-        },
-      ],
+      hosts:
+        hackathon.hosts && hackathon.hosts.length > 0
+          ? hackathon.hosts.map((h) => ({ name: h.name, logo: h.logo }))
+          : [{ name: hackathon.organizer_name || "未知主办方" }],
       tags:
         hackathon.theme_tags
           ?.split(",")

@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import { useRef, useState, useEffect } from "react";
+import { Fragment, useRef, useState, useEffect } from "react";
+import { Separator } from "@/components/ui/separator";
 
 // ============================================
 // 类型定义
@@ -344,21 +345,30 @@ export default function HackathonCard({
                 aria-hidden="true"
               >
                 {data.hosts.map((h, i) => (
-                  <div
-                    key={i}
-                    data-host-item
-                    className="flex items-center gap-2 flex-shrink-0"
-                  >
-                    <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
-                      <span className="text-[12px] text-[#666]">
-                        {h.logo ? "" : "标志"}
-                      </span>
+                  <Fragment key={i}>
+                    {i > 0 && (
+                      <Separator
+                        orientation="vertical"
+                        className="!self-auto h-[14px] bg-[#444]"
+                      />
+                    )}
+                    <div
+                      data-host-item
+                      className="flex items-center gap-1.5 flex-shrink-0"
+                    >
+                      {h.logo ? (
+                        <img
+                          src={h.logo}
+                          alt={h.name}
+                          className="h-[20px] w-[56px] rounded-[4px] object-contain bg-[#2a2a2a]"
+                        />
+                      ) : (
+                        <span className="text-[14px] text-[#999] whitespace-nowrap">
+                          {h.name}
+                        </span>
+                      )}
                     </div>
-                    <div className="h-[20px] w-px bg-[#333] flex-shrink-0" />
-                    <span className="text-[14px] text-[#999] whitespace-nowrap">
-                      {h.name}
-                    </span>
-                  </div>
+                  </Fragment>
                 ))}
                 <span
                   ref={summaryRef}
@@ -367,23 +377,30 @@ export default function HackathonCard({
                   等 {data.hosts.length} 个
                 </span>
               </div>
-              {/* 可见层：只渲染能完整显示的条目，放不下的用 "等 N 个" 代替 */}
+              {/* Visible layer: only render hosts that fully fit; overflow gets "等 N 个" */}
               <div className="absolute inset-0 flex items-center gap-2 overflow-hidden">
                 {data.hosts.slice(0, visibleHostCount).map((h, i) => (
-                  <div
-                    key={i}
-                    className="flex items-center gap-2 flex-shrink-0"
-                  >
-                    <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
-                      <span className="text-[12px] text-[#666]">
-                        {h.logo ? "" : "标志"}
-                      </span>
+                  <Fragment key={i}>
+                    {i > 0 && (
+                      <Separator
+                        orientation="vertical"
+                        className="!self-auto h-[14px] bg-[#444]"
+                      />
+                    )}
+                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                      {h.logo ? (
+                        <img
+                          src={h.logo}
+                          alt={h.name}
+                          className="h-[20px] w-[56px] rounded-[4px] object-contain bg-[#2a2a2a]"
+                        />
+                      ) : (
+                        <span className="text-[14px] text-[#999] whitespace-nowrap">
+                          {h.name}
+                        </span>
+                      )}
                     </div>
-                    <div className="h-[20px] w-px bg-[#333] flex-shrink-0" />
-                    <span className="text-[14px] text-[#999] whitespace-nowrap">
-                      {h.name}
-                    </span>
-                  </div>
+                  </Fragment>
                 ))}
                 {visibleHostCount < data.hosts.length && (
                   <span className="text-[12px] text-[#666] whitespace-nowrap flex-shrink-0">
@@ -396,7 +413,7 @@ export default function HackathonCard({
         </div>
 
         {/* 中区与右区之间的竖线分隔符，与 Figma 设计稿一致 */}
-        <div className="shrink-0 w-px h-[125px] bg-[#333]" />
+        <Separator orientation="vertical" className="h-[125px] bg-[#333]" />
 
         {/* ========== 右区：状态徽章 + 时间 / 地点 / 奖金信息 ========== */}
         <div className="flex-shrink-0 w-[190px] min-w-0 flex flex-col gap-3 items-start overflow-hidden">

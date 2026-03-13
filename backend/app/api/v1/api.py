@@ -4,6 +4,9 @@ from app.api.v1.endpoints import (
     auth,
     users,
     hackathons,
+    sections,
+    partners,
+    organizers,
     teams,
     projects,
     enrollments,
@@ -11,7 +14,7 @@ from app.api.v1.endpoints import (
     ai,
     community,
     notifications,
-    discussions
+    discussions,
 )
 
 api_router = APIRouter()
@@ -26,6 +29,9 @@ def get_version():
 api_router.include_router(auth.router, tags=["auth"])
 api_router.include_router(users.router, prefix="/users", tags=["users"])
 api_router.include_router(hackathons.router, prefix="/hackathons", tags=["hackathons"])
+api_router.include_router(sections.router, prefix="/hackathons", tags=["sections"])
+api_router.include_router(partners.router, prefix="/hackathons", tags=["partners"])
+api_router.include_router(organizers.router, prefix="/hackathons", tags=["organizers"])
 api_router.include_router(enrollments.router, prefix="/enrollments", tags=["enrollments"])
 api_router.include_router(projects.router, prefix="/projects", tags=["projects"])
 api_router.include_router(teams.router, prefix="/teams", tags=["teams"])

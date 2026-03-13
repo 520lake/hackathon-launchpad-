@@ -7,6 +7,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.hackathon import Hackathon
 from app.models.enrollment import Enrollment, EnrollmentCreate, EnrollmentRead, EnrollmentStatus, EnrollmentWithHackathon
+from app.models.hackathon_organizer import HackathonOrganizer, OrganizerRole, OrganizerStatus
 
 from app.models.team_project import Team, TeamMember
 
@@ -126,9 +127,18 @@ def read_hackathon_enrollments(*, session: Session = Depends(get_session), hacka
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if hackathon.organizer_id != current_user.id:
+    # Permission check: user must be an accepted owner or admin
+    org = session.exec(
+        select(HackathonOrganizer).where(
+            HackathonOrganizer.hackathon_id == hackathon_id,
+            HackathonOrganizer.user_id == current_user.id,
+            HackathonOrganizer.status == OrganizerStatus.ACCEPTED,
+            HackathonOrganizer.role.in_([OrganizerRole.OWNER, OrganizerRole.ADMIN]),
+        )
+    ).first()
+    if not org:
         raise HTTPException(status_code=403, detail="Not enough permissions")
-        
+
     enrollments = session.exec(select(Enrollment).where(Enrollment.hackathon_id == hackathon_id)).all()
     return enrollments
 
@@ -142,7 +152,16 @@ def update_enrollment_status(*, session: Session = Depends(get_session), enrollm
         raise HTTPException(status_code=404, detail="Enrollment not found")
         
     hackathon = session.get(Hackathon, enrollment.hackathon_id)
-    if hackathon.organizer_id != current_user.id:
+    # Permission check: user must be an accepted owner or admin
+    org = session.exec(
+        select(HackathonOrganizer).where(
+            HackathonOrganizer.hackathon_id == hackathon.id,
+            HackathonOrganizer.user_id == current_user.id,
+            HackathonOrganizer.status == OrganizerStatus.ACCEPTED,
+            HackathonOrganizer.role.in_([OrganizerRole.OWNER, OrganizerRole.ADMIN]),
+        )
+    ).first()
+    if not org:
         raise HTTPException(status_code=403, detail="Not enough permissions")
         
     enrollment.status = status

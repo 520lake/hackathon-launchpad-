@@ -13,6 +13,12 @@ from app.models.judge import Judge
 from app.models.score import Score
 from app.models.community import CommunityPost, CommunityComment
 from app.models.hackathon_host import HackathonHost
+from app.models.section import Section
+from app.models.schedule import Schedule
+from app.models.prize import Prize
+from app.models.judging_criteria import JudgingCriteria
+from app.models.partner import Partner
+from app.models.hackathon_organizer import HackathonOrganizer
 from app.core.config import settings
 
 # this is the Alembic Config object, which provides

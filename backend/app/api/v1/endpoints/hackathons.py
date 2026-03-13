@@ -1,39 +1,145 @@
+"""
+CRUD endpoints for hackathons, hosts, and judges.
+
+Hackathon detail responses use batch loading to include sections + child
+data, hosts, and partners without N+1 queries.
+"""
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List, Optional
 from datetime import datetime
-from app.models.hackathon import Hackathon, HackathonCreate, HackathonRead, HackathonUpdate, HackathonStatus, HackathonFormat
-from app.models.hackathon_host import HackathonHost, HackathonHostCreate, HackathonHostRead, HackathonHostUpdate
-from app.db.session import get_session
-from app.api.deps import get_current_user, get_current_organizer
-from app.models.user import User, UserRead
+
+from app.models.hackathon import (
+    Hackathon, HackathonCreate, HackathonRead, HackathonUpdate,
+    HackathonStatus, HackathonFormat,
+)
+from app.models.hackathon_host import (
+    HackathonHost, HackathonHostCreate, HackathonHostRead, HackathonHostUpdate,
+)
+from app.models.hackathon_organizer import (
+    HackathonOrganizer, OrganizerRole, OrganizerStatus,
+)
+from app.models.section import Section, SectionRead, SectionType
+from app.models.schedule import Schedule, ScheduleRead
+from app.models.prize import Prize, PrizeRead
+from app.models.judging_criteria import JudgingCriteria, JudgingCriteriaRead
+from app.models.partner import Partner, PartnerRead
 from app.models.judge import Judge, JudgeCreate, JudgeRead
 from app.models.enrollment import Enrollment
 from app.models.team_project import Team, TeamMember, Project
 from app.models.score import Score
+from app.db.session import get_session
+from app.api.deps import get_current_user, get_current_organizer
+from app.models.user import User, UserRead
 
 router = APIRouter()
 
 
 # ---------------------------------------------------------------------------
-# Helper: attach hosts array to a hackathon dict so every GET response
-# includes hosts sorted by display_order.
+# Helpers: permission checks via hackathon_organizers table
 # ---------------------------------------------------------------------------
 
-def _hackathon_with_hosts(session: Session, hackathon: Hackathon) -> dict:
-    """Convert a Hackathon ORM object to a dict that includes its hosts."""
+def _check_organizer_permission(
+    session: Session, hackathon_id: int, user_id: int,
+) -> None:
+    """
+    Verify the user is an owner or accepted admin for this hackathon.
+    Raises 403 if the user lacks permission.
+    """
+    org = session.exec(
+        select(HackathonOrganizer).where(
+            HackathonOrganizer.hackathon_id == hackathon_id,
+            HackathonOrganizer.user_id == user_id,
+            HackathonOrganizer.status == OrganizerStatus.ACCEPTED,
+            HackathonOrganizer.role.in_([OrganizerRole.OWNER, OrganizerRole.ADMIN]),
+        )
+    ).first()
+    if not org:
+        raise HTTPException(status_code=403, detail="Not enough permissions")
+
+
+# ---------------------------------------------------------------------------
+# Helpers: batch-load full hackathon response with sections + child data
+# ---------------------------------------------------------------------------
+
+def _build_full_hackathon(session: Session, hackathon: Hackathon) -> dict:
+    """
+    Assemble a complete hackathon response including sections (with child
+    data), hosts, and partners. Uses batch loading to avoid N+1 queries:
+      1. Fetch hackathon core fields
+      2. Fetch all sections in one query
+      3. Batch-fetch child rows (schedules, prizes, judging_criteria)
+         by hackathon_id, then group by section_id
+      4. Fetch hosts and partners in 2 queries
+    """
+    hid = hackathon.id
+    data = HackathonRead.from_orm(hackathon).dict()
+
+    # --- Sections ---
+    sections = session.exec(
+        select(Section).where(Section.hackathon_id == hid).order_by(Section.display_order)
+    ).all()
+
+    # Batch-load all child rows for this hackathon
+    all_schedules = session.exec(
+        select(Schedule).where(Schedule.hackathon_id == hid).order_by(Schedule.display_order)
+    ).all()
+    all_prizes = session.exec(
+        select(Prize).where(Prize.hackathon_id == hid).order_by(Prize.display_order)
+    ).all()
+    all_criteria = session.exec(
+        select(JudgingCriteria).where(JudgingCriteria.hackathon_id == hid).order_by(JudgingCriteria.display_order)
+    ).all()
+
+    # Group child rows by section_id
+    schedules_map: dict[int, list] = {}
+    for s in all_schedules:
+        schedules_map.setdefault(s.section_id, []).append(ScheduleRead.from_orm(s).dict())
+    prizes_map: dict[int, list] = {}
+    for p in all_prizes:
+        prizes_map.setdefault(p.section_id, []).append(PrizeRead.from_orm(p).dict())
+    criteria_map: dict[int, list] = {}
+    for c in all_criteria:
+        criteria_map.setdefault(c.section_id, []).append(JudgingCriteriaRead.from_orm(c).dict())
+
+    # Assemble sections with their children
+    sections_out = []
+    for sec in sections:
+        sec_data = SectionRead.from_orm(sec).dict()
+        if sec.section_type == SectionType.SCHEDULES:
+            sec_data["schedules"] = schedules_map.get(sec.id, [])
+        elif sec.section_type == SectionType.PRIZES:
+            sec_data["prizes"] = prizes_map.get(sec.id, [])
+        elif sec.section_type == SectionType.JUDGING_CRITERIA:
+            sec_data["judging_criteria"] = criteria_map.get(sec.id, [])
+        sections_out.append(sec_data)
+
+    data["sections"] = sections_out
+
+    # --- Hosts ---
     hosts = session.exec(
         select(HackathonHost)
-        .where(HackathonHost.hackathon_id == hackathon.id)
+        .where(HackathonHost.hackathon_id == hid)
         .order_by(HackathonHost.display_order)
     ).all()
-    data = hackathon.dict()
     data["hosts"] = [HackathonHostRead.from_orm(h).dict() for h in hosts]
+
+    # --- Partners ---
+    partners = session.exec(
+        select(Partner)
+        .where(Partner.hackathon_id == hid)
+        .order_by(Partner.display_order)
+    ).all()
+    data["partners"] = [PartnerRead.from_orm(p).dict() for p in partners]
+
     return data
 
 
-def _hackathons_with_hosts(session: Session, hackathons: list) -> list:
-    """Batch-attach hosts for a list of hackathons."""
+def _build_hackathon_list_item(session: Session, hackathons: list) -> list:
+    """
+    Build lightweight list response: hackathon core fields + hosts only
+    (no sections or partners to keep the list endpoint fast).
+    """
     if not hackathons:
         return []
     ids = [h.id for h in hackathons]
@@ -42,7 +148,6 @@ def _hackathons_with_hosts(session: Session, hackathons: list) -> list:
         .where(HackathonHost.hackathon_id.in_(ids))
         .order_by(HackathonHost.display_order)
     ).all()
-    # Group hosts by hackathon_id
     hosts_map: dict[int, list] = {}
     for host in all_hosts:
         hosts_map.setdefault(host.hackathon_id, []).append(
@@ -50,9 +155,9 @@ def _hackathons_with_hosts(session: Session, hackathons: list) -> list:
         )
     results = []
     for h in hackathons:
-        data = h.dict()
-        data["hosts"] = hosts_map.get(h.id, [])
-        results.append(data)
+        d = HackathonRead.from_orm(h).dict()
+        d["hosts"] = hosts_map.get(h.id, [])
+        results.append(d)
     return results
 
 
@@ -61,17 +166,45 @@ def _hackathons_with_hosts(session: Session, hackathons: list) -> list:
 # ---------------------------------------------------------------------------
 
 @router.post("")
-def create_hackathon(*, session: Session = Depends(get_session), hackathon: HackathonCreate, current_user: User = Depends(get_current_organizer)):
+def create_hackathon(
+    *,
+    session: Session = Depends(get_session),
+    hackathon: HackathonCreate,
+    current_user: User = Depends(get_current_organizer),
+):
+    """Create a hackathon and auto-assign the creator as the owner organizer."""
     try:
-        hackathon_data = hackathon.dict()
-        db_hackathon = Hackathon(**hackathon_data, organizer_id=current_user.id)
+        now = datetime.utcnow()
+        db_hackathon = Hackathon(
+            **hackathon.dict(),
+            created_by=current_user.id,
+            created_at=now,
+            updated_at=now,
+            updated_by=current_user.id,
+        )
         session.add(db_hackathon)
+        session.flush()
+
+        # Auto-create the owner organizer row
+        owner = HackathonOrganizer(
+            hackathon_id=db_hackathon.id,
+            user_id=current_user.id,
+            role=OrganizerRole.OWNER,
+            status=OrganizerStatus.ACCEPTED,
+            created_at=now,
+            created_by=current_user.id,
+            updated_at=now,
+            updated_by=current_user.id,
+        )
+        session.add(owner)
         session.commit()
         session.refresh(db_hackathon)
-        return _hackathon_with_hosts(session, db_hackathon)
+        return _build_full_hackathon(session, db_hackathon)
     except Exception as e:
+        session.rollback()
         print(f"Error creating hackathon: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @router.get("")
 def read_hackathons(
@@ -81,143 +214,139 @@ def read_hackathons(
     limit: int = 100,
     status: Optional[HackathonStatus] = None,
     format: Optional[HackathonFormat] = None,
-    location: Optional[str] = None,
-    search: Optional[str] = None
+    province: Optional[str] = None,
+    city: Optional[str] = None,
+    district: Optional[str] = None,
+    search: Optional[str] = None,
 ):
+    """List hackathons with optional filters on status, format, and location."""
     query = select(Hackathon)
-    
+
     if status:
         query = query.where(Hackathon.status == status)
     if format:
         query = query.where(Hackathon.format == format)
-    if location:
-        query = query.where(Hackathon.location.contains(location))
+    if province:
+        query = query.where(Hackathon.province == province)
+    if city:
+        query = query.where(Hackathon.city == city)
+    if district:
+        query = query.where(Hackathon.district == district)
     if search:
-        query = query.where(
-            (Hackathon.title.contains(search)) | 
-            (Hackathon.description.contains(search))
-        )
-        
+        query = query.where(Hackathon.title.contains(search))
+
     query = query.order_by(Hackathon.created_at.desc())
-    
     hackathons = session.exec(query.offset(offset).limit(limit)).all()
-    return _hackathons_with_hosts(session, hackathons)
+    return _build_hackathon_list_item(session, hackathons)
+
 
 @router.get("/my")
-def read_my_hackathons(*, session: Session = Depends(get_session), current_user: User = Depends(get_current_user)):
-    """Get hackathons created by current user."""
-    hackathons = session.exec(select(Hackathon).where(Hackathon.organizer_id == current_user.id)).all()
-    return _hackathons_with_hosts(session, hackathons)
+def read_my_hackathons(
+    *,
+    session: Session = Depends(get_session),
+    current_user: User = Depends(get_current_user),
+):
+    """Get hackathons where the current user is an organizer (owner or admin)."""
+    org_rows = session.exec(
+        select(HackathonOrganizer).where(
+            HackathonOrganizer.user_id == current_user.id,
+            HackathonOrganizer.status == OrganizerStatus.ACCEPTED,
+        )
+    ).all()
+    hackathon_ids = [o.hackathon_id for o in org_rows]
+    if not hackathon_ids:
+        return []
+    hackathons = session.exec(
+        select(Hackathon).where(Hackathon.id.in_(hackathon_ids))
+    ).all()
+    return _build_hackathon_list_item(session, hackathons)
+
 
 @router.get("/{hackathon_id}")
 def read_hackathon(*, session: Session = Depends(get_session), hackathon_id: int):
+    """Get a single hackathon with full detail (sections, hosts, partners)."""
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    return _hackathon_with_hosts(session, hackathon)
+    return _build_full_hackathon(session, hackathon)
 
-@router.get("/{hackathon_id}/status")
-def get_hackathon_status(*, session: Session = Depends(get_session), hackathon_id: int):
-    hackathon = session.get(Hackathon, hackathon_id)
-    if not hackathon:
-        raise HTTPException(status_code=404, detail="Hackathon not found")
-        
-    now = datetime.now()
-    
-    status_label = "unknown"
-    
-    reg_start = hackathon.registration_start_date
-    reg_end = hackathon.registration_end_date
-    act_start = hackathon.start_date
-    act_end = hackathon.end_date
-    
-    if reg_start and now < reg_start:
-        status_label = "报名未开始"
-    elif reg_start and reg_end and reg_start <= now < reg_end:
-        status_label = "报名进行中"
-    elif reg_end and now >= reg_end:
-        if now < act_start:
-            status_label = "等待活动开始"
-        elif now >= act_start and now < act_end:
-            status_label = "活动进行中"
-        else:
-            status_label = "活动已结束"
-            
-    return {
-        "status": status_label,
-        "hackathon_status": hackathon.status,
-        "time_status": {
-            "registration_open": reg_start <= now < reg_end if reg_start and reg_end else False,
-            "activity_ongoing": act_start <= now < act_end,
-            "ended": now >= act_end
-        }
-    }
 
 @router.patch("/{hackathon_id}")
-def update_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, hackathon_in: HackathonUpdate, current_user: User = Depends(get_current_organizer)):
+def update_hackathon(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    hackathon_in: HackathonUpdate,
+    current_user: User = Depends(get_current_organizer),
+):
+    """Partially update a hackathon's core fields."""
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if db_hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-    
+    _check_organizer_permission(session, hackathon_id, current_user.id)
+
     try:
         hackathon_data = hackathon_in.dict(exclude_unset=True)
-        print(f"Updating hackathon {hackathon_id} with data: {hackathon_data}")
-        
         for key, value in hackathon_data.items():
             setattr(db_hackathon, key, value)
-            
+        db_hackathon.updated_at = datetime.utcnow()
+        db_hackathon.updated_by = current_user.id
+
         session.add(db_hackathon)
         session.commit()
         session.refresh(db_hackathon)
-        return _hackathon_with_hosts(session, db_hackathon)
+        return _build_full_hackathon(session, db_hackathon)
     except Exception as e:
         session.rollback()
         print(f"Error updating hackathon: {e}")
         raise HTTPException(status_code=500, detail=f"更新失败: {str(e)}")
 
+
 @router.delete("/{hackathon_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_hackathon(*, session: Session = Depends(get_session), hackathon_id: int, current_user: User = Depends(get_current_organizer)):
+def delete_hackathon(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    current_user: User = Depends(get_current_organizer),
+):
+    """
+    Delete a hackathon. All child tables (sections, schedules, prizes,
+    judging_criteria, hosts, partners, organizers) are cleaned up by
+    DB-level ON DELETE CASCADE. Teams/projects/scores/enrollments still
+    need manual cascade since those tables predate the refactor.
+    """
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if db_hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-        
-    # Cascade delete manually
+    _check_organizer_permission(session, hackathon_id, current_user.id)
+
+    # Manual cascade for pre-existing tables that lack ON DELETE CASCADE
     teams = session.exec(select(Team).where(Team.hackathon_id == hackathon_id)).all()
     team_ids = [t.id for t in teams]
     if team_ids:
         projects = session.exec(select(Project).where(Project.team_id.in_(team_ids))).all()
         project_ids = [p.id for p in projects]
-        
         if project_ids:
             scores = session.exec(select(Score).where(Score.project_id.in_(project_ids))).all()
             for s in scores:
                 session.delete(s)
             for p in projects:
                 session.delete(p)
-        
         members = session.exec(select(TeamMember).where(TeamMember.team_id.in_(team_ids))).all()
         for m in members:
             session.delete(m)
         for t in teams:
             session.delete(t)
-            
+
     enrollments = session.exec(select(Enrollment).where(Enrollment.hackathon_id == hackathon_id)).all()
     for e in enrollments:
         session.delete(e)
-        
+
     judges = session.exec(select(Judge).where(Judge.hackathon_id == hackathon_id)).all()
     for j in judges:
         session.delete(j)
 
-    # Delete all hosts for this hackathon
-    hosts = session.exec(select(HackathonHost).where(HackathonHost.hackathon_id == hackathon_id)).all()
-    for h in hosts:
-        session.delete(h)
-        
+    # Sections, hosts, partners, organizers cleaned up by ON DELETE CASCADE
     session.delete(db_hackathon)
     session.commit()
     return None
@@ -253,10 +382,8 @@ def add_host(
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    _check_organizer_permission(session, hackathon_id, current_user.id)
 
-    # Determine the next display_order value
     existing = session.exec(
         select(HackathonHost)
         .where(HackathonHost.hackathon_id == hackathon_id)
@@ -264,11 +391,16 @@ def add_host(
     ).first()
     next_order = (existing.display_order + 1) if existing else 0
 
+    now = datetime.utcnow()
     host = HackathonHost(
         hackathon_id=hackathon_id,
         name=host_in.name,
-        logo=host_in.logo,
+        logo_url=host_in.logo_url,
         display_order=next_order,
+        created_at=now,
+        created_by=current_user.id,
+        updated_at=now,
+        updated_by=current_user.id,
     )
     session.add(host)
     session.commit()
@@ -285,12 +417,11 @@ def update_host(
     host_in: HackathonHostUpdate,
     current_user: User = Depends(get_current_organizer),
 ):
-    """Update a specific host's name, logo, or display_order."""
+    """Update a specific host's name, logo_url, or display_order."""
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    _check_organizer_permission(session, hackathon_id, current_user.id)
 
     host = session.get(HackathonHost, host_id)
     if not host or host.hackathon_id != hackathon_id:
@@ -299,6 +430,8 @@ def update_host(
     update_data = host_in.dict(exclude_unset=True)
     for key, value in update_data.items():
         setattr(host, key, value)
+    host.updated_at = datetime.utcnow()
+    host.updated_by = current_user.id
 
     session.add(host)
     session.commit()
@@ -318,14 +451,12 @@ def delete_host(
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    _check_organizer_permission(session, hackathon_id, current_user.id)
 
     host = session.get(HackathonHost, host_id)
     if not host or host.hackathon_id != hackathon_id:
         raise HTTPException(status_code=404, detail="Host not found")
 
-    # Ensure at least one host remains
     host_count = len(session.exec(
         select(HackathonHost).where(HackathonHost.hackathon_id == hackathon_id)
     ).all())
@@ -347,13 +478,12 @@ def reorder_hosts(
 ):
     """
     Bulk-update display_order for all hosts of a hackathon.
-    Accepts an ordered list of host IDs; the position in the list becomes the display_order.
+    Accepts an ordered list of host IDs; position becomes display_order.
     """
     hackathon = session.get(Hackathon, hackathon_id)
     if not hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
+    _check_organizer_permission(session, hackathon_id, current_user.id)
 
     for order, hid in enumerate(host_ids):
         host = session.get(HackathonHost, hid)
@@ -363,7 +493,6 @@ def reorder_hosts(
         session.add(host)
 
     session.commit()
-
     hosts = session.exec(
         select(HackathonHost)
         .where(HackathonHost.hackathon_id == hackathon_id)
@@ -373,34 +502,43 @@ def reorder_hosts(
 
 
 # ---------------------------------------------------------------------------
-# Judges Management
+# Judges Management (kept as-is; Judge table stays separate)
 # ---------------------------------------------------------------------------
 
 @router.post("/{hackathon_id}/judges", response_model=JudgeRead)
-def add_judge(*, session: Session = Depends(get_session), hackathon_id: int, user_email: str, current_user: User = Depends(get_current_organizer)):
+def add_judge(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    user_email: str,
+    current_user: User = Depends(get_current_organizer),
+):
     """Appoint a judge by email."""
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
-    if db_hackathon.organizer_id != current_user.id:
-        raise HTTPException(status_code=403, detail="Not enough permissions")
-        
+    _check_organizer_permission(session, hackathon_id, current_user.id)
+
     user = session.exec(select(User).where(User.email == user_email)).first()
     if not user:
-         raise HTTPException(status_code=404, detail="User with this email not found")
-         
-    existing_judge = session.exec(select(Judge).where(Judge.hackathon_id == hackathon_id, Judge.user_id == user.id)).first()
+        raise HTTPException(status_code=404, detail="User with this email not found")
+
+    existing_judge = session.exec(
+        select(Judge).where(Judge.hackathon_id == hackathon_id, Judge.user_id == user.id)
+    ).first()
     if existing_judge:
         raise HTTPException(status_code=400, detail="User is already a judge")
-        
+
     judge = Judge(user_id=user.id, hackathon_id=hackathon_id)
     session.add(judge)
     session.commit()
     session.refresh(judge)
     return judge
 
+
 @router.get("/{hackathon_id}/judges", response_model=List[UserRead])
 def read_judges(*, session: Session = Depends(get_session), hackathon_id: int):
+    """List all judges for a hackathon (returns user data)."""
     query = select(User).join(Judge, User.id == Judge.user_id).where(Judge.hackathon_id == hackathon_id)
     judges = session.exec(query).all()
     return judges

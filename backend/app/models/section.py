@@ -1,24 +1,36 @@
 from typing import Optional
 from datetime import datetime
+from enum import Enum
 from sqlmodel import SQLModel, Field, Column, Integer, ForeignKey
+
+
+class SectionType(str, Enum):
+    """
+    Determines how a section's data is stored and rendered:
+      - MARKDOWN: rich text stored directly in `content` (JSON string).
+      - SCHEDULES / PRIZES / JUDGING_CRITERIA: `content` is NULL or
+        holds basic config; actual data lives in the dedicated child table.
+    """
+    MARKDOWN = "markdown"
+    SCHEDULES = "schedules"
+    PRIZES = "prizes"
+    JUDGING_CRITERIA = "judging_criteria"
 
 
 # ---------------------------------------------------------------------------
 # Database model
 # ---------------------------------------------------------------------------
 
-class HackathonHostBase(SQLModel):
-    """
-    Shared fields for a hackathon host (organizer / co-organizer).
-    Each hackathon can have multiple hosts displayed in a user-defined order.
-    """
-    name: str = Field(max_length=25)
+class SectionBase(SQLModel):
+    section_type: SectionType
+    title: Optional[str] = Field(default=None, max_length=255)
     display_order: int = Field(default=0)
-    logo_url: Optional[str] = None
+    # For MARKDOWN sections this holds the rich text (JSON string).
+    # For relational section types this is NULL or basic config.
+    content: Optional[str] = None
 
 
-class HackathonHost(HackathonHostBase, table=True):
-    """Database table: one row per host per hackathon."""
+class Section(SectionBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     hackathon_id: int = Field(
         sa_column=Column(
@@ -39,13 +51,22 @@ class HackathonHost(HackathonHostBase, table=True):
 # Request / response schemas
 # ---------------------------------------------------------------------------
 
-class HackathonHostCreate(SQLModel):
-    """Payload for adding a new host to a hackathon."""
-    name: str = Field(max_length=25)
-    logo_url: Optional[str] = None
+class SectionCreate(SQLModel):
+    """Payload for adding a new section to a hackathon."""
+    section_type: SectionType
+    title: Optional[str] = None
+    display_order: int = 0
+    content: Optional[str] = None
 
 
-class HackathonHostRead(HackathonHostBase):
+class SectionUpdate(SQLModel):
+    """Partial-update payload for an existing section."""
+    title: Optional[str] = None
+    display_order: Optional[int] = None
+    content: Optional[str] = None
+
+
+class SectionRead(SectionBase):
     """Response schema returned to the frontend."""
     id: int
     hackathon_id: int
@@ -53,10 +74,3 @@ class HackathonHostRead(HackathonHostBase):
     created_by: Optional[int] = None
     updated_at: datetime
     updated_by: Optional[int] = None
-
-
-class HackathonHostUpdate(SQLModel):
-    """Partial-update payload for an existing host."""
-    name: Optional[str] = Field(default=None, max_length=25)
-    display_order: Optional[int] = None
-    logo_url: Optional[str] = None

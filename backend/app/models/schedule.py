@@ -7,23 +7,30 @@ from sqlmodel import SQLModel, Field, Column, Integer, ForeignKey
 # Database model
 # ---------------------------------------------------------------------------
 
-class HackathonHostBase(SQLModel):
-    """
-    Shared fields for a hackathon host (organizer / co-organizer).
-    Each hackathon can have multiple hosts displayed in a user-defined order.
-    """
-    name: str = Field(max_length=25)
+class ScheduleBase(SQLModel):
+    event_name: str = Field(max_length=255)
+    start_time: datetime
+    end_time: datetime
     display_order: int = Field(default=0)
-    logo_url: Optional[str] = None
 
 
-class HackathonHost(HackathonHostBase, table=True):
-    """Database table: one row per host per hackathon."""
+class Schedule(ScheduleBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
+
+    # Redundant hackathon FK enables cross-section global queries without
+    # joining through the sections table.
     hackathon_id: int = Field(
         sa_column=Column(
             Integer,
             ForeignKey("hackathon.id", ondelete="CASCADE"),
+            nullable=False,
+            index=True,
+        )
+    )
+    section_id: int = Field(
+        sa_column=Column(
+            Integer,
+            ForeignKey("section.id", ondelete="CASCADE"),
             nullable=False,
             index=True,
         )
@@ -39,24 +46,28 @@ class HackathonHost(HackathonHostBase, table=True):
 # Request / response schemas
 # ---------------------------------------------------------------------------
 
-class HackathonHostCreate(SQLModel):
-    """Payload for adding a new host to a hackathon."""
-    name: str = Field(max_length=25)
-    logo_url: Optional[str] = None
+class ScheduleCreate(SQLModel):
+    """Payload for adding a schedule entry to a section."""
+    event_name: str
+    start_time: datetime
+    end_time: datetime
+    display_order: int = 0
 
 
-class HackathonHostRead(HackathonHostBase):
+class ScheduleUpdate(SQLModel):
+    """Partial-update payload for an existing schedule entry."""
+    event_name: Optional[str] = None
+    start_time: Optional[datetime] = None
+    end_time: Optional[datetime] = None
+    display_order: Optional[int] = None
+
+
+class ScheduleRead(ScheduleBase):
     """Response schema returned to the frontend."""
     id: int
     hackathon_id: int
+    section_id: int
     created_at: datetime
     created_by: Optional[int] = None
     updated_at: datetime
     updated_by: Optional[int] = None
-
-
-class HackathonHostUpdate(SQLModel):
-    """Partial-update payload for an existing host."""
-    name: Optional[str] = Field(default=None, max_length=25)
-    display_order: Optional[int] = None
-    logo_url: Optional[str] = None

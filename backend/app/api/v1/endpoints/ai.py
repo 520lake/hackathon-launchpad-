@@ -297,13 +297,14 @@ async def search_hackathons(
         
         hackathons_data = []
         for h in hackathons:
+            # Build a location string from structured geo fields
+            location_parts = [p for p in [h.province, h.city, h.district] if p]
+            location_str = " ".join(location_parts) if location_parts else "线上"
             hackathons_data.append({
                 "id": h.id,
                 "title": h.title,
-                "description": h.description[:300] if h.description else "", # Truncate for token limit
-                "tags": h.theme_tags,
                 "format": h.format,
-                "location": h.location,
+                "location": location_str,
                 "start_date": h.start_date.isoformat() if h.start_date else ""
             })
 

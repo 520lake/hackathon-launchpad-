@@ -1,4 +1,5 @@
 import { motion } from "framer-motion";
+import { useRef, useState, useEffect } from "react";
 
 // ============================================
 // 类型定义
@@ -17,11 +18,11 @@ export interface HackathonCardData {
    * - 优先用来展示在卡片左侧的大缩略图区域
    */
   coverImage?: string;
-  /** 主办方信息 */
-  host: {
+  /** 主办方列表（支持多个联合主办方） */
+  hosts: Array<{
     name: string;
     logo?: string;
-  };
+  }>;
   /** 标签数组 */
   tags: string[];
   /** 活动状态 */
@@ -198,6 +199,57 @@ export default function HackathonCard({
    */
   const titleInitials = data.title.replace(/\s/g, "").slice(0, 2).toUpperCase();
 
+  /**
+   * 主办方渐进式展示：
+   * 在不可见的测量层渲染所有主办方条目和 "等 N 个" 汇总文本，
+   * 通过 ResizeObserver 监听容器宽度，逐一检查每个条目的右边缘是否超出容器。
+   * 第一个条目始终显示；后续条目仅在完整可见时才显示，否则追加 "等 N 个"。
+   */
+  const hostsMeasureRef = useRef<HTMLDivElement>(null);
+  const summaryRef = useRef<HTMLSpanElement>(null);
+  const [visibleHostCount, setVisibleHostCount] = useState(data.hosts.length);
+
+  useEffect(() => {
+    const container = hostsMeasureRef.current;
+    const summaryEl = summaryRef.current;
+    if (!container) return;
+
+    const calculate = () => {
+      const containerWidth = container.clientWidth;
+      const items = container.querySelectorAll<HTMLElement>("[data-host-item]");
+      const summaryWidth = summaryEl ? summaryEl.offsetWidth : 0;
+
+      if (items.length === 0) {
+        setVisibleHostCount(0);
+        return;
+      }
+
+      const lastItem = items[items.length - 1];
+      if (lastItem.offsetLeft + lastItem.offsetWidth <= containerWidth) {
+        setVisibleHostCount(items.length);
+        return;
+      }
+
+      let count = 1;
+      for (let i = 1; i < items.length; i++) {
+        const item = items[i];
+        const neededWidth =
+          item.offsetLeft + item.offsetWidth + 8 + summaryWidth;
+        if (neededWidth <= containerWidth) {
+          count = i + 1;
+        } else {
+          break;
+        }
+      }
+      setVisibleHostCount(count);
+    };
+
+    calculate();
+    const observer = new ResizeObserver(calculate);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [data.hosts]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -237,10 +289,10 @@ export default function HackathonCard({
                 alt={data.title}
                 className="w-full h-full object-cover"
               />
-            ) : data.host.logo ? (
+            ) : data.hosts[0]?.logo ? (
               <img
-                src={data.host.logo}
-                alt={data.host.name}
+                src={data.hosts[0].logo}
+                alt={data.hosts[0].name}
                 className="w-full h-full object-cover"
               />
             ) : (
@@ -278,16 +330,67 @@ export default function HackathonCard({
           )}
 
           {/* 主办方信息行：左边“主办方：”，中间为 logo 占位，右边是公司名称 */}
-          <div className="flex items-center gap-2 text-[14px]">
-            <span className="text-[#999]">主办方：</span>
-            <div className="flex items-center gap-2">
-              <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
-                <span className="text-[12px] text-[#666]">标志</span>
+          {/* 外层和内层都加了 min-w-0 + overflow-hidden，确保在 flex 布局中文字过长时 truncate 能正确生效 */}
+          <div className="flex items-center gap-2 text-[14px] min-w-0 overflow-hidden">
+            <span className="text-[#999] flex-shrink-0">主办方：</span>
+            <div className="relative min-w-0 flex-1">
+              {/*
+                不可见的测量层：渲染所有主办方条目 + "等 N 个" 文本。
+                每个条目标记 data-host-item，供 JS 逐一测量右边缘位置。
+              */}
+              <div
+                ref={hostsMeasureRef}
+                className="flex items-center gap-2 overflow-hidden invisible"
+                aria-hidden="true"
+              >
+                {data.hosts.map((h, i) => (
+                  <div
+                    key={i}
+                    data-host-item
+                    className="flex items-center gap-2 flex-shrink-0"
+                  >
+                    <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
+                      <span className="text-[12px] text-[#666]">
+                        {h.logo ? "" : "标志"}
+                      </span>
+                    </div>
+                    <div className="h-[20px] w-px bg-[#333] flex-shrink-0" />
+                    <span className="text-[14px] text-[#999] whitespace-nowrap">
+                      {h.name}
+                    </span>
+                  </div>
+                ))}
+                <span
+                  ref={summaryRef}
+                  className="text-[12px] text-[#666] whitespace-nowrap flex-shrink-0"
+                >
+                  等 {data.hosts.length} 个
+                </span>
               </div>
-              <div className="h-[20px] w-px bg-[#333]" />
-              <span className="text-[14px] text-[#999] truncate">
-                {data.host.name || "公司名称"}
-              </span>
+              {/* 可见层：只渲染能完整显示的条目，放不下的用 "等 N 个" 代替 */}
+              <div className="absolute inset-0 flex items-center gap-2 overflow-hidden">
+                {data.hosts.slice(0, visibleHostCount).map((h, i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 flex-shrink-0"
+                  >
+                    <div className="h-[20px] w-[56px] rounded-[4px] bg-[#2a2a2a] flex items-center justify-center">
+                      <span className="text-[12px] text-[#666]">
+                        {h.logo ? "" : "标志"}
+                      </span>
+                    </div>
+                    <div className="h-[20px] w-px bg-[#333] flex-shrink-0" />
+                    <span className="text-[14px] text-[#999] whitespace-nowrap">
+                      {h.name}
+                    </span>
+                  </div>
+                ))}
+                {visibleHostCount < data.hosts.length && (
+                  <span className="text-[12px] text-[#666] whitespace-nowrap flex-shrink-0">
+                    等 {data.hosts.length} 个
+                  </span>
+                )}
+              </div>
             </div>
           </div>
         </div>
@@ -346,7 +449,7 @@ export function HackathonCardDemo() {
       title: "Aura 测试黑客松 (离线模式)",
       description:
         "这是一个测试用的黑客松活动描述，用于展示卡片组件的样式和布局效果。",
-      host: { name: "Aurathon", logo: "" },
+      hosts: [{ name: "Aurathon", logo: "" }],
       tags: ["测试", "备用"],
       status: "published",
       dateRange: "2025.12.20 - 2026.01.15",
@@ -357,7 +460,10 @@ export function HackathonCardDemo() {
       id: "2",
       title: "AI 创新挑战赛 2026",
       description: "探索人工智能的无限可能，与全球开发者一起创造未来。",
-      host: { name: "TechHub", logo: "" },
+      hosts: [
+        { name: "TechHub", logo: "" },
+        { name: "AI Lab", logo: "" },
+      ],
       tags: ["AI", "创新", "全球"],
       status: "ongoing",
       dateRange: "2026.01.01 - 2026.03.31",
@@ -368,7 +474,11 @@ export function HackathonCardDemo() {
       id: "3",
       title: "Web3 开发者大会",
       description: "聚焦区块链、DeFi、NFT 等前沿技术，连接开发者与资本。",
-      host: { name: "Blockchain Labs", logo: "" },
+      hosts: [
+        { name: "Blockchain Labs", logo: "" },
+        { name: "Web3 基金会", logo: "" },
+        { name: "DeFi Alliance", logo: "" },
+      ],
       tags: ["Web3", "区块链", "DeFi"],
       status: "ended",
       dateRange: "2025.10.01 - 2025.10.07",

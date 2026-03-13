@@ -106,7 +106,7 @@ const MOCK_DATA: HackathonCardData[] = [
     title: "Aurathon AI 创新黑客松 2026",
     description:
       "探索人工智能的无限可能，与全球开发者一起创造未来。我们寻找最具创新性的 AI 应用解决方案。",
-    host: { name: "Aurathon 官方", logo: "" },
+    hosts: [{ name: "Aurathon 官方", logo: "" }],
     tags: ["AI", "机器学习", "创新赛"],
     status: "ongoing",
     dateRange: "2026.1.15 - 3.1",
@@ -118,7 +118,7 @@ const MOCK_DATA: HackathonCardData[] = [
     title: "Web3 开发者挑战赛",
     description:
       "聚焦区块链、DeFi、NFT 等前沿技术，连接开发者与资本，打造下一代 Web3 应用。",
-    host: { name: "Blockchain Labs", logo: "" },
+    hosts: [{ name: "Blockchain Labs", logo: "" }],
     tags: ["Web3", "区块链", "DeFi"],
     status: "published",
     dateRange: "2026.3.1 - 3.15",
@@ -176,10 +176,12 @@ export default function EventsPage() {
       // 这样每个活动都可以展示自己的「应用图标 / banner」，
       // 避免页面上全部是文字导致“太白、太空”的感觉。
       coverImage: hackathon.cover_image,
-      host: {
-        name: hackathon.organizer_name || "未知主办方",
-        logo: hackathon.organizer_logo,
-      },
+      hosts: [
+        {
+          name: hackathon.organizer_name || "未知主办方",
+          logo: hackathon.organizer_logo,
+        },
+      ],
       tags:
         hackathon.theme_tags
           ?.split(",")

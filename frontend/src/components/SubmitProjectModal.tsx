@@ -5,8 +5,9 @@ interface SubmitProjectModalProps {
   isOpen: boolean;
   onClose: () => void;
   hackathonId: number;
-  teamId?: number; // Added teamId
-  existingProject?: any; // If editing
+  teamId?: number; // For team hackathons
+  registrationType?: 'team' | 'individual'; // Hackathon type
+  existingSubmission?: any; // If editing
   initialDescription?: string;
   initialData?: {
     title?: string;
@@ -15,7 +16,7 @@ interface SubmitProjectModalProps {
   };
 }
 
-export default function SubmitProjectModal({ isOpen, onClose, teamId, existingProject, initialDescription, initialData }: SubmitProjectModalProps) {
+export default function SubmitProjectModal({ isOpen, onClose, hackathonId, teamId, registrationType = 'team', existingSubmission, initialDescription, initialData }: SubmitProjectModalProps) {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [techStack, setTechStack] = useState(''); // New field
@@ -33,15 +34,15 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
   const [showAiPanel, setShowAiPanel] = useState(false);
 
   useEffect(() => {
-    if (existingProject) {
-      setTitle(existingProject.title);
-      setDescription(initialDescription || existingProject.description);
-      setTechStack(existingProject.tech_stack || ''); // New field
-      setRepoUrl(existingProject.repo_url || '');
-      setDemoUrl(existingProject.demo_url || '');
-      setVideoUrl(existingProject.video_url || '');
-      setAttachmentUrl(existingProject.attachment_url || '');
-      setCoverImage(existingProject.cover_image || '');
+    if (existingSubmission) {
+      setTitle(existingSubmission.title);
+      setDescription(initialDescription || existingSubmission.description);
+      setTechStack(existingSubmission.tech_stack || '');
+      setRepoUrl(existingSubmission.repo_url || '');
+      setDemoUrl(existingSubmission.demo_url || '');
+      setVideoUrl(existingSubmission.video_url || '');
+      setAttachmentUrl(existingSubmission.attachment_url || '');
+      setCoverImage(existingSubmission.cover_image || '');
     } else if (initialData) {
       setTitle(initialData.title || '');
       setDescription(initialDescription || initialData.description || '');
@@ -55,14 +56,14 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
       // Reset if new
       setTitle('');
       setDescription(initialDescription || '');
-      setTechStack(''); // New field
+      setTechStack('');
       setRepoUrl('');
       setDemoUrl('');
       setVideoUrl('');
       setAttachmentUrl('');
       setCoverImage('');
     }
-  }, [existingProject, isOpen, initialDescription, initialData]);
+  }, [existingSubmission, isOpen, initialDescription, initialData]);
 
   const uploadImage = async (file: File) => {
     const formData = new FormData();
@@ -145,13 +146,15 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
                     // hackathon_id removed as it's not in ProjectCreate and linked via team
                 };
 
-      if (existingProject) {
-        await axios.patch(`/api/v1/projects/${existingProject.id}`, payload, { headers }); // Changed put to patch
+      if (existingSubmission) {
+        await axios.patch(`/api/v1/submissions/${existingSubmission.id}`, payload, { headers });
       } else {
-        if (!teamId) {
-             throw new Error("Team ID is missing");
+        const params = new URLSearchParams();
+        params.set('hackathon_id', String(hackathonId));
+        if (registrationType === 'team' && teamId) {
+          params.set('team_id', String(teamId));
         }
-        await axios.post(`/api/v1/projects/?team_id=${teamId}`, payload, { headers });
+        await axios.post(`/api/v1/submissions/?${params.toString()}`, payload, { headers });
       }
       
       alert('作品提交成功！');
@@ -170,7 +173,7 @@ export default function SubmitProjectModal({ isOpen, onClose, teamId, existingPr
         {/* Header */}
         <div className="flex justify-between items-center p-6 border-b-2 border-brand bg-black">
           <h2 className="text-2xl font-black text-white uppercase tracking-tighter">
-            {existingProject ? '编辑原型' : '提交原型'}
+            {existingSubmission ? '编辑原型' : '提交原型'}
           </h2>
           <button 
             onClick={onClose}

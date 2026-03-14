@@ -7,7 +7,8 @@ from alembic import context
 from sqlmodel import SQLModel
 from app.models.user import User
 from app.models.hackathon import Hackathon
-from app.models.team_project import Team, Project, TeamMember
+from app.models.team_project import Team, Submission, TeamMember
+from app.models.project import MasterProject, ProjectCollaborator
 from app.models.enrollment import Enrollment
 from app.models.judge import Judge
 from app.models.score import Score

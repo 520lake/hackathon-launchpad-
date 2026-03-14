@@ -18,8 +18,9 @@ logger = logging.getLogger("uvicorn")
 @app.on_event("startup")
 async def startup_event():
     logger.info("--- AURA API STARTUP: VERSION 2026-02-10-MODEL-SCOPE-DEPLOY-v1.5-FORCE-SCHEMA-FIX-V2 ---")
-    # 确保数据库表已创建 (通常由 alembic 处理，这里作为双重检查或本地开发用)
-    # SQLModel.metadata.create_all(engine)
+    # Ensure database tables exist (fallback for local dev when alembic hasn't run)
+    from app.db.session import init_db
+    init_db()
 
 # Ensure uploads directory exists
 if not os.path.exists("uploads"):

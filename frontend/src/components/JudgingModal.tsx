@@ -73,7 +73,7 @@ export default function JudgingModal({
 
       // Fetch projects
       const projectsRes = await axios.get(
-        `/api/v1/projects/?hackathon_id=${hackathonId}`,
+        `/api/v1/submissions/?hackathon_id=${hackathonId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -114,10 +114,8 @@ export default function JudgingModal({
       // Use project-specific score endpoint
       // Payload must match ScoreCreate (requires judge_id/project_id, though backend overrides)
       await axios.post(
-        `/api/v1/projects/${selectedProject.id}/score`,
+        `/api/v1/submissions/${selectedProject.id}/score`,
         {
-          project_id: selectedProject.id,
-          judge_id: 0, // Dummy, backend uses current_user.id
           score_value: Math.round(totalScore),
           comment: comment,
         },

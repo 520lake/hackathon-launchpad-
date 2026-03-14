@@ -214,6 +214,49 @@ export interface HackathonListItem {
 // Card display type – pure presentation, consumed by HackathonCard component
 // --------------------------------------------------------------------------
 
+// --------------------------------------------------------------------------
+// Submission & Master Project types (dual-track architecture)
+// --------------------------------------------------------------------------
+
+export interface Submission {
+  id: number;
+  hackathon_id: number;
+  team_id: number | null;
+  user_id: number | null;
+  project_id: number | null;
+  title: string;
+  description: string;
+  tech_stack: string | null;
+  cover_image: string | null;
+  demo_url: string | null;
+  repo_url: string | null;
+  video_url: string | null;
+  attachment_url: string | null;
+  status: "draft" | "submitted";
+  total_score: number | null;
+  created_at: string;
+}
+
+export interface MasterProject {
+  id: number;
+  title: string;
+  description: string | null;
+  repo_url: string | null;
+  created_by: number;
+  created_at: string;
+  collaborators?: ProjectCollaborator[];
+}
+
+export interface ProjectCollaborator {
+  project_id: number;
+  user_id: number;
+  is_visible: boolean;
+}
+
+// --------------------------------------------------------------------------
+// Card display type – pure presentation, consumed by HackathonCard component
+// --------------------------------------------------------------------------
+
 /**
  * Lightweight, display-oriented type for card/list views.
  * Built from HackathonListItem via the toHackathonCardData() mapper.

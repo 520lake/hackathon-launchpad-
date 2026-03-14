@@ -200,7 +200,7 @@ export default function UserDashboardModal({
 
       // 3. Get my projects
       try {
-        const resProjects = await axios.get("/api/v1/projects/me", {
+        const resProjects = await axios.get("/api/v1/submissions/me", {
           headers: { Authorization: `Bearer ${token}` },
         });
         setMyProjects(resProjects.data);

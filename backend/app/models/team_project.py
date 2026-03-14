@@ -4,6 +4,7 @@ from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
 from app.models.user import User, UserRead
 
+
 class TeamBase(SQLModel):
     name: str
     description: Optional[str] = None
@@ -14,9 +15,9 @@ class Team(TeamBase, table=True):
     hackathon_id: int = Field(foreign_key="hackathon.id")
     leader_id: int = Field(foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     members: List["TeamMember"] = Relationship(back_populates="team")
-    projects: List["Project"] = Relationship(back_populates="team")
+    submissions: List["Submission"] = Relationship(back_populates="team")
     recruitments: List["Recruitment"] = Relationship(back_populates="team")
 
 class TeamMember(SQLModel, table=True):
@@ -24,7 +25,7 @@ class TeamMember(SQLModel, table=True):
     team_id: int = Field(foreign_key="team.id")
     user_id: int = Field(foreign_key="user.id")
     joined_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     team: Optional[Team] = Relationship(back_populates="members")
     user: Optional[User] = Relationship()
 
@@ -50,13 +51,12 @@ class TeamReadWithMembers(TeamRead):
     members: List[TeamMemberReadWithUser] = []
     recruitments: List["RecruitmentRead"] = []
 
-class ProjectStatus(str, Enum):
+
+class SubmissionStatus(str, Enum):
     DRAFT = "draft"
     SUBMITTED = "submitted"
-    GRADING = "grading"
-    GRADED = "graded"
 
-class ProjectBase(SQLModel):
+class SubmissionBase(SQLModel):
     title: str
     description: str
     tech_stack: Optional[str] = None
@@ -66,27 +66,43 @@ class ProjectBase(SQLModel):
     video_url: Optional[str] = None
     attachment_url: Optional[str] = None
 
-class Project(ProjectBase, table=True):
+class Submission(SubmissionBase, table=True):
+    __tablename__ = "submission"
     id: Optional[int] = Field(default=None, primary_key=True)
-    team_id: int = Field(foreign_key="team.id")
-    status: ProjectStatus = Field(default=ProjectStatus.SUBMITTED)
+    hackathon_id: int = Field(foreign_key="hackathon.id")
+    team_id: Optional[int] = Field(default=None, foreign_key="team.id")
+    user_id: Optional[int] = Field(default=None, foreign_key="user.id")
+    project_id: Optional[int] = Field(default=None, foreign_key="master_project.id")
+    status: SubmissionStatus = Field(default=SubmissionStatus.DRAFT)
     total_score: Optional[float] = Field(default=0.0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
-    team: Optional[Team] = Relationship(back_populates="projects")
 
-class ProjectCreate(ProjectBase):
+    team: Optional[Team] = Relationship(back_populates="submissions")
+
+class SubmissionCreate(SubmissionBase):
     pass
 
-class ProjectRead(ProjectBase):
+class SubmissionRead(SubmissionBase):
     id: int
-    team_id: int
-    status: ProjectStatus
+    hackathon_id: int
+    team_id: Optional[int]
+    user_id: Optional[int]
+    project_id: Optional[int]
+    status: SubmissionStatus
     total_score: Optional[float]
     created_at: datetime
 
-class ProjectReadWithTeam(ProjectRead):
+class SubmissionReadWithTeam(SubmissionRead):
     team: Optional[TeamRead] = None
+
+# Keep backward-compat aliases for imports that haven't migrated
+ProjectStatus = SubmissionStatus
+ProjectBase = SubmissionBase
+Project = Submission
+ProjectCreate = SubmissionCreate
+ProjectRead = SubmissionRead
+ProjectReadWithTeam = SubmissionReadWithTeam
+
 
 # Recruitment Models
 class RecruitmentBase(SQLModel):
@@ -101,7 +117,7 @@ class Recruitment(RecruitmentBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     team_id: int = Field(foreign_key="team.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    
+
     team: Optional[Team] = Relationship(back_populates="recruitments")
 
 class RecruitmentCreate(RecruitmentBase):
@@ -112,8 +128,11 @@ class RecruitmentRead(RecruitmentBase):
     team_id: int
     created_at: datetime
 
-class TeamReadWithProjects(TeamRead):
-    projects: List[ProjectRead] = []
+class TeamReadWithSubmissions(TeamRead):
+    submissions: List[SubmissionRead] = []
+
+# Backward-compat alias
+TeamReadWithProjects = TeamReadWithSubmissions
 
 class RecruitmentReadWithTeam(RecruitmentRead):
-    team: Optional[TeamReadWithProjects] = None
+    team: Optional[TeamReadWithSubmissions] = None

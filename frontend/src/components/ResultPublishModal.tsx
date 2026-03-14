@@ -41,7 +41,7 @@ export default function ResultPublishModal({ isOpen, onClose, hackathonId }: Res
     try {
       const token = localStorage.getItem('token');
       // Fetch projects
-      const resProjects = await axios.get(`/api/v1/projects?hackathon_id=${hackathonId}`, {
+      const resProjects = await axios.get(`/api/v1/submissions?hackathon_id=${hackathonId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
       

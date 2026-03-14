@@ -7,12 +7,13 @@ class EnrollmentStatus(str, Enum):
     PENDING = "pending"
     APPROVED = "approved"
     REJECTED = "rejected"
+    WAITLISTED = "waitlisted"
 
 class Enrollment(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     hackathon_id: int = Field(foreign_key="hackathon.id")
-    status: EnrollmentStatus = Field(default=EnrollmentStatus.PENDING)
+    status: EnrollmentStatus = Field(default=EnrollmentStatus.APPROVED)
     joined_at: datetime = Field(default_factory=datetime.utcnow)
 
 class EnrollmentCreate(SQLModel):

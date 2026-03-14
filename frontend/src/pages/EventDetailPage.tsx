@@ -259,7 +259,7 @@ export default function EventDetailPage() {
   const fetchGallery = async () => {
     try {
       const res = await axios.get(
-        `/api/v1/projects?hackathon_id=${hackathonId}`,
+        `/api/v1/submissions?hackathon_id=${hackathonId}`,
       );
       setGalleryProjects(res.data);
     } catch (e) {
@@ -286,7 +286,7 @@ export default function EventDetailPage() {
 
       // Fetch my project
       const projRes = await axios.get(
-        `/api/v1/projects/my?hackathon_id=${hackathonId}`,
+        `/api/v1/submissions/me?hackathon_id=${hackathonId}`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -353,12 +353,10 @@ export default function EventDetailPage() {
         },
       );
 
-      // 2. 自动创建项目
+      // 2. 自动创建提交
       await axios.post(
-        "/api/v1/projects",
+        `/api/v1/submissions?hackathon_id=${hackathonId}&team_id=${teamRes.data.id}`,
         {
-          hackathon_id: hackathonId,
-          team_id: teamRes.data.id,
           title: "未命名项目",
           description: "请完善项目描述",
         },

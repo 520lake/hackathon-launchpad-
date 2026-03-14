@@ -2,6 +2,9 @@ import { useState, useEffect } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
 
+// Shared hackathon type returned by the list endpoint
+import type { HackathonListItem } from "@/types/hackathon";
+
 // Landing Components
 import Hero from "../components/Landing/Hero";
 import { LatestEvents, About, Schedule } from "../components/Landing/Sections";
@@ -13,15 +16,6 @@ import UserDashboardModal from "../components/UserDashboardModal";
 import AdminDashboardModal from "../components/AdminDashboardModal";
 import AITeamMatchModal from "../components/AITeamMatchModal";
 import ActivateOrganizerModal from "../components/ActivateOrganizerModal";
-
-interface Hackathon {
-  id: number;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-}
 
 interface OutletContextType {
   isLoggedIn: boolean;
@@ -40,7 +34,8 @@ export default function HomePage() {
   const [isAdminDashboardOpen, setIsAdminDashboardOpen] = useState(false);
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false);
   const [isActivateOrganizerOpen, setIsActivateOrganizerOpen] = useState(false);
-  const [latestHackathons, setLatestHackathons] = useState<Hackathon[]>([]);
+  // Stores the most recent hackathons fetched from the list endpoint
+  const [latestHackathons, setLatestHackathons] = useState<HackathonListItem[]>([]);
 
   useEffect(() => {
     fetchLatestHackathons();

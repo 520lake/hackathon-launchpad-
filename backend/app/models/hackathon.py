@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from datetime import datetime
 from enum import Enum
@@ -33,6 +34,8 @@ class HackathonFormat(str, Enum):
 
 class HackathonBase(SQLModel):
     title: str
+    description: Optional[str] = None
+    tags: Optional[str] = None  # JSON-encoded string array, e.g. '["AI","Web3"]'
     cover_image: Optional[str] = None
 
     registration_type: RegistrationType = Field(default=RegistrationType.TEAM)
@@ -72,6 +75,8 @@ class Hackathon(HackathonBase, table=True):
 class HackathonCreate(SQLModel):
     """Payload for creating a new hackathon (step 1 of the wizard)."""
     title: str
+    description: Optional[str] = None
+    tags: Optional[list[str]] = None
     cover_image: Optional[str] = None
     registration_type: RegistrationType = RegistrationType.TEAM
     format: HackathonFormat = HackathonFormat.ONLINE
@@ -82,11 +87,14 @@ class HackathonCreate(SQLModel):
     district: Optional[str] = None
     address: Optional[str] = None
     is_address_hidden: bool = False
+    status: HackathonStatus = HackathonStatus.DRAFT
 
 
 class HackathonUpdate(SQLModel):
     """Partial-update payload – only set fields that changed."""
     title: Optional[str] = None
+    description: Optional[str] = None
+    tags: Optional[list[str]] = None
     cover_image: Optional[str] = None
     registration_type: Optional[RegistrationType] = None
     format: Optional[HackathonFormat] = None

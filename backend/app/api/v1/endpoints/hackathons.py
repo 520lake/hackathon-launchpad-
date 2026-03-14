@@ -4,6 +4,8 @@ CRUD endpoints for hackathons, hosts, and judges.
 Hackathon detail responses use batch loading to include sections + child
 data, hosts, and partners without N+1 queries.
 """
+import json
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlmodel import Session, select
 from typing import List, Optional
@@ -62,6 +64,16 @@ def _check_organizer_permission(
 # Helpers: batch-load full hackathon response with sections + child data
 # ---------------------------------------------------------------------------
 
+def _parse_tags(raw: str | None) -> list[str]:
+    """Parse a JSON-encoded tags string into a list, defaulting to []."""
+    if not raw:
+        return []
+    try:
+        return json.loads(raw)
+    except (json.JSONDecodeError, TypeError):
+        return []
+
+
 def _build_full_hackathon(session: Session, hackathon: Hackathon) -> dict:
     """
     Assemble a complete hackathon response including sections (with child
@@ -74,6 +86,7 @@ def _build_full_hackathon(session: Session, hackathon: Hackathon) -> dict:
     """
     hid = hackathon.id
     data = HackathonRead.from_orm(hackathon).dict()
+    data["tags"] = _parse_tags(hackathon.tags)
 
     # --- Sections ---
     sections = session.exec(
@@ -137,12 +150,14 @@ def _build_full_hackathon(session: Session, hackathon: Hackathon) -> dict:
 
 def _build_hackathon_list_item(session: Session, hackathons: list) -> list:
     """
-    Build lightweight list response: hackathon core fields + hosts only
-    (no sections or partners to keep the list endpoint fast).
+    Build lightweight list response: hackathon core fields + hosts + prize
+    summary.  No sections or partners are loaded to keep the query fast.
     """
     if not hackathons:
         return []
     ids = [h.id for h in hackathons]
+
+    # Batch-load hosts
     all_hosts = session.exec(
         select(HackathonHost)
         .where(HackathonHost.hackathon_id.in_(ids))
@@ -153,10 +168,33 @@ def _build_hackathon_list_item(session: Session, hackathons: list) -> list:
         hosts_map.setdefault(host.hackathon_id, []).append(
             HackathonHostRead.from_orm(host).dict()
         )
+
+    # Batch-load prizes for a lightweight cash / non-cash summary
+    all_prizes = session.exec(
+        select(Prize).where(Prize.hackathon_id.in_(ids))
+    ).all()
+    prize_summary: dict[int, dict] = {}
+    for p in all_prizes:
+        entry = prize_summary.setdefault(
+            p.hackathon_id, {"total_cash": 0, "has_non_cash": False}
+        )
+        entry["total_cash"] += float(p.total_cash_amount)
+        if not entry["has_non_cash"]:
+            try:
+                sublist = json.loads(p.awards_sublist) if p.awards_sublist else []
+                if any(item.get("type") != "cash" for item in sublist if isinstance(item, dict)):
+                    entry["has_non_cash"] = True
+            except (json.JSONDecodeError, TypeError):
+                pass
+
     results = []
     for h in hackathons:
         d = HackathonRead.from_orm(h).dict()
+        d["tags"] = _parse_tags(h.tags)
         d["hosts"] = hosts_map.get(h.id, [])
+        summary = prize_summary.get(h.id, {"total_cash": 0, "has_non_cash": False})
+        d["total_cash_prize"] = summary["total_cash"]
+        d["has_non_cash_prizes"] = summary["has_non_cash"]
         results.append(d)
     return results
 
@@ -175,8 +213,12 @@ def create_hackathon(
     """Create a hackathon and auto-assign the creator as the owner organizer."""
     try:
         now = datetime.utcnow()
+        create_data = hackathon.dict()
+        # Serialize tags list to JSON string for DB storage
+        if create_data.get("tags") is not None:
+            create_data["tags"] = json.dumps(create_data["tags"], ensure_ascii=False)
         db_hackathon = Hackathon(
-            **hackathon.dict(),
+            **create_data,
             created_by=current_user.id,
             created_at=now,
             updated_at=now,
@@ -287,6 +329,9 @@ def update_hackathon(
 
     try:
         hackathon_data = hackathon_in.dict(exclude_unset=True)
+        # Serialize tags list to JSON string for DB storage
+        if "tags" in hackathon_data and hackathon_data["tags"] is not None:
+            hackathon_data["tags"] = json.dumps(hackathon_data["tags"], ensure_ascii=False)
         for key, value in hackathon_data.items():
             setattr(db_hackathon, key, value)
         db_hackathon.updated_at = datetime.utcnow()

@@ -8,6 +8,11 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 
+// Shared hackathon types and utilities (new section-based data model)
+import type { HackathonListItem } from "@/types/hackathon";
+import { toHackathonCardData } from "@/utils/hackathon";
+import HackathonCard from "@/components/HackathonCard";
+
 interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
@@ -15,6 +20,12 @@ interface OutletContextType {
   lang?: "zh" | "en";
 }
 
+/**
+ * Enrollment record returned by GET /enrollments/me.
+ * The nested `hackathon` object contains only core fields —
+ * it does NOT include hosts or prize summaries, so those are
+ * defaulted when mapping to HackathonListItem for card display.
+ */
 interface Enrollment {
   id: number;
   hackathon_id: number;
@@ -25,30 +36,14 @@ interface Enrollment {
     start_date: string;
     end_date: string;
     cover_image?: string;
-    location?: string;
-    theme_tags?: string;
-    organizer_name?: string;
-    description?: string;
+    /** Structured location fields (new data model) */
+    province?: string;
+    city?: string;
+    district?: string;
+    /** User ID who created this hackathon */
+    created_by?: number;
   };
   created_at: string;
-}
-
-interface Hackathon {
-  id: number;
-  title: string;
-  status: string;
-  start_date: string;
-  end_date: string;
-  cover_image?: string;
-  location?: string;
-  description?: string;
-  organizer_name?: string;
-  theme_tags?: string;
-}
-
-interface OrganizedHackathon extends Hackathon {
-  participant_count?: number;
-  team_count?: number;
 }
 
 // Icons
@@ -160,22 +155,6 @@ const EditIcon = () => (
   </svg>
 );
 
-const CalendarIcon = () => (
-  <svg
-    className="w-4 h-4"
-    fill="none"
-    stroke="currentColor"
-    viewBox="0 0 24 24"
-  >
-    <path
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-    />
-  </svg>
-);
-
 const ArrowLeftIcon = () => (
   <svg
     className="w-4 h-4"
@@ -267,8 +246,9 @@ export default function ProfilePage() {
     "profile" | "organized" | "preferences" | "account" | "notifications"
   >("profile");
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  // Organized hackathons now come from the list endpoint as HackathonListItem[]
   const [organizedHackathons, setOrganizedHackathons] = useState<
-    OrganizedHackathon[]
+    HackathonListItem[]
   >([]);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
@@ -533,35 +513,6 @@ export default function ProfilePage() {
     } catch (e: any) {
       console.error(e);
       alert(e.response?.data?.detail || "注销失败");
-    }
-  };
-
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "registration":
-        return (
-          <span className="px-2 py-1 text-[10px] bg-emerald-500 text-white rounded">
-            报名中
-          </span>
-        );
-      case "ongoing":
-        return (
-          <span className="px-2 py-1 text-[10px] bg-sky-500 text-white rounded">
-            进行中
-          </span>
-        );
-      case "completed":
-        return (
-          <span className="px-2 py-1 text-[10px] bg-gray-500 text-white rounded">
-            已结束
-          </span>
-        );
-      default:
-        return (
-          <span className="px-2 py-1 text-[10px] bg-emerald-500 text-white rounded">
-            已发布
-          </span>
-        );
     }
   };
 
@@ -1041,82 +992,46 @@ export default function ProfilePage() {
                       </div>
                     ) : enrollments.length > 0 ? (
                       <div className="space-y-4">
-                        {enrollments.map((enroll) => (
-                          <div
-                            key={enroll.id}
-                            onClick={() =>
-                              navigate(
-                                `/events/${enroll.hackathon_id}?tab=myproject`,
-                              )
-                            }
-                            className="bg-[#111111] border border-[#222222] rounded-[16px] p-5 cursor-pointer hover:border-[#333] transition-all group"
-                          >
-                            <div className="flex gap-5">
-                              {/* Thumbnail */}
-                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-[16px] flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600 overflow-hidden">
-                                {enroll.hackathon?.cover_image ? (
-                                  <img
-                                    src={enroll.hackathon.cover_image}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  enroll.hackathon?.title?.substring(0, 2) ||
-                                  "TE"
-                                )}
-                              </div>
+                        {enrollments.map((enroll, index) => {
+                          // Map the enrollment's nested hackathon data into a
+                          // HackathonListItem so we can reuse toHackathonCardData().
+                          // The enrollment endpoint doesn't return hosts or prize
+                          // summaries, so we provide safe defaults (empty hosts,
+                          // zero cash prize, no non-cash prizes).
+                          const listItem: HackathonListItem = {
+                            id: enroll.hackathon_id,
+                            title: enroll.hackathon?.title || `活动 #${enroll.hackathon_id}`,
+                            cover_image: enroll.hackathon?.cover_image ?? null,
+                            registration_type: "individual",
+                            format: "online",
+                            start_date: enroll.hackathon?.start_date || "",
+                            end_date: enroll.hackathon?.end_date || "",
+                            province: enroll.hackathon?.province ?? null,
+                            city: enroll.hackathon?.city ?? null,
+                            district: enroll.hackathon?.district ?? null,
+                            address: null,
+                            is_address_hidden: false,
+                            status: (enroll.hackathon?.status as HackathonListItem["status"]) || "published",
+                            created_by: enroll.hackathon?.created_by ?? 0,
+                            created_at: enroll.created_at,
+                            updated_at: enroll.created_at,
+                            updated_by: null,
+                            hosts: [],
+                            total_cash_prize: 0,
+                            has_non_cash_prizes: false,
+                          };
 
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                {/* Tags */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  {enroll.hackathon?.theme_tags
-                                    ?.split(",")
-                                    .slice(0, 2)
-                                    .map((tag, i) => (
-                                      <span
-                                        key={i}
-                                        className="px-3 py-1.5 bg-[#222] text-gray-400 text-[10px] rounded-[16px]"
-                                      >
-                                        {tag.trim()}
-                                      </span>
-                                    ))}
-                                </div>
-
-                                <h4 className="text-white font-semibold mb-2 group-hover:text-brand transition-colors">
-                                  {enroll.hackathon?.title ||
-                                    `活动 #${enroll.hackathon_id}`}
-                                </h4>
-
-                                <p className="text-gray-500 text-sm mb-3 line-clamp-1">
-                                  {enroll.hackathon?.description || "暂无描述"}
-                                </p>
-
-                                {/* Meta */}
-                                <div className="flex items-center gap-4 text-gray-500 text-[12px]">
-                                  <span className="flex items-center gap-1">
-                                    <CalendarIcon />
-                                    {enroll.hackathon?.start_date
-                                      ? new Date(
-                                          enroll.hackathon.start_date,
-                                        ).toLocaleDateString("zh-CN")
-                                      : "待定"}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <LocationIcon />
-                                    {enroll.hackathon?.location || "线上"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Status */}
-                              <div className="flex flex-col items-end justify-between">
-                                {getStatusBadge(
-                                  enroll.hackathon?.status || "registration",
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          return (
+                            <HackathonCard
+                              key={enroll.id}
+                              data={toHackathonCardData(listItem)}
+                              index={index}
+                              onClick={() =>
+                                navigate(`/events/${enroll.hackathon_id}?tab=myproject`)
+                              }
+                            />
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-500">
@@ -1171,81 +1086,28 @@ export default function ProfilePage() {
                       </div>
                     ) : organizedHackathons.length > 0 ? (
                       <div className="space-y-4">
-                        {organizedHackathons.map((hackathon) => (
-                          <div
-                            key={hackathon.id}
-                            onClick={() =>
-                              navigate(`/events/${hackathon.id}?tab=manage`)
-                            }
-                            className="bg-[#111111] border border-[#222222] rounded-[16px] p-5 cursor-pointer hover:border-[#333] transition-all group"
-                          >
-                            <div className="flex gap-5">
-                              {/* Thumbnail */}
-                              <div className="w-20 h-20 bg-[#1A1A1A] rounded-[16px] flex items-center justify-center flex-shrink-0 text-2xl font-bold text-gray-600 overflow-hidden">
-                                {hackathon.cover_image ? (
-                                  <img
-                                    src={hackathon.cover_image}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  hackathon.title?.substring(0, 2) || "TE"
-                                )}
-                              </div>
+                        {/* Organized hackathons already arrive as HackathonListItem
+                            from /api/v1/hackathons/my, so we can pass them directly
+                            through toHackathonCardData() to build card display data.
+                            We also flag isOrganizer so the card can show an
+                            "organizer" badge if needed. */}
+                        {organizedHackathons.map((hackathon, index) => {
+                          const cardData = toHackathonCardData(
+                            hackathon,
+                            currentUser?.id,
+                          );
 
-                              {/* Info */}
-                              <div className="flex-1 min-w-0">
-                                {/* Tags */}
-                                <div className="flex items-center gap-2 mb-2">
-                                  {hackathon.theme_tags
-                                    ?.split(",")
-                                    .slice(0, 2)
-                                    .map((tag: string, i: number) => (
-                                      <span
-                                        key={i}
-                                        className="px-3 py-1.5 bg-[#222] text-gray-400 text-[10px] rounded-[16px]"
-                                      >
-                                        {tag.trim()}
-                                      </span>
-                                    ))}
-                                  <span className="px-3 py-1.5 bg-brand/10 text-brand text-[10px] rounded-[16px] border border-brand/20">
-                                    主办方
-                                  </span>
-                                </div>
-
-                                <h4 className="text-white font-semibold mb-2 group-hover:text-brand transition-colors">
-                                  {hackathon.title || `活动 #${hackathon.id}`}
-                                </h4>
-
-                                <p className="text-gray-500 text-sm mb-3 line-clamp-1">
-                                  {hackathon.description || "暂无描述"}
-                                </p>
-
-                                {/* Meta */}
-                                <div className="flex items-center gap-4 text-gray-500 text-[12px]">
-                                  <span className="flex items-center gap-1">
-                                    <CalendarIcon />
-                                    {hackathon.start_date
-                                      ? new Date(
-                                          hackathon.start_date,
-                                        ).toLocaleDateString("zh-CN")
-                                      : "待定"}
-                                  </span>
-                                  <span className="flex items-center gap-1">
-                                    <LocationIcon />
-                                    {hackathon.location || "线上"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              {/* Status */}
-                              <div className="flex flex-col items-end justify-between">
-                                {getStatusBadge(
-                                  hackathon.status || "registration",
-                                )}
-                              </div>
-                            </div>
-                          </div>
-                        ))}
+                          return (
+                            <HackathonCard
+                              key={hackathon.id}
+                              data={cardData}
+                              index={index}
+                              onClick={() =>
+                                navigate(`/events/${hackathon.id}?tab=manage`)
+                              }
+                            />
+                          );
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-12 text-gray-500">

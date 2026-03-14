@@ -29,9 +29,9 @@ class HackathonHost(HackathonHostBase, table=True):
         )
     )
 
-    created_at: datetime = Field(default_factory=datetime.utcnow)
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     created_by: Optional[int] = Field(default=None, foreign_key="user.id")
-    updated_at: datetime = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     updated_by: Optional[int] = Field(default=None, foreign_key="user.id")
 
 
@@ -49,9 +49,9 @@ class HackathonHostRead(HackathonHostBase):
     """Response schema returned to the frontend."""
     id: int
     hackathon_id: int
-    created_at: datetime
+    created_at: Optional[datetime] = None
     created_by: Optional[int] = None
-    updated_at: datetime
+    updated_at: Optional[datetime] = None
     updated_by: Optional[int] = None
 
 

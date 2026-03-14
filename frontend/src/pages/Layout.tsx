@@ -58,7 +58,10 @@ export default function Layout() {
     return null;
   };
 
-  const [isLoggedIn, setIsLoggedIn] = useState(false)
+  const [isLoggedIn, setIsLoggedIn] = useState(() => {
+    const token = localStorage.getItem('token');
+    return !!(token && token !== 'undefined' && token !== 'null');
+  })
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isLoginOpen, setIsLoginOpen] = useState(false)
   const [isRegisterOpen, setIsRegisterOpen] = useState(false)

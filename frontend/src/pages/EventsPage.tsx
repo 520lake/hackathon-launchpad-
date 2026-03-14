@@ -2,9 +2,9 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
 import { motion } from "framer-motion";
-import HackathonCard, {
-  type HackathonCardData,
-} from "../components/HackathonCardV2";
+import HackathonCard from "../components/HackathonCard";
+import type { HackathonListItem, HackathonCardData } from "@/types/hackathon";
+import { toHackathonCardData, formatLocation } from "@/utils/hackathon";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -20,123 +20,46 @@ import MultipleSelector, {
 import { Checkbox } from "@/components/ui/checkbox";
 import { RotateCcw } from "lucide-react";
 
-interface Hackathon {
-  id: number;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  cover_image?: string;
-  theme_tags?: string;
-  professionalism_tags?: string;
-  format?: string;
-  location?: string;
-  organizer_name?: string;
-  awards_detail?: string;
-  organizer_id?: number;
-  hosts?: Array<{
-    id: number;
-    name: string;
-    logo?: string;
-    display_order: number;
-  }>;
-}
-
 interface OutletContextType {
   isLoggedIn: boolean;
   currentUser: any;
 }
 
-// 格式化日期范围：同年 "YYYY.M.D - M.D"，跨年 "YYYY.M.D - YYYY.M.D"，无前导零
-const formatDateRange = (startStr: string, endStr: string) => {
-  if (!startStr || !endStr) return "待定";
-  const start = new Date(startStr);
-  const end = new Date(endStr);
-  const sy = start.getFullYear();
-  const sm = start.getMonth() + 1;
-  const sd = start.getDate();
-  const ey = end.getFullYear();
-  const em = end.getMonth() + 1;
-  const ed = end.getDate();
-
-  if (sy === ey) {
-    return `${sy}.${sm}.${sd} - ${em}.${ed}`;
-  }
-  return `${sy}.${sm}.${sd} - ${ey}.${em}.${ed}`;
-};
-
-// 解析奖金
-const parseAwards = (awardsDetail?: string) => {
-  if (!awardsDetail) return "暂无奖品信息";
-
-  // 尝试解析 JSON 格式
-  try {
-    const awards = JSON.parse(awardsDetail);
-    if (Array.isArray(awards) && awards.length > 0) {
-      // 计算总奖金
-      const totalCash = awards.reduce(
-        (sum, award) => sum + (award.amount || 0),
-        0,
-      );
-      if (totalCash >= 10000) {
-        return `¥ ${(totalCash / 10000).toFixed(0)}万 + ${awards.length}个奖项`;
-      } else if (totalCash > 0) {
-        return `¥ ${totalCash.toLocaleString()} + ${awards.length}个奖项`;
-      }
-      return `${awards.length}个奖项`;
-    }
-  } catch (e) {
-    // 如果不是 JSON，按原来的方式解析
-  }
-
-  // 兼容旧格式：简单字符串解析
-  const cashMatch = awardsDetail.match(/(\d+)/);
-  if (cashMatch) {
-    const amount = parseInt(cashMatch[1]);
-    if (amount >= 10000) {
-      return `¥ ${(amount / 10000).toFixed(0)}万 + 非现金奖品`;
-    }
-    return `¥ ${amount.toLocaleString()} + 非现金奖品`;
-  }
-  return awardsDetail.length > 20
-    ? awardsDetail.slice(0, 20) + "..."
-    : awardsDetail;
-};
-
-// Mock 数据兜底
+// Mock data used as a fallback when the API returns an empty list
 const MOCK_DATA: HackathonCardData[] = [
   {
     id: "1",
     title: "Aurathon AI 创新黑客松 2026",
-    description:
-      "探索人工智能的无限可能，与全球开发者一起创造未来。我们寻找最具创新性的 AI 应用解决方案。",
-    hosts: [{ name: "Aurathon 官方", logo: "" }],
-    tags: ["AI", "机器学习", "创新赛"],
+    hosts: [{ name: "Aurathon 官方" }],
+    tags: [],
     status: "ongoing",
     dateRange: "2026.1.15 - 3.1",
-    location: "线上 + 上海市",
-    prizeText: "¥ 50万 + GPU 算力支持 + 投资机会",
+    location: "线上",
+    prizeText: "¥50万 + 非现金奖品",
   },
   {
     id: "2",
     title: "Web3 开发者挑战赛",
-    description:
-      "聚焦区块链、DeFi、NFT 等前沿技术，连接开发者与资本，打造下一代 Web3 应用。",
-    hosts: [{ name: "Blockchain Labs", logo: "" }],
-    tags: ["Web3", "区块链", "DeFi"],
+    hosts: [{ name: "Blockchain Labs" }],
+    tags: [],
     status: "published",
     dateRange: "2026.3.1 - 3.15",
     location: "线上",
-    prizeText: "¥ 20万 + 代币激励",
+    prizeText: "¥20万",
   },
 ];
+
+// Map Chinese format labels to backend enum values for filtering
+const FORMAT_LABEL_TO_VALUE: Record<string, string> = {
+  线下: "offline",
+  线上: "online",
+};
 
 export default function EventsPage() {
   const navigate = useNavigate();
   useOutletContext<OutletContextType>();
 
-  const [hackathons, setHackathons] = useState<Hackathon[]>([]);
+  const [hackathons, setHackathons] = useState<HackathonListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [sortBy, setSortBy] = useState("recommended");
@@ -144,7 +67,6 @@ export default function EventsPage() {
   const [statusFilters, setStatusFilters] = useState<string[]>([]);
   const [typeFilters, setTypeFilters] = useState<string[]>([]);
   const [locationFilters, setLocationFilters] = useState<Option[]>([]);
-  const [tagFilters, setTagFilters] = useState<Option[]>([]);
   const [isNavigating, setIsNavigating] = useState(false);
 
   useEffect(() => {
@@ -154,13 +76,8 @@ export default function EventsPage() {
   const fetchHackathons = async () => {
     try {
       setLoading(true);
-
-      // 获取所有活动
       const response = await axios.get("/api/v1/hackathons");
-      const allHackathons = response.data;
-
-      // 显示所有已发布的活动
-      setHackathons(allHackathons);
+      setHackathons(response.data);
     } catch (err) {
       console.error(err);
     } finally {
@@ -168,38 +85,6 @@ export default function EventsPage() {
     }
   };
 
-  // 将后端数据转换为 HackathonCard 格式
-  const transformToCardData = (hackathon: Hackathon): HackathonCardData => {
-    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
-    const isOrganizer = hackathon.organizer_id === currentUser.id;
-
-    return {
-      id: String(hackathon.id),
-      title: hackathon.title,
-      description: hackathon.description,
-      // 将后端的封面图字段传递给卡片组件，
-      // 这样每个活动都可以展示自己的「应用图标 / banner」，
-      // 避免页面上全部是文字导致“太白、太空”的感觉。
-      coverImage: hackathon.cover_image,
-      hosts:
-        hackathon.hosts && hackathon.hosts.length > 0
-          ? hackathon.hosts.map((h) => ({ name: h.name, logo: h.logo }))
-          : [{ name: hackathon.organizer_name || "未知主办方" }],
-      tags:
-        hackathon.theme_tags
-          ?.split(",")
-          .map((t) => t.trim())
-          .filter(Boolean)
-          .slice(0, 3) || [],
-      status: hackathon.status,
-      dateRange: formatDateRange(hackathon.start_date, hackathon.end_date),
-      location: hackathon.location || "线上",
-      prizeText: parseAwards(hackathon.awards_detail),
-      isOrganizer, // 添加标识，用于卡片显示
-    };
-  };
-
-  // 处理卡片点击
   const handleCardClick = (data: HackathonCardData) => {
     setIsNavigating(true);
     setTimeout(() => {
@@ -207,62 +92,46 @@ export default function EventsPage() {
     }, 300);
   };
 
-  // 从所有活动中提取唯一标签和地点
-  const allTags: Option[] = useMemo(
-    () =>
-      Array.from(
-        new Set(
-          hackathons.flatMap(
-            (h) =>
-              h.theme_tags
-                ?.split(",")
-                .map((t) => t.trim())
-                .filter(Boolean) || [],
-          ),
-        ),
-      ).map((tag) => ({ value: tag, label: tag })),
-    [hackathons],
-  );
+  // Derive unique location options from province / city values
+  const allLocations: Option[] = useMemo(() => {
+    const locationSet = new Set<string>();
+    hackathons.forEach((h) => {
+      const loc = formatLocation(h.province, h.city, h.district);
+      if (loc !== "线上") locationSet.add(loc);
+    });
+    return [
+      { value: "线上", label: "线上" },
+      ...Array.from(locationSet).map((loc) => ({ value: loc, label: loc })),
+    ];
+  }, [hackathons]);
 
-  const allLocations: Option[] = useMemo(
-    () =>
-      Array.from(
-        new Set(hackathons.map((h) => h.location).filter(Boolean) as string[]),
-      ).map((loc) => ({ value: loc, label: loc })),
-    [hackathons],
-  );
-
-  // 筛选 + 排序逻辑：先按用户输入过滤，再根据排序选项调整顺序
+  // Filter + sort logic
   const filteredHackathons = useMemo(() => {
     const filtered = hackathons.filter((h) => {
       const matchesSearch =
         !searchQuery ||
-        h.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        h.description.toLowerCase().includes(searchQuery.toLowerCase());
+        h.title.toLowerCase().includes(searchQuery.toLowerCase());
 
       const matchesStatus =
         statusFilters.length === 0 || statusFilters.includes(h.status);
+
+      // typeFilters stores Chinese labels; convert to backend enum for comparison
       const matchesType =
-        typeFilters.length === 0 || typeFilters.includes(h.format || "offline");
+        typeFilters.length === 0 ||
+        typeFilters.some((label) => FORMAT_LABEL_TO_VALUE[label] === h.format);
+
       const matchesLocation =
         locationFilters.length === 0 ||
-        locationFilters.some((f) => h.location?.includes(f.value));
-      const matchesTag =
-        tagFilters.length === 0 ||
-        tagFilters.some((f) => h.theme_tags?.includes(f.value));
+        locationFilters.some((f) => {
+          const loc = formatLocation(h.province, h.city, h.district);
+          return loc.includes(f.value) || f.value === loc;
+        });
 
-      return (
-        matchesSearch &&
-        matchesStatus &&
-        matchesType &&
-        matchesLocation &&
-        matchesTag
-      );
+      return matchesSearch && matchesStatus && matchesType && matchesLocation;
     });
 
     const sorted = [...filtered];
 
-    // 根据当前排序选项调整顺序，以贴近设计中“为你推荐 / 最新 / 即将截止”的体验
     if (sortBy === "latest") {
       sorted.sort(
         (a, b) =>
@@ -281,7 +150,6 @@ export default function EventsPage() {
         published: 3,
         ended: 4,
       };
-
       sorted.sort((a, b) => {
         const weightA = statusWeight[a.status] ?? 99;
         const weightB = statusWeight[b.status] ?? 99;
@@ -299,28 +167,27 @@ export default function EventsPage() {
     statusFilters,
     typeFilters,
     locationFilters,
-    tagFilters,
     sortBy,
   ]);
 
-  // 转换为卡片数据
+  // Transform filtered hackathons into card data
   const cardDataList = useMemo(() => {
     if (filteredHackathons.length === 0 && !loading) {
       return MOCK_DATA;
     }
-    return filteredHackathons.map(transformToCardData);
+    const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
+    return filteredHackathons.map((h) =>
+      toHackathonCardData(h, currentUser.id),
+    );
   }, [filteredHackathons, loading]);
 
-  // 清除所有筛选
   const clearFilters = () => {
     setSearchQuery("");
     setStatusFilters([]);
     setTypeFilters([]);
     setLocationFilters([]);
-    setTagFilters([]);
   };
 
-  // 状态选项
   const statusOptions = [
     {
       value: "registration",
@@ -366,10 +233,9 @@ export default function EventsPage() {
 
   return (
     <div className="min-h-screen bg-[#050505] text-foreground">
-      {/* 页面头部：与 Figma 中的“// 探索网络”主标题区域对齐 */}
+      {/* 页面头部 */}
       <div className="px-6 pt-10 pb-6">
         <div className="max-w-7xl mx-auto">
-          {/* 返回导航保持在左上角，便于用户回到首页 */}
           <div className="flex items-center gap-4 mb-5 text-sm text-muted-foreground">
             <Button
               variant="ghost"
@@ -396,7 +262,6 @@ export default function EventsPage() {
             <span>探索网络</span>
           </div>
 
-          {/* 居中主标题块，模仿 Figma 中的标题排版 */}
           <div className="text-center mt-8">
             <div className="inline-flex items-center justify-center mb-3">
               <span className="text-muted-foreground font-mono mr-2">//</span>
@@ -411,13 +276,12 @@ export default function EventsPage() {
         </div>
       </div>
 
-      {/* 主视图结构：左侧筛选 + 右侧活动列表，与 Figma 中的两栏布局一致 */}
+      {/* 左侧筛选 + 右侧活动列表 */}
       <div className="px-6 pb-12">
         <div className="max-w-7xl mx-auto flex gap-10">
-          {/* 左侧筛选侧边栏 */}
+          {/* 筛选侧边栏 */}
           <div className="w-64 flex-shrink-0">
             <div className="sticky top-8 rounded-2xl bg-[#050505] border border-[#262626] px-5 py-6">
-              {/* 筛选标题 + 重置按钮（无筛选时隐藏但保留占位，避免布局跳动） */}
               <div className="flex items-center justify-between mb-6 text-sm">
                 <span className="font-medium text-white">筛选</span>
                 <Button
@@ -427,8 +291,7 @@ export default function EventsPage() {
                     searchQuery ||
                     statusFilters.length > 0 ||
                     typeFilters.length > 0 ||
-                    locationFilters.length > 0 ||
-                    tagFilters.length > 0
+                    locationFilters.length > 0
                       ? "opacity-100"
                       : "opacity-0 pointer-events-none"
                   }`}
@@ -459,7 +322,6 @@ export default function EventsPage() {
                           )
                         }
                       >
-                        {/* Shadcn Checkbox — Radix-based, fully accessible */}
                         <Checkbox
                           id={`status-${option.value}`}
                           checked={isChecked}
@@ -488,13 +350,13 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* 活动类型筛选 */}
+              {/* 活动类型筛选 (online / offline) */}
               <div className="mb-6">
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
                   活动类型
                 </h3>
                 <div className="space-y-2">
-                  {["线下", "线上", "混合"].map((type) => {
+                  {["线下", "线上"].map((type) => {
                     const isChecked = typeFilters.includes(type);
                     return (
                       <div
@@ -508,7 +370,6 @@ export default function EventsPage() {
                           )
                         }
                       >
-                        {/* Shadcn Checkbox — Radix-based, fully accessible */}
                         <Checkbox
                           id={`type-${type}`}
                           checked={isChecked}
@@ -533,8 +394,8 @@ export default function EventsPage() {
                 </div>
               </div>
 
-              {/* 地点下拉 - 多选 */}
-              <div className="mb-6">
+              {/* 地点筛选 */}
+              <div>
                 <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
                   地点
                 </h3>
@@ -554,41 +415,17 @@ export default function EventsPage() {
                   badgeClassName="bg-[#2a2a2a] text-gray-300 border-none text-[10px]"
                 />
               </div>
-
-              {/* 标签下拉 - 多选 */}
-              <div>
-                <h3 className="text-xs text-muted-foreground uppercase tracking-wider mb-3">
-                  标签
-                </h3>
-                <MultipleSelector
-                  value={tagFilters}
-                  onChange={setTagFilters}
-                  defaultOptions={allTags}
-                  options={allTags}
-                  placeholder="选择标签"
-                  hidePlaceholderWhenSelected
-                  emptyIndicator={
-                    <p className="text-center text-sm text-muted-foreground">
-                      无匹配标签
-                    </p>
-                  }
-                  className="border-[#262626] bg-transparent text-sm"
-                  badgeClassName="bg-[#2a2a2a] text-gray-300 border-none text-[10px]"
-                />
-              </div>
             </div>
           </div>
 
-          {/* 右侧活动列表区 */}
+          {/* 活动列表区 */}
           <div className="flex-1 min-w-0">
-            {/* 顶部控制条：左侧结果数 + 右侧搜索和排序 */}
             <div className="flex items-center justify-between mb-6 gap-4">
               <span className="text-sm text-muted-foreground whitespace-nowrap">
                 共 {cardDataList.length} 个结果
               </span>
 
               <div className="flex items-center gap-3">
-                {/* 搜索框带图标 */}
                 <div className="relative w-[260px]">
                   <svg
                     className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 flex-shrink-0 text-muted-foreground"
@@ -611,7 +448,6 @@ export default function EventsPage() {
                   />
                 </div>
 
-                {/* 排序下拉 */}
                 <Select value={sortBy} onValueChange={setSortBy}>
                   <SelectTrigger className="w-[120px] h-8 bg-[#111111] border-[#262626] text-sm text-muted-foreground">
                     <SelectValue placeholder="排序" />
@@ -642,7 +478,7 @@ export default function EventsPage() {
               </motion.div>
             )}
 
-            {/* 活动卡片列表 - 使用新组件 */}
+            {/* 活动卡片列表 */}
             {loading ? (
               <div className="space-y-4">
                 {[1, 2, 3].map((i) => (

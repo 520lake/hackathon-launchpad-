@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   useParams,
   useNavigate,
@@ -21,6 +21,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import type {
+  HackathonDetail,
+  Section,
+  ScheduleItem,
+  PrizeItem,
+  JudgingCriterionItem,
+} from "@/types/hackathon";
+import { formatLocation } from "@/utils/hackathon";
+import { getTagColor } from "@/utils/constants";
 
 // Modals
 import SubmitProjectModal from "../components/SubmitProjectModal";
@@ -43,46 +52,6 @@ interface Recruitment {
   status: string;
   created_at: string;
   team?: Team;
-}
-
-interface HackathonHostItem {
-  id: number;
-  name: string;
-  logo?: string;
-  display_order: number;
-}
-
-interface Hackathon {
-  id: number;
-  title: string;
-  subtitle?: string;
-  description: string;
-  cover_image?: string;
-  theme_tags?: string;
-  professionalism_tags?: string;
-  registration_type?: "individual" | "team";
-  format?: "online" | "offline";
-  location?: string;
-  organizer_name?: string;
-  contact_info?: string;
-  requirements?: string;
-  start_date: string;
-  end_date: string;
-  registration_start_date?: string;
-  registration_end_date?: string;
-  submission_start_date?: string;
-  submission_end_date?: string;
-  judging_start_date?: string;
-  judging_end_date?: string;
-  awards_detail?: string;
-  rules_detail?: string;
-  scoring_dimensions?: string;
-  resource_detail?: string;
-  results_detail?: string;
-  sponsors_detail?: string;
-  status: string;
-  organizer_id: number;
-  hosts?: HackathonHostItem[];
 }
 
 interface TeamMember {
@@ -122,52 +91,6 @@ interface OutletContextType {
   currentUser: any;
   fetchCurrentUser: () => void;
 }
-
-// 解析奖项 JSON
-interface AwardItem {
-  name: string;
-  prize: string;
-  description?: string;
-  count?: number;
-  amount?: number;
-  prize_pool?: number;
-}
-
-const parseAwardsDetail = (awardsDetail?: string): AwardItem[] => {
-  if (!awardsDetail) return [];
-  try {
-    const parsed = JSON.parse(awardsDetail);
-    if (Array.isArray(parsed)) {
-      // 转换数据格式，支持多种字段名
-      return parsed.map((item) => ({
-        name: item.name || "",
-        prize: item.prize || item.prize_pool || "",
-        description: item.description || "",
-        count: item.count || item.quota || 1,
-        amount:
-          item.amount ||
-          (typeof item.prize_pool === "number" ? item.prize_pool : 0),
-      }));
-    }
-  } catch (e) {
-    // 如果不是 JSON，返回空数组
-  }
-  return [];
-};
-
-// 解析评审维度 JSON
-const parseScoringDimensions = (
-  dimensions?: string,
-): Array<{ name: string; description: string; weight: number }> => {
-  if (!dimensions) return [];
-  try {
-    const parsed = JSON.parse(dimensions);
-    if (Array.isArray(parsed)) return parsed;
-  } catch (e) {
-    // 如果不是 JSON，返回空数组
-  }
-  return [];
-};
 
 // Countdown Timer Component
 function CountdownTimer({ targetDate }: { targetDate: string }) {
@@ -224,7 +147,7 @@ export default function EventDetailPage() {
   const hackathonId = id ? parseInt(id) : null;
   const tabParam = searchParams.get("tab");
 
-  const [hackathon, setHackathon] = useState<Hackathon | null>(null);
+  const [hackathon, setHackathon] = useState<HackathonDetail | null>(null);
   const [enrollment, setEnrollment] = useState<any>(null);
   const [myProject, setMyProject] = useState<Project | null>(null);
   const [myTeam, setMyTeam] = useState<Team | null>(null);
@@ -252,8 +175,35 @@ export default function EventDetailPage() {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  // 判断当前用户是否为活动发起者
-  const isOrganizer = hackathon?.organizer_id === currentUser?.id;
+  // 判断当前用户是否为活动发起者（使用 created_by 字段）
+  const isOrganizer = hackathon?.created_by === currentUser?.id;
+
+  // Extract sections by type for easy access in the overview tab
+  const sectionsByType = useMemo(() => {
+    if (!hackathon?.sections)
+      return { markdown: [], schedules: [], prizes: [], judgingCriteria: [] };
+    const sorted = [...hackathon.sections].sort(
+      (a, b) => a.display_order - b.display_order,
+    );
+    return {
+      markdown: sorted.filter((s) => s.section_type === "markdown"),
+      schedules: sorted.filter((s) => s.section_type === "schedules"),
+      prizes: sorted.filter((s) => s.section_type === "prizes"),
+      judgingCriteria: sorted.filter(
+        (s) => s.section_type === "judging_criteria",
+      ),
+    };
+  }, [hackathon?.sections]);
+
+  // Flatten all schedule items across schedule sections for the sidebar timeline
+  const allScheduleItems = useMemo(() => {
+    return sectionsByType.schedules
+      .flatMap((s) => s.schedules ?? [])
+      .sort(
+        (a, b) =>
+          new Date(a.start_time).getTime() - new Date(b.start_time).getTime(),
+      );
+  }, [sectionsByType.schedules]);
 
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -454,10 +404,9 @@ export default function EventDetailPage() {
   const getStatusText = (status: string) => {
     const map: Record<string, string> = {
       draft: "草稿",
-      registration: "报名中",
+      published: "已发布",
       ongoing: "进行中",
-      judging: "评审中",
-      completed: "已结束",
+      ended: "已结束",
     };
     return map[status] || status;
   };
@@ -532,38 +481,36 @@ export default function EventDetailPage() {
             </span>
           </div>
 
-          {/* Tags - 活动分类标签 */}
-          <div className="flex flex-wrap gap-2 mb-4">
-            {hackathon.theme_tags?.split(",").map((tag, i) => (
-              <span
-                key={i}
-                className="px-3 py-1 text-[11px] border border-[#FBBF24]/40 text-[#FBBF24] bg-[#FBBF24]/5 rounded-[16px]"
-              >
-                #{tag.trim()}
-              </span>
-            ))}
-            {hackathon.professionalism_tags?.split(",").map((tag, i) => (
-              <span
-                key={`p-${i}`}
-                className="px-3 py-1 text-[11px] border border-[#333] text-gray-300 rounded-[16px]"
-              >
-                #{tag.trim()}
-              </span>
-            ))}
-          </div>
-
           {/* Title */}
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
             {hackathon.title}
           </h1>
-          {hackathon.subtitle && (
-            <p className="text-lg text-gray-300 font-light mb-4">
-              {hackathon.subtitle}
+
+          {/* Description */}
+          {hackathon.description && (
+            <p className="text-base text-gray-300 mb-4 max-w-3xl leading-relaxed">
+              {hackathon.description}
             </p>
           )}
 
           {/* Info Bar */}
           <div className="flex flex-wrap items-center gap-6 text-sm text-gray-400">
+            {/* Tag badges */}
+            {hackathon.tags && hackathon.tags.length > 0 && (
+              <div className="flex items-center gap-2">
+                {hackathon.tags.map((tag, i) => {
+                  const color = getTagColor(tag);
+                  return (
+                    <span
+                      key={i}
+                      className={`px-2.5 py-0.5 text-[11px] font-medium rounded-[8px] border ${color.bg} ${color.text} ${color.border}`}
+                    >
+                      {tag}
+                    </span>
+                  );
+                })}
+              </div>
+            )}
             <div className="flex items-center gap-2">
               <span className="text-[#FBBF24]">◆</span>
               <span>
@@ -574,9 +521,11 @@ export default function EventDetailPage() {
             <div className="flex items-center gap-2">
               <span className="text-[#FBBF24]">◆</span>
               <span>
-                {hackathon.format === "online"
-                  ? "线上"
-                  : hackathon.location || "线下"}
+                {formatLocation(
+                  hackathon.province,
+                  hackathon.city,
+                  hackathon.district,
+                )}
               </span>
             </div>
             {/* 增强的活动状态徽标 */}
@@ -816,186 +765,244 @@ export default function EventDetailPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
-              {/* OVERVIEW TAB - 活动详情 */}
+              {/* OVERVIEW TAB - 活动详情（section-based rendering） */}
               {activeTab === "overview" && (
                 <div className="space-y-12">
-                  {/* 活动简介 */}
-                  <section id="intro">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                      <span className="w-6 h-[2px] bg-brand"></span>
-                      活动简介
-                    </h3>
-                    <div className="prose prose-invert max-w-none text-gray-300 border-l border-white/[0.08] pl-6">
-                      <ReactMarkdown>{hackathon.description}</ReactMarkdown>
-                    </div>
-                  </section>
-
-                  {/* 日程安排 */}
-                  <section id="schedule">
-                    <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                      <span className="w-6 h-[2px] bg-brand"></span>
-                      活动日程
-                    </h3>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                          报名开始
-                        </div>
-                        <div className="text-brand font-mono text-sm">
-                          {hackathon.registration_start_date
-                            ? new Date(
-                                hackathon.registration_start_date,
-                              ).toLocaleDateString("zh-CN")
-                            : "待定"}
-                        </div>
-                      </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                          报名截止
-                        </div>
-                        <div className="text-gray-300 font-mono text-sm">
-                          {hackathon.registration_end_date
-                            ? new Date(
-                                hackathon.registration_end_date,
-                              ).toLocaleDateString("zh-CN")
-                            : "待定"}
-                        </div>
-                      </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                          提交截止
-                        </div>
-                        <div className="text-gray-300 font-mono text-sm">
-                          {hackathon.submission_end_date
-                            ? new Date(
-                                hackathon.submission_end_date,
-                              ).toLocaleDateString("zh-CN")
-                            : "待定"}
-                        </div>
-                      </div>
-                      <div className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]">
-                        <div className="text-[10px] text-gray-500 uppercase tracking-wider mb-2">
-                          结果公布
-                        </div>
-                        <div className="text-gray-300 font-mono text-sm">
-                          {hackathon.judging_end_date
-                            ? new Date(
-                                hackathon.judging_end_date,
-                              ).toLocaleDateString("zh-CN")
-                            : "待定"}
-                        </div>
-                      </div>
-                    </div>
-                  </section>
-
-                  {/* 参赛要求 */}
-                  {hackathon.requirements && (
-                    <section id="requirements">
-                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                        <span className="w-6 h-[2px] bg-brand"></span>
-                        参赛要求
-                      </h3>
-                      <div className="prose prose-invert max-w-none text-gray-300 bg-white/[0.02] border border-white/[0.08] p-6 rounded-[16px]">
-                        <ReactMarkdown>{hackathon.requirements}</ReactMarkdown>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* 评审维度 */}
-                  {hackathon.scoring_dimensions &&
-                    parseScoringDimensions(hackathon.scoring_dimensions)
-                      .length > 0 && (
-                      <section id="scoring">
-                        <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                          <span className="w-6 h-[2px] bg-brand"></span>
-                          评审标准
-                        </h3>
-                        <div className="border-l border-white/[0.08] pl-6 space-y-4">
-                          {parseScoringDimensions(
-                            hackathon.scoring_dimensions,
-                          ).map((dim, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-[#111111] border border-[#222222] rounded-[16px] p-4"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-white font-medium">
-                                  {dim.name}
-                                </span>
-                                <span className="text-[#FBBF24] font-bold">
-                                  {dim.weight}%
-                                </span>
-                              </div>
-                              {dim.description && (
-                                <p className="text-gray-500 text-sm">
-                                  {dim.description}
-                                </p>
-                              )}
+                  {/* Render all sections in display_order */}
+                  {hackathon.sections
+                    ?.sort((a, b) => a.display_order - b.display_order)
+                    .map((section) => {
+                      // --- Markdown sections ---
+                      if (
+                        section.section_type === "markdown" &&
+                        section.content
+                      ) {
+                        return (
+                          <section
+                            key={section.id}
+                            id={`section-${section.id}`}
+                          >
+                            {section.title && (
+                              <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                                <span className="w-6 h-[2px] bg-brand"></span>
+                                {section.title}
+                              </h3>
+                            )}
+                            <div className="prose prose-invert max-w-none text-gray-300 border-l border-white/[0.08] pl-6">
+                              <ReactMarkdown>{section.content}</ReactMarkdown>
                             </div>
-                          ))}
-                        </div>
-                      </section>
-                    )}
+                          </section>
+                        );
+                      }
 
-                  {/* 评审规则 */}
-                  {hackathon.rules_detail && (
-                    <section id="rules">
-                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                        <span className="w-6 h-[2px] bg-brand"></span>
-                        评审规则
-                      </h3>
-                      <div className="prose prose-invert max-w-none text-gray-300 border-l border-white/[0.08] pl-6">
-                        <ReactMarkdown>{hackathon.rules_detail}</ReactMarkdown>
-                      </div>
-                    </section>
-                  )}
-
-                  {/* 奖项设置 */}
-                  {hackathon.awards_detail && (
-                    <section id="awards">
-                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                        <span className="w-6 h-[2px] bg-brand"></span>
-                        奖项设置
-                      </h3>
-                      <div className="border-l border-white/[0.08] pl-6 space-y-4">
-                        {parseAwardsDetail(hackathon.awards_detail).map(
-                          (award, idx) => (
-                            <div
-                              key={idx}
-                              className="bg-[#111111] border border-[#222222] rounded-[16px] p-4"
-                            >
-                              <div className="flex items-center justify-between mb-2">
-                                <span className="text-white font-medium">
-                                  {award.name}
-                                </span>
-                                <span className="text-gray-500 text-sm">
-                                  名额: {award.count}
-                                </span>
-                              </div>
-                              {award.prize && (
-                                <div className="text-[#FBBF24] font-bold mt-2">
-                                  {award.prize}
-                                </div>
-                              )}
-                              {award.description && (
-                                <div className="text-gray-400 text-sm mt-1">
-                                  {award.description}
-                                </div>
-                              )}
+                      // --- Schedule sections ---
+                      if (
+                        section.section_type === "schedules" &&
+                        section.schedules?.length
+                      ) {
+                        return (
+                          <section
+                            key={section.id}
+                            id={`section-${section.id}`}
+                          >
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                              <span className="w-6 h-[2px] bg-brand"></span>
+                              {section.title || "活动日程"}
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              {section.schedules
+                                .sort(
+                                  (a, b) => a.display_order - b.display_order,
+                                )
+                                .map((item) => (
+                                  <div
+                                    key={item.id}
+                                    className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]"
+                                  >
+                                    <div className="text-white font-medium text-sm mb-2">
+                                      {item.event_name}
+                                    </div>
+                                    <div className="text-brand font-mono text-xs">
+                                      {new Date(
+                                        item.start_time,
+                                      ).toLocaleDateString("zh-CN")}{" "}
+                                      -{" "}
+                                      {new Date(
+                                        item.end_time,
+                                      ).toLocaleDateString("zh-CN")}
+                                    </div>
+                                  </div>
+                                ))}
                             </div>
-                          ),
-                        )}
-                        {parseAwardsDetail(hackathon.awards_detail).length ===
-                          0 && (
-                          <div className="prose prose-invert max-w-none text-gray-300">
-                            <ReactMarkdown>
-                              {hackathon.awards_detail}
-                            </ReactMarkdown>
+                          </section>
+                        );
+                      }
+
+                      // --- Prize sections ---
+                      if (
+                        section.section_type === "prizes" &&
+                        section.prizes?.length
+                      ) {
+                        return (
+                          <section
+                            key={section.id}
+                            id={`section-${section.id}`}
+                          >
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                              <span className="w-6 h-[2px] bg-brand"></span>
+                              {section.title || "奖项设置"}
+                            </h3>
+                            <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                              {section.prizes
+                                .sort(
+                                  (a, b) => a.display_order - b.display_order,
+                                )
+                                .map((prize) => (
+                                  <div
+                                    key={prize.id}
+                                    className="bg-[#111111] border border-[#222222] rounded-[16px] p-4"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-white font-medium">
+                                        {prize.name}
+                                      </span>
+                                      <span className="text-gray-500 text-sm">
+                                        名额: {prize.quantity}
+                                      </span>
+                                    </div>
+                                    {prize.total_cash_amount > 0 && (
+                                      <div className="text-[#FBBF24] font-bold mt-2">
+                                        ¥
+                                        {Number(
+                                          prize.total_cash_amount,
+                                        ).toLocaleString()}
+                                      </div>
+                                    )}
+                                    {prize.winning_standards && (
+                                      <div className="text-gray-400 text-sm mt-1">
+                                        {prize.winning_standards}
+                                      </div>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          </section>
+                        );
+                      }
+
+                      // --- Judging criteria sections ---
+                      if (
+                        section.section_type === "judging_criteria" &&
+                        section.judging_criteria?.length
+                      ) {
+                        return (
+                          <section
+                            key={section.id}
+                            id={`section-${section.id}`}
+                          >
+                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                              <span className="w-6 h-[2px] bg-brand"></span>
+                              {section.title || "评审标准"}
+                            </h3>
+                            <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                              {section.judging_criteria
+                                .sort(
+                                  (a, b) => a.display_order - b.display_order,
+                                )
+                                .map((criterion) => (
+                                  <div
+                                    key={criterion.id}
+                                    className="bg-[#111111] border border-[#222222] rounded-[16px] p-4"
+                                  >
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-white font-medium">
+                                        {criterion.name}
+                                      </span>
+                                      <span className="text-[#FBBF24] font-bold">
+                                        {criterion.weight_percentage}%
+                                      </span>
+                                    </div>
+                                    {criterion.description && (
+                                      <p className="text-gray-500 text-sm">
+                                        {criterion.description}
+                                      </p>
+                                    )}
+                                  </div>
+                                ))}
+                            </div>
+                          </section>
+                        );
+                      }
+
+                      return null;
+                    })}
+
+                  {/* Partners section */}
+                  {hackathon.partners && hackathon.partners.length > 0 && (
+                    <section id="partners">
+                      <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
+                        <span className="w-6 h-[2px] bg-brand"></span>
+                        合作伙伴
+                      </h3>
+                      <div className="space-y-6">
+                        {/* Group partners by category */}
+                        {Array.from(
+                          new Set(hackathon.partners.map((p) => p.category)),
+                        ).map((category) => (
+                          <div key={category}>
+                            <h4 className="text-sm text-gray-400 mb-3 uppercase tracking-wider">
+                              {category}
+                            </h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                              {hackathon.partners
+                                .filter((p) => p.category === category)
+                                .sort(
+                                  (a, b) => a.display_order - b.display_order,
+                                )
+                                .map((partner) => (
+                                  <a
+                                    key={partner.id}
+                                    href={partner.website_url || "#"}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="flex flex-col items-center gap-2 p-4 border border-white/[0.08] rounded-[16px] hover:border-brand/30 transition-colors"
+                                  >
+                                    {partner.logo_url ? (
+                                      <img
+                                        src={partner.logo_url}
+                                        alt={partner.name}
+                                        className="h-10 w-auto object-contain"
+                                      />
+                                    ) : (
+                                      <div className="w-10 h-10 bg-[#222] rounded-full flex items-center justify-center text-white font-bold">
+                                        {partner.name[0]}
+                                      </div>
+                                    )}
+                                    <span className="text-xs text-gray-400 text-center truncate w-full">
+                                      {partner.name}
+                                    </span>
+                                  </a>
+                                ))}
+                            </div>
                           </div>
-                        )}
+                        ))}
                       </div>
                     </section>
                   )}
+
+                  {/* Empty state when no sections exist */}
+                  {(!hackathon.sections || hackathon.sections.length === 0) &&
+                    (!hackathon.partners ||
+                      hackathon.partners.length === 0) && (
+                      <div className="text-center py-20 border border-white/[0.05] rounded-[16px]">
+                        <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
+                          暂无活动详情
+                        </div>
+                        <p className="text-sm text-gray-500">
+                          活动内容正在准备中
+                        </p>
+                      </div>
+                    )}
                 </div>
               )}
 
@@ -1605,20 +1612,14 @@ export default function EventDetailPage() {
               {/* RESULTS TAB - 评审结果 */}
               {activeTab === "results" && (
                 <div>
-                  {hackathon.results_detail ? (
-                    <div className="prose prose-invert max-w-none text-gray-300">
-                      <ReactMarkdown>{hackathon.results_detail}</ReactMarkdown>
+                  <div className="text-center py-20 border border-white/[0.05]">
+                    <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
+                      结果尚未公布
                     </div>
-                  ) : (
-                    <div className="text-center py-20 border border-white/[0.05]">
-                      <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
-                        结果尚未公布
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        请等待评审结束后查看
-                      </p>
-                    </div>
-                  )}
+                    <p className="text-sm text-gray-500">
+                      请等待评审结束后查看
+                    </p>
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -1675,65 +1676,44 @@ export default function EventDetailPage() {
                 <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">
                   活动倒计时
                 </div>
-                <CountdownTimer
-                  targetDate={
-                    hackathon.registration_end_date || hackathon.end_date
-                  }
-                />
+                <CountdownTimer targetDate={hackathon.end_date} />
               </div>
 
-              {/* 时间轴 */}
-              <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
-                <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">
-                  时间轴
-                </div>
-                <div className="space-y-4 relative pl-4 border-l border-[#222222]">
-                  <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-[#FBBF24] rounded-full"></div>
-                    <div className="text-[10px] text-[#FBBF24] font-mono mb-1">
-                      {hackathon.registration_start_date
-                        ? new Date(
-                            hackathon.registration_start_date,
-                          ).toLocaleDateString("zh-CN")
-                        : "待定"}
-                    </div>
-                    <div className="text-[12px] text-white">报名开启</div>
+              {/* 时间轴 -- driven by schedule items from sections */}
+              {allScheduleItems.length > 0 && (
+                <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
+                  <div className="text-[10px] text-gray-600 uppercase tracking-wider mb-4">
+                    时间轴
                   </div>
-                  <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
-                      {hackathon.registration_end_date
-                        ? new Date(
-                            hackathon.registration_end_date,
-                          ).toLocaleDateString("zh-CN")
-                        : "待定"}
-                    </div>
-                    <div className="text-[12px] text-gray-400">报名截止</div>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
-                      {hackathon.submission_end_date
-                        ? new Date(
-                            hackathon.submission_end_date,
-                          ).toLocaleDateString("zh-CN")
-                        : "待定"}
-                    </div>
-                    <div className="text-[12px] text-gray-400">提交截止</div>
-                  </div>
-                  <div className="relative">
-                    <div className="absolute -left-[17px] top-1 w-2 h-2 bg-gray-600 rounded-full"></div>
-                    <div className="text-[10px] text-gray-500 font-mono mb-1">
-                      {hackathon.judging_end_date
-                        ? new Date(
-                            hackathon.judging_end_date,
-                          ).toLocaleDateString("zh-CN")
-                        : "待定"}
-                    </div>
-                    <div className="text-[12px] text-gray-400">结果公布</div>
+                  <div className="space-y-4 relative pl-4 border-l border-[#222222]">
+                    {allScheduleItems.map((item, idx) => (
+                      <div key={item.id} className="relative">
+                        <div
+                          className={`absolute -left-[17px] top-1 w-2 h-2 rounded-full ${
+                            idx === 0 ? "bg-[#FBBF24]" : "bg-gray-600"
+                          }`}
+                        ></div>
+                        <div
+                          className={`text-[10px] font-mono mb-1 ${
+                            idx === 0 ? "text-[#FBBF24]" : "text-gray-500"
+                          }`}
+                        >
+                          {new Date(item.start_time).toLocaleDateString(
+                            "zh-CN",
+                          )}
+                          {" - "}
+                          {new Date(item.end_time).toLocaleDateString("zh-CN")}
+                        </div>
+                        <div
+                          className={`text-[12px] ${idx === 0 ? "text-white" : "text-gray-400"}`}
+                        >
+                          {item.event_name}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              </div>
+              )}
 
               {/* 主办方信息 — shows all hosts from the backend */}
               <div className="bg-[#0A0A0A] border border-[#222222] rounded-[16px] p-6">
@@ -1746,7 +1726,7 @@ export default function EventDetailPage() {
                     : [
                         {
                           id: 0,
-                          name: hackathon.organizer_name || "Aura 平台",
+                          name: "Aura 平台",
                           display_order: 0,
                         },
                       ]
@@ -1756,9 +1736,9 @@ export default function EventDetailPage() {
                       className="flex items-center gap-4"
                     >
                       <div className="w-12 h-12 bg-[#111111] border border-[#333] rounded-full flex items-center justify-center overflow-hidden flex-shrink-0">
-                        {host.logo ? (
+                        {host.logo_url ? (
                           <img
-                            src={host.logo}
+                            src={host.logo_url}
                             alt={host.name}
                             className="w-12 h-12 rounded-full object-cover"
                           />
@@ -1773,11 +1753,6 @@ export default function EventDetailPage() {
                       </div>
                     </div>
                   ))}
-                  {hackathon.contact_info && (
-                    <div className="text-[11px] text-gray-500 mt-1 pt-2 border-t border-[#222222]">
-                      {hackathon.contact_info}
-                    </div>
-                  )}
                 </div>
               </div>
 

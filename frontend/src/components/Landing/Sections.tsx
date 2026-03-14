@@ -4,27 +4,21 @@ import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import EcosystemWall from "./EcosystemWall";
 
+// Shared hackathon types and utilities from the new section-based data model
+import type { HackathonListItem } from "@/types/hackathon";
+import { formatLocation } from "@/utils/hackathon";
+
 gsap.registerPlugin(ScrollTrigger);
 
 // --- 1. Latest Events (Bento Grid Layout) ---
-interface Hackathon {
-  id: number;
-  title: string;
-  description: string;
-  start_date: string;
-  end_date: string;
-  status: string;
-  cover_image?: string;
-  theme_tags?: string;
-  participant_count?: number;
-}
 
 export function LatestEvents({
   hackathons,
   onDetailClick,
   onViewAll,
 }: {
-  hackathons: Hackathon[];
+  /** Array of hackathon list items from the list endpoint */
+  hackathons: HackathonListItem[];
   onDetailClick: (id: number) => void;
   onViewAll: () => void;
 }) {
@@ -91,18 +85,20 @@ export function LatestEvents({
               <h3 className="text-2xl md:text-3xl font-bold text-ink mb-3 group-hover:text-brand transition-colors line-clamp-2">
                 {featured.title}
               </h3>
-              <p className="text-gray-400 mb-4 line-clamp-3">
-                {featured.description}
-              </p>
+              {/* Meta row: date, location, and status */}
               <div className="flex items-center gap-4 text-sm text-gray-500 font-mono">
                 <span>
                   {new Date(featured.start_date).toLocaleDateString()}
                 </span>
                 <span>•</span>
+                {/* Build a human-readable location from province/city/district,
+                    falls back to "线上" when all are null */}
+                <span>{formatLocation(featured.province, featured.city, featured.district)}</span>
+                <span>•</span>
                 <span
-                  className={`${featured.status === "registration" ? "text-green-400" : "text-gray-400"}`}
+                  className={`${featured.status === "published" ? "text-green-400" : "text-gray-400"}`}
                 >
-                  {featured.status === "registration"
+                  {featured.status === "published"
                     ? "报名中"
                     : featured.status}
                 </span>
@@ -136,8 +132,9 @@ export function LatestEvents({
                 <h3 className="text-lg font-bold text-ink mb-2 group-hover:text-brand transition-colors line-clamp-1">
                   {h.title}
                 </h3>
-                <p className="text-gray-500 text-xs line-clamp-2">
-                  {h.description}
+                {/* Location line built from the new province/city/district fields */}
+                <p className="text-gray-500 text-xs">
+                  {formatLocation(h.province, h.city, h.district)}
                 </p>
                 <div className="mt-3 text-xs text-gray-600 font-mono">
                   {new Date(h.start_date).toLocaleDateString()}

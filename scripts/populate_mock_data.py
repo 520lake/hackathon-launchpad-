@@ -9,16 +9,16 @@ from sqlmodel import Session, select
 # Add backend directory to sys.path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', 'backend')))
 
-from app.core.config import settings
+from aura_server.core.config import settings
 # Force update DATABASE_URL if needed, but better to check what it is
 print(f"Current DATABASE_URL: {settings.DATABASE_URL}")
 
-from app.db.session import engine
-from app.models.hackathon import Hackathon
-from app.models.team_project import Team, Project
-from app.models.enrollment import Enrollment
-from app.models.user import User
-from app.models.judge import Judge
+from aura_server.db.session import engine
+from aura_server.models.hackathon import Hackathon
+from aura_server.models.team_project import Team, Project
+from aura_server.models.enrollment import Enrollment
+from aura_server.models.user import User
+from aura_server.models.judge import Judge
 
 def check_db():
     print(f"Checking database...")

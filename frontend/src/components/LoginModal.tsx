@@ -142,13 +142,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
 
   return (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 backdrop-blur-md">
-      <div className="card-brutal w-full max-w-md p-8 relative bg-surface border border-brand/20">
+      <div className="w-full max-w-md p-8 relative bg-surface border border-brand/20 rounded-[24px] shadow-2xl">
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
+          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors w-8 h-8 flex items-center justify-center rounded-[16px] hover:bg-white/5"
         >✕</button>
         
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center pt-4">
           <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
             LOGIN <span className="text-brand">Aurathon</span>
           </h2>
@@ -158,7 +158,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
         </div>
 
         {error && (
-          <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-[16px] font-mono">
             {error}
           </div>
         )}
@@ -166,7 +166,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
         {isForgotPassword ? (
           // 忘记密码表单
           <form onSubmit={handleForgotPassword} className="space-y-4">
-            <div className="p-3 bg-brand/10 border border-brand/20 rounded-lg mb-4">
+            <div className="p-4 bg-brand/10 border border-brand/20 rounded-[16px] mb-4">
               <p className="text-sm text-brand font-medium">忘记密码</p>
               <p className="text-xs text-brand/80 mt-1">通过邮箱验证码重置密码</p>
             </div>
@@ -176,7 +176,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               placeholder="邮箱地址"
               value={email} onChange={e => setEmail(e.target.value)}
               disabled={showCodeInput}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors disabled:opacity-50"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors disabled:opacity-50 rounded-[16px]"
             />
 
             <div className="flex gap-2">
@@ -184,11 +184,11 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
                 type="text" required 
                 placeholder="验证码" 
                 value={code} onChange={e => setCode(e.target.value)}
-                className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+                className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
               />
               <button 
                 type="button" onClick={handleSendCode} disabled={countDown > 0 || !email}
-                className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors"
+                className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors rounded-[16px]"
               >
                 {countDown > 0 ? `${countDown}s` : '获取验证码'}
               </button>
@@ -198,13 +198,13 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               type="password" required 
               placeholder="设置新密码" 
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50 rounded-[16px]"
             >
               {loading ? '重置中...' : '重置密码'}
             </button>
@@ -212,7 +212,7 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
             <button 
               type="button"
               onClick={cancelForgotPassword}
-              className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-mono text-sm hover:bg-white/10 transition-colors"
+              className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-mono text-sm hover:bg-white/10 transition-colors rounded-[16px]"
             >
               返回登录
             </button>
@@ -224,18 +224,18 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               type="email" required 
               placeholder="邮箱地址" 
               value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
             <input 
               type="password" required 
               placeholder="密码" 
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50 rounded-[16px]"
             >
               {loading ? '登录中...' : '登录'}
             </button>
@@ -243,15 +243,15 @@ export default function LoginModal({ isOpen, onClose, onSwitchToRegister }: Logi
               <button 
                 type="button"
                 onClick={startForgotPasswordFlow}
-                className="text-brand hover:underline"
+                className="text-brand hover:underline px-3 py-1.5 rounded-[16px] hover:bg-brand/5 transition-colors"
               >
                 忘记密码？
               </button>
-              <span>没有账号？</span>
+              <span className="flex items-center">没有账号？</span>
               <button 
                 type="button"
                 onClick={onSwitchToRegister}
-                className="text-brand hover:underline"
+                className="text-brand hover:underline px-3 py-1.5 rounded-[16px] hover:bg-brand/5 transition-colors"
               >
                 立即注册
               </button>

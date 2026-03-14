@@ -126,13 +126,13 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
 
   return (
     <div className="fixed inset-0 z-[220] flex items-center justify-center bg-black/80 backdrop-blur-md">
-      <div className="card-brutal w-full max-w-md p-8 relative bg-surface border border-brand/20">
+      <div className="w-full max-w-md p-8 relative bg-surface border border-brand/20 rounded-[24px] shadow-2xl">
         <button 
           onClick={onClose} 
-          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors"
+          className="absolute top-4 right-4 text-gray-500 hover:text-brand transition-colors w-8 h-8 flex items-center justify-center rounded-[16px] hover:bg-white/5"
         >✕</button>
         
-        <div className="mb-8 text-center">
+        <div className="mb-8 text-center pt-4">
           <h2 className="text-3xl font-black mb-2 text-ink tracking-tighter">
             JOIN <span className="text-brand">Aurathon</span>
           </h2>
@@ -142,7 +142,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         </div>
 
         {error && (
-          <div className="mb-4 p-2 bg-red-500/10 border border-red-500/30 text-red-400 text-sm font-mono">
+          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 text-sm rounded-[16px] font-mono">
             {error}
           </div>
         )}
@@ -150,7 +150,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         {step === 1 ? (
           // 第一步：验证邮箱
           <form onSubmit={handleVerifyCode} className="space-y-4">
-            <div className="p-3 bg-brand/10 border border-brand/20 rounded-lg mb-4">
+            <div className="p-4 bg-brand/10 border border-brand/20 rounded-[16px] mb-4">
               <p className="text-sm text-brand font-medium">邮箱验证</p>
               <p className="text-xs text-brand/80 mt-1">验证邮箱后设置密码</p>
             </div>
@@ -159,7 +159,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
               type="email" required 
               placeholder="邮箱地址"
               value={email} onChange={e => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <div className="flex gap-2">
@@ -167,11 +167,11 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
                 type="text" required 
                 placeholder="验证码" 
                 value={code} onChange={e => setCode(e.target.value)}
-                className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+                className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
               />
               <button 
                 type="button" onClick={handleSendCode} disabled={countDown > 0 || !email}
-                className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors"
+                className="px-4 py-3 bg-white/5 border border-white/10 text-brand font-mono text-xs hover:bg-white/10 disabled:opacity-50 whitespace-nowrap transition-colors rounded-[16px]"
               >
                 {countDown > 0 ? `${countDown}s` : '获取验证码'}
               </button>
@@ -180,17 +180,17 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
             <button 
               type="submit" 
               disabled={loading || !code}
-              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50 rounded-[16px]"
             >
               {loading ? '验证中...' : '验证邮箱'}
             </button>
 
             <div className="text-center text-xs text-gray-500 pt-2">
-              <span>已有账号？</span>
+              <span className="flex items-center justify-center gap-2">已有账号？</span>
               <button 
                 type="button"
                 onClick={onSwitchToLogin}
-                className="text-brand hover:underline ml-1"
+                className="text-brand hover:underline px-3 py-1.5 rounded-[16px] hover:bg-brand/5 transition-colors mt-2"
               >
                 立即登录
               </button>
@@ -199,7 +199,7 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
         ) : (
           // 第二步：设置密码
           <form onSubmit={handleRegister} className="space-y-4">
-            <div className="p-3 bg-green-500/10 border border-green-500/20 rounded-lg mb-4">
+            <div className="p-4 bg-green-500/10 border border-green-500/20 rounded-[16px] mb-4">
               <p className="text-sm text-green-300 font-medium">✓ 邮箱已验证</p>
               <p className="text-xs text-green-400/80 mt-1">{email}</p>
             </div>
@@ -208,34 +208,34 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
               type="text" required 
               placeholder="昵称（可选）"
               value={fullName} onChange={e => setFullName(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <input 
               type="password" required 
               placeholder="设置密码" 
               value={password} onChange={e => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <input 
               type="password" required 
               placeholder="确认密码" 
               value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <input 
               type="text"
               placeholder="邀请码（可选，用于发布活动）"
               value={invitationCode} onChange={e => setInvitationCode(e.target.value)}
-              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors"
+              className="w-full px-4 py-3 bg-void border border-white/10 focus:border-brand text-ink outline-none font-mono text-sm transition-colors rounded-[16px]"
             />
 
             <button 
               type="submit" 
               disabled={loading}
-              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50"
+              className="w-full py-3 bg-brand text-void font-bold font-mono hover:bg-white transition-colors disabled:opacity-50 rounded-[16px]"
             >
               {loading ? '注册中...' : '完成注册'}
             </button>
@@ -243,12 +243,12 @@ export default function RegisterModal({ isOpen, onClose, onSwitchToLogin }: Regi
             <button 
               type="button"
               onClick={handleBackToStep1}
-              className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-mono text-sm hover:bg-white/10 transition-colors"
+              className="w-full py-3 bg-white/5 border border-white/10 text-gray-400 font-mono text-sm hover:bg-white/10 transition-colors rounded-[16px]"
             >
               返回上一步
             </button>
             
-            <p className="text-xs text-gray-500 font-mono text-center">
+            <p className="text-xs text-gray-500 font-mono text-center px-4 py-2 bg-white/5 rounded-[16px]">
               提示：需要邀请码才能发布活动
             </p>
           </form>

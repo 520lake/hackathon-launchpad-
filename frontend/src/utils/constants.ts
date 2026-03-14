@@ -258,21 +258,21 @@ export const getFormatConfig = (format: string) => {
 /**
  * 格式化日期范围
  */
+// 格式化日期范围：同年 "YYYY.M.D - M.D"，跨年 "YYYY.M.D - YYYY.M.D"，无前导零
 export const formatDateRange = (start?: string, end?: string) => {
   if (!start || !end) return '待定'
-  
-  const startDate = new Date(start)
-  const endDate = new Date(end)
-  
-  const format = (d: Date) => {
-    return d.toLocaleDateString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit'
-    })
-  }
-  
-  return `${format(startDate)} - ${format(endDate)}`
+
+  const s = new Date(start)
+  const e = new Date(end)
+
+  const sameYear = s.getFullYear() === e.getFullYear()
+
+  const full = (d: Date) => `${d.getFullYear()}.${d.getMonth() + 1}.${d.getDate()}`
+  const short = (d: Date) => `${d.getMonth() + 1}.${d.getDate()}`
+
+  return sameYear
+    ? `${full(s)} - ${short(e)}`
+    : `${full(s)} - ${full(e)}`
 }
 
 /**

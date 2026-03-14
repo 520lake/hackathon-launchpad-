@@ -312,7 +312,8 @@ export default function EventDetailPage() {
       navigate("/events");
     } catch (e: any) {
       console.error("删除活动失败:", e);
-      alert(e.response?.data?.detail || "删除活动失败，请重试");
+      const detail = e.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "删除活动失败，请重试");
       setIsDeleting(false);
       setShowDeleteConfirm(false);
     }
@@ -331,7 +332,8 @@ export default function EventDetailPage() {
       fetchTeams();
       fetchEnrollment();
     } catch (e: any) {
-      alert(e.response?.data?.detail || "加入失败");
+      const detail = e.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "加入失败");
     }
   };
 
@@ -341,12 +343,10 @@ export default function EventDetailPage() {
       const token = localStorage.getItem("token");
       // 1. 创建个人战队
       const teamRes = await axios.post(
-        "/api/v1/teams",
+        `/api/v1/teams?hackathon_id=${hackathonId}`,
         {
-          hackathon_id: hackathonId,
           name: `${currentUser?.nickname || currentUser?.full_name || "我"}的个人项目`,
           description: "个人参赛项目",
-          max_members: 1,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -369,7 +369,8 @@ export default function EventDetailPage() {
       fetchEnrollment();
       setIsSubmitOpen(true);
     } catch (e: any) {
-      alert(e.response?.data?.detail || "创建失败");
+      const detail = e.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "创建失败");
     }
   };
 
@@ -382,11 +383,8 @@ export default function EventDetailPage() {
     try {
       const token = localStorage.getItem("token");
       await axios.post(
-        "/api/v1/teams",
-        {
-          hackathon_id: hackathonId,
-          ...teamData,
-        },
+        `/api/v1/teams?hackathon_id=${hackathonId}`,
+        teamData,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
@@ -395,7 +393,8 @@ export default function EventDetailPage() {
       fetchEnrollment();
       setIsCreateTeamOpen(false);
     } catch (e: any) {
-      alert(e.response?.data?.detail || "创建战队失败");
+      const detail = e.response?.data?.detail;
+      alert(typeof detail === 'string' ? detail : "创建战队失败");
     }
   };
 

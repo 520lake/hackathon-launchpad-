@@ -712,7 +712,7 @@ export default function EventDetailPage() {
             <div className="border-b border-[#222222] mb-8">
               <div className="flex items-center">
                 <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="bg-transparent p-0 h-auto">
+                  <TabsList className="bg-transparent p-0 h-auto" variant="line">
                     {[
                       { id: "overview", label: "活动详情" },
                       {
@@ -728,10 +728,9 @@ export default function EventDetailPage() {
                       <TabsTrigger
                         key={tab.id}
                         value={tab.id}
-                        className="px-6 py-4 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors duration-200 ease-in-out relative rounded-none bg-transparent text-gray-500 data-[state=active]:text-white"
+                        className="px-6 py-4 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors duration-200 rounded-none border-transparent bg-transparent text-gray-500 hover:text-gray-300 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-transparent data-[state=active]:shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:outline-none after:bg-[#FBBF24]"
                       >
                         {tab.label}
-                        <span className="pointer-events-none absolute bottom-0 left-0 right-0 h-[1px] bg-[#FBBF24] opacity-0 data-[state=active]:opacity-100" />
                       </TabsTrigger>
                     ))}
                   </TabsList>

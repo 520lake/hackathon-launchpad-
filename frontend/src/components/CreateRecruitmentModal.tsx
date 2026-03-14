@@ -198,14 +198,14 @@ export default function CreateRecruitmentModal({ isOpen, onClose, teamId, onSucc
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2.5 border border-[#222222] text-gray-400 rounded-md hover:text-white hover:border-gray-600 transition-colors"
+                  className="flex-1 py-2.5 border border-[#222222] text-gray-400 rounded-[24px] hover:text-white hover:border-gray-600 transition-colors"
                 >
                   取消
                 </button>
                 <button
                   type="submit"
                   disabled={loading || !role.trim() || !skills.trim()}
-                  className="flex-1 py-2.5 bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 py-2.5 bg-[#FBBF24] text-black font-medium rounded-[24px] hover:bg-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {loading ? (
                     <span className="flex items-center justify-center gap-2">

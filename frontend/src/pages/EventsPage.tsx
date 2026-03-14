@@ -256,7 +256,7 @@ export default function EventsPage() {
             返回首页
           </button>
           <span className="text-gray-600">/</span>
-          <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">探索网络</span>
+          <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-[24px]">探索网络</span>
         </div>
         <h1 className="text-3xl font-bold text-white mb-2 flex items-center gap-2">
           <span className="text-[#FBBF24] font-mono">//</span>

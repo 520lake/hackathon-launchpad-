@@ -460,14 +460,14 @@ export default function EventDetailPage() {
               返回首页
             </button>
             <span className="text-gray-600">/</span>
-            <button 
+            <button
               onClick={() => navigate('/events')}
-              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
+              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-[24px]"
             >
               探索网络
             </button>
             <span className="text-gray-600">/</span>
-            <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">{hackathon.title}</span>
+            <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-[24px]">{hackathon.title}</span>
           </div>
 
           {/* Tags - 活动分类标签 */}
@@ -588,7 +588,7 @@ export default function EventDetailPage() {
             {!isLoggedIn && (
               <button
                 onClick={() => navigate('/login')}
-                className="flex items-center gap-2 px-6 py-2 bg-[#FBBF24] text-black font-medium rounded-md hover:bg-white transition-colors text-[13px]"
+                className="flex items-center gap-2 px-6 py-2 bg-[#FBBF24] text-black font-medium rounded-[24px] hover:bg-white transition-colors text-[13px]"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 16l-4-4m0 0l4-4m-4 4h14m-5 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h7a3 3 0 013 3v1" />
@@ -1435,21 +1435,21 @@ export default function EventDetailPage() {
         {!isLoggedIn ? (
           <button 
             onClick={() => navigate('/login')}
-            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-[24px] hover:bg-white transition-colors"
           >
             登录参与
           </button>
         ) : isOrganizer ? (
           <button 
             onClick={() => navigate(`/create?edit=${hackathon.id}`)}
-            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-[24px] hover:bg-white transition-colors"
           >
             编辑活动
           </button>
         ) : !myTeam ? (
           <button 
             onClick={() => setActiveTab('myproject')}
-            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white transition-colors"
+            className="w-full py-3 bg-[#FBBF24] text-black font-bold rounded-[24px] hover:bg-white transition-colors"
           >
             开始项目
           </button>
@@ -1457,13 +1457,13 @@ export default function EventDetailPage() {
           <div className="flex gap-2">
             <button 
               onClick={() => setActiveTab('participants')}
-              className="flex-1 py-3 border border-white/10 text-white text-sm font-medium rounded-md hover:bg-[#111111]"
+              className="flex-1 py-3 border border-white/10 text-white text-sm font-medium rounded-[24px] hover:bg-[#111111]"
             >
               组队广场
             </button>
             <button 
               onClick={() => setIsSubmitOpen(true)}
-              className="flex-1 py-3 bg-[#FBBF24] text-black font-bold rounded-md hover:bg-white"
+              className="flex-1 py-3 bg-[#FBBF24] text-black font-bold rounded-[24px] hover:bg-white"
             >
               提交作品
             </button>

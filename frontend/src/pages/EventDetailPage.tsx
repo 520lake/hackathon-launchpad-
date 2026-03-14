@@ -79,7 +79,8 @@ interface Project {
   repo_url?: string;
   demo_url?: string;
   hackathon_id: number;
-  team_id: number;
+  team_id: number | null;
+  user_id: number | null;
   team?: Team;
   status: string;
   cover_image?: string;
@@ -275,23 +276,27 @@ export default function EventDetailPage() {
       });
       setEnrollment(res.data);
 
-      // Fetch my team
+      // Fetch my teams and find one for this hackathon
       const teamRes = await axios.get(
-        `/api/v1/teams/my?hackathon_id=${hackathonId}`,
+        `/api/v1/teams/me`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      setMyTeam(teamRes.data);
+      const teamsArr = Array.isArray(teamRes.data) ? teamRes.data : [];
+      const teamForHackathon = teamsArr.find((t: Team) => t.hackathon_id === hackathonId);
+      setMyTeam(teamForHackathon || null);
 
-      // Fetch my project
+      // Fetch my submissions and find one for this hackathon
       const projRes = await axios.get(
-        `/api/v1/submissions/me?hackathon_id=${hackathonId}`,
+        `/api/v1/submissions/me`,
         {
           headers: { Authorization: `Bearer ${token}` },
         },
       );
-      setMyProject(projRes.data);
+      const subsArr = Array.isArray(projRes.data) ? projRes.data : [];
+      const subForHackathon = subsArr.find((s: Project) => s.hackathon_id === hackathonId);
+      setMyProject(subForHackathon || null);
     } catch (e) {
       console.error(e);
     }
@@ -1020,69 +1025,76 @@ export default function EventDetailPage() {
                                 开始您的黑客松之旅
                               </p>
                               <p className="text-[12px] text-gray-600 mt-1">
-                                选择适合您的方式参与
+                                {hackathon?.registration_type === "individual"
+                                  ? "本活动为个人参赛模式"
+                                  : "选择适合您的方式参与"}
                               </p>
                             </div>
                             <div className="flex flex-wrap gap-3">
-                              <Button
-                                onClick={handleCreatePersonalTeam}
-                                className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
+                              {hackathon?.registration_type === "individual" ? (
+                                <Button
+                                  onClick={() => setIsSubmitOpen(true)}
+                                  className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
                                 >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                                个人项目
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setIsCreateTeamOpen(true)}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-white/[0.15] text-white text-sm hover:bg-white hover:text-black transition-colors rounded-[16px]"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                  />
-                                </svg>
-                                创建战队
-                              </Button>
-                              <Button
-                                variant="outline"
-                                onClick={() => setActiveTab("participants")}
-                                className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-[16px]"
-                              >
-                                <svg
-                                  className="w-4 h-4"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                  />
-                                </svg>
-                                加入战队
-                              </Button>
+                                  <svg
+                                    className="w-4 h-4"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M12 4v16m8-8H4"
+                                    />
+                                  </svg>
+                                  提交作品
+                                </Button>
+                              ) : (
+                                <>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setIsCreateTeamOpen(true)}
+                                    className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                                      />
+                                    </svg>
+                                    创建战队
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    onClick={() => setActiveTab("participants")}
+                                    className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-[16px]"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                                      />
+                                    </svg>
+                                    加入战队
+                                  </Button>
+                                </>
+                              )}
                             </div>
                           </div>
                         </div>
@@ -1789,9 +1801,15 @@ export default function EventDetailPage() {
         <>
           <SubmitProjectModal
             isOpen={isSubmitOpen}
-            onClose={() => setIsSubmitOpen(false)}
+            onClose={() => {
+              setIsSubmitOpen(false);
+              fetchEnrollment();
+              fetchGallery();
+            }}
             hackathonId={hackathonId}
             teamId={myTeam?.id}
+            registrationType={hackathon?.registration_type || "team"}
+            existingSubmission={myProject}
           />
           <JudgingModal
             isOpen={isJudgingOpen}

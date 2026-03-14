@@ -161,7 +161,8 @@ export default function SubmitProjectModal({ isOpen, onClose, hackathonId, teamI
       onClose();
     } catch (err: any) {
       console.error(err);
-      setError(err.response?.data?.detail || '提交失败');
+      const detail = err.response?.data?.detail;
+      setError(typeof detail === 'string' ? detail : '提交失败');
     } finally {
       setLoading(false);
     }

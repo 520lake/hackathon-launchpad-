@@ -70,12 +70,12 @@ const STATUS_MAP: Record<
 };
 
 // ============================================
-// 图标组件
+// 图标组件 — 统一 16×16, strokeWidth 1.5
 // ============================================
 
 const CalendarIcon = () => (
   <svg
-    className="w-4 h-4 flex-shrink-0"
+    className="w-[16px] h-[16px] flex-shrink-0"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -91,7 +91,7 @@ const CalendarIcon = () => (
 
 const LocationIcon = () => (
   <svg
-    className="w-4 h-4 flex-shrink-0"
+    className="w-[16px] h-[16px] flex-shrink-0"
     fill="none"
     stroke="currentColor"
     viewBox="0 0 24 24"
@@ -113,7 +113,7 @@ const LocationIcon = () => (
 
 const TrophyIcon = () => (
   <svg
-    className="w-4 h-4 flex-shrink-0"
+    className="w-[16px] h-[16px] flex-shrink-0"
     fill="none"
     stroke="currentColor"
     strokeWidth={1.5}
@@ -145,8 +145,12 @@ const getStatusConfig = (status: string) => {
 /**
  * HackathonCard - 全局复用的活动卡片组件
  *
- * 纯展示组件，通过 props.data 接收 HackathonCardData。
- * 三栏布局：左区(图片) + 中区(信息) + 右区(状态和数据)。
+ * Design tokens (unified):
+ *   Padding:  20px          Gap between columns: 20px
+ *   Vertical gap (middle):  8px   Vertical gap (right): 12px
+ *   Icon–text gap:          8px
+ *   Font sizes:  10px (tags/badge) · 14px (body) · 20px (title)
+ *   Colors:  #fff (title) · #ccc (body/values) · #999 (labels) · #333 (dividers)
  */
 export default function HackathonCard({
   data,
@@ -155,19 +159,9 @@ export default function HackathonCard({
   className = "",
 }: HackathonCardProps) {
   const statusConfig = getStatusConfig(data.status);
-
-  /**
-   * 从标题中提取前两个非空白字符，作为卡片左侧缩略图里的字母缩写。
-   * 例如："Aura 测试黑客松"会得到 "AU"，确保在没有封面图时也有明确的视觉锚点。
-   */
   const titleInitials = data.title.replace(/\s/g, "").slice(0, 2).toUpperCase();
 
-  /**
-   * 主办方渐进式展示：
-   * 在不可见的测量层渲染所有主办方条目和 "等 N 个" 汇总文本，
-   * 通过 ResizeObserver 监听容器宽度，逐一检查每个条目的右边缘是否超出容器。
-   * 第一个条目始终显示；后续条目仅在完整可见时才显示，否则追加 "等 N 个"。
-   */
+  // ---- Host progressive disclosure via ResizeObserver ----
   const hostsMeasureRef = useRef<HTMLDivElement>(null);
   const summaryRef = useRef<HTMLSpanElement>(null);
   const [visibleHostCount, setVisibleHostCount] = useState(data.hosts.length);
@@ -224,52 +218,43 @@ export default function HackathonCard({
       }}
       onClick={() => onClick?.(data)}
       className={`
-        group
-        w-full
-        cursor-pointer
-        transition-all duration-300
-        bg-[#1a1a1a]
-        rounded-[8px]
-        border border-[#262626]
-        hover:border-[#3f3f3f]
-        hover:bg-[#202020]
+        group w-full cursor-pointer transition-all duration-300
+        bg-[#1a1a1a] rounded-[8px]
+        border border-[#262626] hover:border-[#3f3f3f] hover:bg-[#202020]
         ${className}
       `}
     >
-      {/* 内部三栏布局 */}
-      <div className="flex flex-row items-center gap-5 p-5">
-        {/* ========== 左区：固定尺寸的缩略图方块 ========== */}
-        <div className="flex-shrink-0">
-          <div className="relative w-[125px] h-[125px] rounded-[8px] bg-[#2a2a2a] overflow-hidden flex items-center justify-center">
-            {data.coverImage ? (
-              <img
-                src={data.coverImage}
-                alt={data.title}
-                className="w-full h-full object-cover"
-              />
-            ) : data.hosts[0]?.logo_url ? (
-              <img
-                src={data.hosts[0].logo_url}
-                alt={data.hosts[0].name}
-                className="w-full h-full object-cover"
-              />
-            ) : (
-              <span className="text-[56px] font-bold text-[#666] leading-none">
-                {titleInitials}
-              </span>
-            )}
-          </div>
+      <div className="flex items-center gap-[20px] p-[20px]">
+        {/* ========== 左区：缩略图 125×125 ========== */}
+        <div className="flex-shrink-0 w-[125px] h-[125px] rounded-[8px] bg-[#2a2a2a] overflow-hidden flex items-center justify-center">
+          {data.coverImage ? (
+            <img
+              src={data.coverImage}
+              alt={data.title}
+              className="w-full h-full object-cover"
+            />
+          ) : data.hosts[0]?.logo_url ? (
+            <img
+              src={data.hosts[0].logo_url}
+              alt={data.hosts[0].name}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <span className="text-[56px] font-bold text-[#666] leading-none">
+              {titleInitials}
+            </span>
+          )}
         </div>
 
-        {/* ========== 中区：标题和主办方信息 ========== */}
-        <div className="flex-1 min-w-0 flex flex-col gap-2">
-          {/* 标签行 */}
+        {/* ========== 中区：信息主体 ========== */}
+        <div className="flex-1 min-w-0 flex flex-col gap-[8px]">
+          {/* 标签 */}
           {data.tags.length > 0 && (
-            <div className="flex flex-wrap gap-2 items-center">
+            <div className="flex flex-wrap gap-[8px] items-center">
               {data.tags.slice(0, 3).map((tag, i) => (
                 <span
                   key={i}
-                  className="inline-flex items-center rounded-[4px] bg-[#2a2a2a] px-[6px] py-[2px] text-[10px] text-white"
+                  className="inline-flex items-center rounded-[4px] bg-[#2a2a2a] px-[6px] py-[2px] text-[10px] font-medium text-white"
                 >
                   {tag}
                 </span>
@@ -277,26 +262,26 @@ export default function HackathonCard({
             </div>
           )}
 
-          {/* 主标题 */}
+          {/* 标题 */}
           <h3 className="text-[20px] font-normal text-white truncate leading-none">
             {data.title}
           </h3>
 
           {/* 简介 */}
           {data.description && (
-            <p className="text-[13px] text-[#888] truncate leading-tight">
+            <p className="text-[14px] text-[#ccc] leading-[16px] w-full">
               {data.description}
             </p>
           )}
 
-          {/* 主办方信息行 */}
-          <div className="flex items-center gap-2 text-[14px] min-w-0 overflow-hidden">
-            <span className="text-[#999] flex-shrink-0">主办方：</span>
+          {/* 主办方 */}
+          <div className="flex items-center text-[14px] min-w-0 overflow-hidden">
+            <span className="text-[#999] font-medium flex-shrink-0 mr-[8px]">主办方：</span>
             <div className="relative min-w-0 flex-1">
-              {/* 不可见的测量层 */}
+              {/* 不可见测量层 */}
               <div
                 ref={hostsMeasureRef}
-                className="flex items-center gap-2 overflow-hidden invisible"
+                className="flex items-center gap-[8px] overflow-hidden invisible"
                 aria-hidden="true"
               >
                 {data.hosts.map((h, i) => (
@@ -304,12 +289,12 @@ export default function HackathonCard({
                     {i > 0 && (
                       <Separator
                         orientation="vertical"
-                        className="!self-auto h-[14px] bg-[#444]"
+                        className="!self-auto h-[14px] bg-[#333]"
                       />
                     )}
                     <div
                       data-host-item
-                      className="flex items-center gap-1.5 flex-shrink-0"
+                      className="flex items-center gap-[8px] flex-shrink-0"
                     >
                       {h.logo_url ? (
                         <img
@@ -327,22 +312,22 @@ export default function HackathonCard({
                 ))}
                 <span
                   ref={summaryRef}
-                  className="text-[12px] text-[#666] whitespace-nowrap flex-shrink-0"
+                  className="text-[14px] text-[#999] whitespace-nowrap flex-shrink-0"
                 >
                   等 {data.hosts.length} 个
                 </span>
               </div>
-              {/* 可见层：仅渲染能完整容纳的主办方 */}
-              <div className="absolute inset-0 flex items-center gap-2 overflow-hidden">
+              {/* 可见层 */}
+              <div className="absolute inset-0 flex items-center gap-[8px] overflow-hidden">
                 {data.hosts.slice(0, visibleHostCount).map((h, i) => (
                   <Fragment key={i}>
                     {i > 0 && (
                       <Separator
                         orientation="vertical"
-                        className="!self-auto h-[14px] bg-[#444]"
+                        className="!self-auto h-[14px] bg-[#333]"
                       />
                     )}
-                    <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <div className="flex items-center gap-[8px] flex-shrink-0">
                       {h.logo_url ? (
                         <img
                           src={h.logo_url}
@@ -358,7 +343,7 @@ export default function HackathonCard({
                   </Fragment>
                 ))}
                 {visibleHostCount < data.hosts.length && (
-                  <span className="text-[12px] text-[#666] whitespace-nowrap flex-shrink-0">
+                  <span className="text-[14px] text-[#999] whitespace-nowrap flex-shrink-0">
                     等 {data.hosts.length} 个
                   </span>
                 )}
@@ -370,39 +355,36 @@ export default function HackathonCard({
         {/* 竖线分隔符 */}
         <Separator orientation="vertical" className="h-[125px] bg-[#333]" />
 
-        {/* ========== 右区：状态徽章 + 时间 / 地点 / 奖金信息 ========== */}
-        <div className="flex-shrink-0 w-[210px] min-w-0 flex flex-col gap-3 items-start overflow-hidden">
+        {/* ========== 右区：状态 + 信息 ========== */}
+        <div className="flex-shrink-0 w-[220px] flex flex-col gap-[12px] items-start">
           {/* 状态胶囊 */}
           <span
             className={`
               inline-flex items-center justify-center
-              rounded-[12px]
-              px-[10px] py-[3px]
+              rounded-[12px] px-[10px] py-[3px]
               text-[10px] font-medium
-              ${statusConfig.bgColor}
-              ${statusConfig.textColor}
-              ${statusConfig.borderColor}
+              ${statusConfig.bgColor} ${statusConfig.textColor} ${statusConfig.borderColor}
             `}
           >
             {statusConfig.label}
           </span>
 
           {/* 时间 */}
-          <div className="flex items-center gap-2 text-[14px] text-[#ccc] max-w-full">
+          <div className="flex items-center gap-[8px] text-[14px] text-[#ccc]">
             <CalendarIcon />
-            <span className="truncate min-w-0">{data.dateRange}</span>
+            <span className="whitespace-nowrap">{data.dateRange}</span>
           </div>
 
           {/* 地点 */}
-          <div className="flex items-center gap-2 text-[12px] text-[#ccc] max-w-full">
+          <div className="flex items-center gap-[8px] text-[14px] text-[#ccc]">
             <LocationIcon />
-            <span className="truncate min-w-0">{data.location}</span>
+            <span className="whitespace-nowrap">{data.location}</span>
           </div>
 
-          {/* 奖金信息 */}
-          <div className="flex items-center gap-2 text-[14px] text-[#ccc] max-w-full">
+          {/* 奖金 */}
+          <div className="flex items-center gap-[8px] text-[14px] text-[#ccc]">
             <TrophyIcon />
-            <span className="truncate min-w-0">{data.prizeText}</span>
+            <span className="whitespace-nowrap">{data.prizeText}</span>
           </div>
         </div>
       </div>

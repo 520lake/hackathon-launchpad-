@@ -371,7 +371,7 @@ export default function HackathonCard({
         <Separator orientation="vertical" className="h-[125px] bg-[#333]" />
 
         {/* ========== 右区：状态徽章 + 时间 / 地点 / 奖金信息 ========== */}
-        <div className="flex-shrink-0 w-[190px] min-w-0 flex flex-col gap-3 items-start overflow-hidden">
+        <div className="flex-shrink-0 w-[210px] min-w-0 flex flex-col gap-3 items-start overflow-hidden">
           {/* 状态胶囊 */}
           <span
             className={`

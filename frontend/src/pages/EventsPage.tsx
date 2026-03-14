@@ -215,13 +215,6 @@ export default function EventsPage() {
     return filteredHackathons.map(transformToCardData)
   }, [filteredHackathons, loading])
 
-  // 切换状态筛选
-  const _toggleStatusFilter = (status: string) => {
-    setStatusFilters(prev => 
-      prev.includes(status) ? prev.filter(s => s !== status) : [...prev, status]
-    )
-  }
-
   // 清除所有筛选
   const clearFilters = () => {
     setSearchQuery('')

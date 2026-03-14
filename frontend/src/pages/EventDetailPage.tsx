@@ -292,7 +292,7 @@ export default function EventDetailPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       // Filter teams for current hackathon
-      const myTeamsInHackathon = teamRes.data.filter((t: Team) => t.hackathon_id === parseInt(hackathonId || '0'))
+      const myTeamsInHackathon = teamRes.data.filter((t: Team) => t.hackathon_id === Number(hackathonId))
       setMyTeam(myTeamsInHackathon.length > 0 ? myTeamsInHackathon[0] : null)
       
       // Fetch my project - API returns list, get first one for this hackathon
@@ -300,7 +300,7 @@ export default function EventDetailPage() {
         headers: { Authorization: `Bearer ${token}` }
       })
       // Filter projects for current hackathon (via team.hackathon_id)
-      const myProjectsInHackathon = projRes.data.filter((p: Project) => p.team?.hackathon_id === parseInt(hackathonId || '0'))
+      const myProjectsInHackathon = projRes.data.filter((p: Project) => p.team?.hackathon_id === Number(hackathonId))
       setMyProject(myProjectsInHackathon.length > 0 ? myProjectsInHackathon[0] : null)
     } catch (e) {
       console.error(e)
@@ -858,9 +858,9 @@ export default function EventDetailPage() {
                                         </span>
                                       </div>
                                       <p className="text-sm text-zinc-400">{myTeam.description || '暂无描述'}</p>
-                                    </div>
-                                  </div>
-                                  {myTeam.max_members > 1 && (
+                                </div>
+                              </div>
+                              {myTeam.max_members && myTeam.max_members > 1 && (
                                     <button 
                                       onClick={() => setIsRecruitOpen(true)}
                                       className="flex items-center gap-1.5 px-4 py-2 bg-brand/10 text-brand text-[12px] font-medium rounded-[24px] hover:bg-brand/20 transition-colors"

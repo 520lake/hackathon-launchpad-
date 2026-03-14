@@ -1,20 +1,13 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import { 
   Users, 
-  MessageSquare, 
-  Search,
-  Trophy,
+  MessageSquare,
   Zap,
-  Hash,
-  TrendingUp,
   UserPlus,
   X,
   Send,
-  Settings,
-  Eye,
-  EyeOff,
   Edit3,
   Github,
   Globe,
@@ -31,7 +24,6 @@ import {
   Trash2,
   Sparkles
 } from 'lucide-react'
-import axios from 'axios'
 import AIMatchModal from '../components/AIMatchModal'
 
 // 扩展的成员数据接口
@@ -69,19 +61,19 @@ interface MemberDetail {
   }
 }
 
-interface VirtualUser {
-  id: number
-  full_name: string
-  nickname: string
-  avatar: string
-  skills: string
-  bio: string
-  personality: string
-  interests: string
-  is_virtual: boolean
-  community_title?: string
-  community_bio?: string
-  community_skills?: string
+// interface VirtualUser {
+//   id: number
+//   full_name: string
+//   nickname: string
+//   avatar: string
+//   skills: string
+//   bio: string
+//   personality: string
+//   interests: string
+//   is_virtual: boolean
+//   community_title?: string
+//   community_bio?: string
+//   community_skills?: string
 }
 
 interface Discussion {
@@ -1646,7 +1638,7 @@ export default function CommunityPage() {
   const [isProfileModalOpen, setIsProfileModalOpen] = useState(false)
   const [isDiscussionModalOpen, setIsDiscussionModalOpen] = useState(false)
   const [isAIMatchOpen, setIsAIMatchOpen] = useState(false)
-  const [members, setMembers] = useState<MemberDetail[]>(MOCK_MEMBERS)
+  const [members] = useState<MemberDetail[]>(MOCK_MEMBERS)
   const [discussions, setDiscussions] = useState<Discussion[]>(MOCK_DISCUSSIONS)
   
   const [myProfile, setMyProfile] = useState<CommunityProfile>({

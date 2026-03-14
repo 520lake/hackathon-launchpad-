@@ -7,6 +7,11 @@ interface AIProjectAssistantProps {
   onClose: () => void
   hackathonId?: number
   onApplyContent?: (content: string) => void
+  mode?: string
+  currentDescription?: string
+  onIdeaSelect?: (idea: any) => void
+  onRecruitmentGenerate?: (recruitments: any) => void
+  onRefineDescription?: (refined: any) => void
 }
 
 type AssistantMode = 'brainstorm' | 'recruitment' | 'polish'

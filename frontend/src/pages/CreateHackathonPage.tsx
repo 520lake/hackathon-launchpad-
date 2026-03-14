@@ -88,7 +88,6 @@ export default function CreateHackathonPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
-  const [currentStatus, setCurrentStatus] = useState<'draft' | 'published'>('draft')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Refs for animations

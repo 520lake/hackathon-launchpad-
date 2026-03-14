@@ -27,7 +27,6 @@ export default function AdminPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
-  const [authError, setAuthError] = useState('')
 
   useEffect(() => {
     checkAuth()

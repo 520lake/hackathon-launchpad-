@@ -1309,9 +1309,11 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                             />
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
                                                 <AIProjectAssistant 
-                                                    currentDescription={myProject?.description}
+                                                    isOpen={true}
+                                                    onClose={() => {}}
+                                                    hackathonId={hackathonId}
                                                     mode="recruitment"
-                                                    onRecruitmentGenerate={(recruitments) => {
+                                                    onRecruitmentGenerate={(recruitments: any) => {
                                                         if (recruitments && recruitments.length > 0) {
                                                             const r = recruitments[0];
                                                             setRecruitForm({
@@ -1326,9 +1328,11 @@ export default function HackathonDetailModal({ isOpen, onClose, hackathonId, onE
                                                     }}
                                                 />
                                                 <AIProjectAssistant 
-                                                    currentDescription={myProject?.description}
+                                                    isOpen={true}
+                                                    onClose={() => {}}
+                                                    hackathonId={hackathonId}
                                                     mode="refine"
-                                                    onRefineDescription={(refined) => {
+                                                    onRefineDescription={(refined: any) => {
                                                         setInitialProjectData({
                                                             ...myProject,
                                                             description: refined

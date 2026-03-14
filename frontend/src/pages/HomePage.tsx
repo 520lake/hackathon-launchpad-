@@ -5,7 +5,6 @@ import axios from 'axios'
 // Landing Components
 import Hero from '../components/Landing/Hero'
 import { LatestEvents, About, Schedule } from '../components/Landing/Sections'
-import CommunityHall from '../components/Landing/CommunityHall'
 
 // Modals
 import RegisterModal from '../components/RegisterModal'

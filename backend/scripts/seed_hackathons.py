@@ -10,7 +10,7 @@ Idempotent — skips seeding if hackathons already exist.
 
 import sys
 import os
-from datetime import datetime
+from datetime import datetime, timedelta
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -23,7 +23,12 @@ from app.models.section import Section, SectionType
 from app.models.schedule import Schedule
 from app.models.prize import Prize
 from app.models.judging_criteria import JudgingCriteria
+from app.models.enrollment import Enrollment, EnrollmentStatus
+from app.models.team_project import Team, TeamMember
+from app.models.recruitment import Recruitment
 from app.core.config import settings
+
+import random
 
 
 def dt(s: str) -> datetime:
@@ -785,7 +790,184 @@ def seed():
             print(f"  Created hackathon {hid}: {h_data['title']}")
 
         session.commit()
-        print(f"\nDone! Seeded {len(HACKATHONS)} hackathons with full data.")
+        print(f"\nSeeded {len(HACKATHONS)} hackathons with full data.")
+
+        # --- Seed participants ---
+        _seed_participants(session, admin)
+
+
+def _seed_participants(session: Session, admin: User):
+    """Create 60 sample users with enrollments, teams, and recruitments."""
+
+    existing_users = session.exec(select(User).where(User.id >= 2)).first()
+    if existing_users:
+        print("Participant data already exists. Skipping.")
+        return
+
+    NAMES = [
+        ("张伟","zhangwei"),("李娜","lina"),("王强","wangqiang"),("刘洋","liuyang"),
+        ("陈晨","chenchen"),("赵敏","zhaomin"),("孙磊","sunlei"),("周杰","zhoujie"),
+        ("吴昊","wuhao"),("郑琳","zhenglin"),("马超","machao"),("林峰","linfeng"),
+        ("黄蕾","huanglei"),("许哲","xuzhe"),("胡静","hujing"),("朱明","zhuming"),
+        ("高远","gaoyuan"),("何雪","hexue"),("罗凯","luokai"),("谢婷","xieting"),
+        ("韩冰","hanbing"),("唐豪","tanghao"),("冯雅","fengya"),("董鑫","dongxin"),
+        ("萧然","xiaoran"),("曹宇","caoyu"),("袁芳","yuanfang"),("邓伟","dengwei"),
+        ("彭磊","penglei"),("苏颖","suying"),("蒋涛","jiangtao"),("叶青","yeqing"),
+        ("阎明","yanming"),("余婕","yujie"),("潘亮","panliang"),("杜瑶","duyao"),
+        ("戴锋","daifeng"),("夏琪","xiaqi"),("钟文","zhongwen"),("姜欣","jiangxin"),
+        ("汪洋","wangyang2"),("范志","fanzhi"),("方圆","fangyuan"),("石磊","shilei2"),
+        ("任杰","renjie"),("廖芳","liaofang"),("邹强","zouqiang"),("熊伟","xiongwei"),
+        ("金鑫","jinxin"),("陆佳","lujia"),("贺敏","hemin"),("白雪","baixue"),
+        ("龙飞","longfei"),("万达","wanda"),("段宇","duanyu"),("雷鸣","leiming"),
+        ("侯峰","houfeng"),("邵丽","shaoli"),("孟浩","menghao"),("秦风","qinfeng"),
+    ]
+
+    SKILLS_POOL = [
+        '["Python","机器学习","TensorFlow"]', '["React","TypeScript","Node.js"]',
+        '["Java","Spring Boot","微服务"]', '["Go","Kubernetes","Docker"]',
+        '["Rust","系统编程","WebAssembly"]', '["Solidity","Web3","DeFi"]',
+        '["Flutter","Dart","移动开发"]', '["C++","嵌入式","RTOS"]',
+        '["数据分析","SQL","Tableau"]', '["UI/UX设计","Figma","原型"]',
+        '["产品管理","敏捷","用户研究"]', '["区块链","智能合约","以太坊"]',
+        '["深度学习","PyTorch","NLP"]', '["Vue.js","前端","CSS"]',
+        '["Swift","iOS","ARKit"]', '["Unity","C#","游戏开发"]',
+        '["ROS","机器人","SLAM"]', '["量子计算","Qiskit","算法"]',
+        '["音视频","WebRTC","FFmpeg"]', '["安全","渗透测试","逆向"]',
+    ]
+
+    CITIES = ["北京","上海","深圳","杭州","广州","成都","武汉","南京","苏州","西安"]
+
+    BIOS = [
+        "全栈工程师，热爱开源","AI 研究员，专注 NLP","前端开发者，追求极致体验",
+        "后端架构师，微服务爱好者","独立开发者，连续创业者","在读研究生，方向计算机视觉",
+        "产品经理，关注用户体验","数据工程师，擅长数据管道","安全研究员，CTF 选手",
+        "设计师兼开发者，跨界达人","嵌入式工程师，IoT 玩家","区块链开发者，DeFi Builder",
+        "游戏开发者，独立游戏爱好者","云原生架构师","机器学习工程师，Kaggle Master",
+    ]
+
+    TEAM_NAMES = [
+        "星际先锋","代码骑士","量子跃迁","数据飞轮","深蓝小队",
+        "极客联盟","算法之光","创新工坊","未来实验室","赛博朋克",
+        "像素猎人","云端行者","硅谷梦想","开源英雄","智能边界",
+        "链上风暴","全栈突击","神经网络","编译之魂","比特旋风",
+        "逻辑炸弹","模型工厂","容器先锋","量子纠缠","数据织梦",
+    ]
+
+    TEAM_DESCS = [
+        "一支充满激情的全栈团队，擅长快速原型开发",
+        "专注 AI 应用落地，成员均有大厂经验",
+        "跨学科团队，融合技术与设计思维",
+        "连续三次黑客松获奖团队，实力强劲",
+        "来自高校的研究型团队，理论与实践并重",
+    ]
+
+    LOOKING_FOR = [
+        "寻找前端开发者，熟悉 React/Vue",
+        "需要 AI/ML 工程师，有模型部署经验",
+        "招募产品设计师，擅长 Figma",
+        "寻找后端开发者，熟悉微服务架构",
+        "需要数据分析师，擅长可视化",
+    ]
+
+    RECRUIT_ROLES = [
+        ("前端开发","React,TypeScript,CSS","负责产品前端界面开发"),
+        ("后端开发","Python,Go,数据库","负责 API 和数据架构"),
+        ("AI 工程师","PyTorch,TensorFlow,NLP","负责模型训练和部署"),
+        ("产品设计","Figma,用户研究,原型","负责产品设计和用户体验"),
+        ("数据分析","SQL,Python,可视化","负责数据清洗和分析"),
+    ]
+
+    pwd_hash = "$2b$12$LJ3a5M5v6F8K9Q7x0W1b0e8G4R2y6T4u8I0o2E4a6C8g0K2m4O6q"
+
+    # Create 60 users
+    users = []
+    for i, (name, pinyin) in enumerate(NAMES):
+        u = User(
+            email=f"{pinyin}@example.com",
+            full_name=name, nickname=name,
+            hashed_password=pwd_hash,
+            is_active=True, is_superuser=False,
+            avatar_url=f"https://api.dicebear.com/7.x/avataaars/svg?seed={i}",
+            skills=SKILLS_POOL[i % len(SKILLS_POOL)],
+            city=CITIES[i % len(CITIES)],
+            bio=BIOS[i % len(BIOS)],
+        )
+        session.add(u)
+        users.append(u)
+
+    session.flush()
+    print(f"  Created {len(users)} sample users")
+
+    user_ids = [u.id for u in users]
+    random.seed(42)
+
+    hackathons = session.exec(select(Hackathon)).all()
+    team_counter = 0
+
+    for hackathon in hackathons:
+        hid = hackathon.id
+        reg_type = hackathon.registration_type
+        base_date = hackathon.created_at or datetime.utcnow()
+
+        num_participants = random.randint(8, 15)
+        participants = random.sample(user_ids, min(num_participants, len(user_ids)))
+
+        # Enrollments
+        for uid in participants:
+            offset_days = random.randint(0, 14)
+            joined = base_date + timedelta(days=offset_days)
+            session.add(Enrollment(
+                user_id=uid, hackathon_id=hid,
+                status=EnrollmentStatus.APPROVED, joined_at=joined,
+            ))
+
+        # Teams (only for TEAM hackathons)
+        if reg_type == RegistrationType.TEAM:
+            num_teams = random.randint(2, 4)
+            remaining = list(participants)
+            random.shuffle(remaining)
+
+            for t_idx in range(num_teams):
+                if len(remaining) < 2:
+                    break
+                team_counter += 1
+                team_size = random.randint(2, min(4, len(remaining)))
+                team_members = remaining[:team_size]
+                remaining = remaining[team_size:]
+
+                leader = team_members[0]
+                joined = base_date + timedelta(days=random.randint(1, 10))
+
+                team = Team(
+                    hackathon_id=hid,
+                    name=TEAM_NAMES[team_counter % len(TEAM_NAMES)],
+                    description=TEAM_DESCS[team_counter % len(TEAM_DESCS)],
+                    looking_for=LOOKING_FOR[team_counter % len(LOOKING_FOR)],
+                    leader_id=leader, created_at=joined,
+                )
+                session.add(team)
+                session.flush()
+
+                for uid in team_members:
+                    session.add(TeamMember(
+                        team_id=team.id, user_id=uid, joined_at=joined,
+                    ))
+
+                # 50% chance of a recruitment post
+                if random.random() < 0.5:
+                    role, skills, desc = RECRUIT_ROLES[team_counter % len(RECRUIT_ROLES)]
+                    session.add(Recruitment(
+                        team_id=team.id, role=role, skills=skills,
+                        count=random.randint(1, 2), description=desc,
+                        status="OPEN", created_at=joined,
+                    ))
+
+    session.commit()
+
+    total_enrollments = len(session.exec(select(Enrollment)).all())
+    total_teams = len(session.exec(select(Team)).all())
+    print(f"  Created {total_enrollments} enrollments, {total_teams} teams")
+    print("Done!")
 
 
 if __name__ == "__main__":

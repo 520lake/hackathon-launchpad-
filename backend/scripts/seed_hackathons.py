@@ -24,11 +24,15 @@ from app.models.schedule import Schedule
 from app.models.prize import Prize
 from app.models.judging_criteria import JudgingCriteria
 from app.models.enrollment import Enrollment, EnrollmentStatus
-from app.models.team_project import Team, TeamMember
+from app.models.team_project import Team, TeamMember, Submission, SubmissionStatus
 from app.models.recruitment import Recruitment
 from app.core.config import settings
 
 import random
+
+from passlib.context import CryptContext
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def dt(s: str) -> datetime:
@@ -967,6 +971,112 @@ def _seed_participants(session: Session, admin: User):
     total_enrollments = len(session.exec(select(Enrollment)).all())
     total_teams = len(session.exec(select(Team)).all())
     print(f"  Created {total_enrollments} enrollments, {total_teams} teams")
+
+    # --- Seed aura admin with submissions ---
+    _seed_aura_admin(session)
+
+
+SUBMISSION_DATA = [
+    (1,  "AI 智能写作助手", "基于大语言模型的智能写作辅助工具，支持多语言、多风格的文章生成与润色", '["Python","GPT-4","FastAPI","React"]', "https://images.unsplash.com/photo-1676299081847-824916de030a?w=800&h=400&fit=crop"),
+    (2,  "ChainVote DAO", "去中心化投票治理平台，支持二次方投票和委托代理机制", '["Solidity","Hardhat","React","IPFS"]', "https://images.unsplash.com/photo-1644143379190-08a5f055de1d?w=800&h=400&fit=crop"),
+    (3,  "GitFlow 自动化", "开源 Git 工作流自动化工具，智能合并冲突解决", '["Python","Git","AST","CLI"]', "https://images.unsplash.com/photo-1618401471353-b98afee0b2eb?w=800&h=400&fit=crop"),
+    (4,  "AirSense 空气监测仪", "基于 ESP32 的便携式空气质量监测设备", '["ESP32","C++","MQTT","React Native"]', "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=400&fit=crop"),
+    (5,  "CarbonTrack", "个人碳足迹追踪应用，通过消费数据自动计算碳排放", '["Python","Flask","ML","React"]', "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=800&h=400&fit=crop"),
+    (6,  "RiskRadar 风控引擎", "实时交易反欺诈检测系统，基于图神经网络的异常检测", '["Python","GNN","Kafka","Redis"]', "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=800&h=400&fit=crop"),
+    (7,  "MetaClass 虚拟教室", "元宇宙沉浸式在线教室，支持 3D 白板和虚拟实验", '["Unity","C#","WebRTC","Three.js"]', "https://images.unsplash.com/photo-1626379953822-baec19c3accd?w=800&h=400&fit=crop"),
+    (8,  "TrafficBrain 交通大脑", "城市交通流量预测与信号灯优化系统", '["Python","PyTorch","GIS","Vue.js"]', "https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=800&h=400&fit=crop"),
+    (9,  "BugHunter 漏洞扫描器", "自动化 Web 漏洞扫描工具，支持 SQL 注入和 XSS 检测", '["Python","Selenium","Burp Suite","Go"]', "https://images.unsplash.com/photo-1563986768609-322da13575f2?w=800&h=400&fit=crop"),
+    (10, "PixelQuest 像素冒险", "复古像素风格 Roguelike 冒险游戏，随机生成地牢", '["Godot","GDScript","像素美术","Aseprite"]', "https://images.unsplash.com/photo-1550745165-9bc0b252726f?w=800&h=400&fit=crop"),
+    (11, "MedScan AI 影像诊断", "基于深度学习的医学影像辅助诊断系统", '["Python","PyTorch","DICOM","Streamlit"]', "https://images.unsplash.com/photo-1559757175-5700dde675bc?w=800&h=400&fit=crop"),
+    (12, "FlowBuilder 审批流引擎", "可视化拖拽式审批流程搭建平台", '["低代码","飞书","JavaScript","拖拽"]', "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=800&h=400&fit=crop"),
+    (13, "DriveNet 3D 检测", "基于点云的实时 3D 目标检测网络", '["Python","PyTorch","CUDA","PointCloud"]', "https://images.unsplash.com/photo-1558618666-fcd25c85f82e?w=800&h=400&fit=crop"),
+    (14, "LearnPath 自适应学习", "AI 驱动的个性化学习路径推荐系统", '["Python","知识图谱","Neo4j","React"]', "https://images.unsplash.com/photo-1509062522246-3755977927d7?w=800&h=400&fit=crop"),
+    (15, "TurboProxy 高性能代理", "用 Rust 编写的异步 HTTP/SOCKS5 代理服务器", '["Rust","Tokio","async","网络编程"]', "https://images.unsplash.com/photo-1515879218367-8466d910auj7?w=800&h=400&fit=crop"),
+    (16, "DreamCanvas AI 画廊", "生成式 AI 艺术创作与展览平台", '["Stable Diffusion","ComfyUI","Python","Gallery"]', "https://images.unsplash.com/photo-1513364776144-60967b0f800f?w=800&h=400&fit=crop"),
+    (17, "SmartWMS 智能仓储", "基于 RFID 和视觉识别的智能仓储管理系统", '["Python","YOLO","RFID","Vue.js"]', "https://images.unsplash.com/photo-1553413077-190dd305871c?w=800&h=400&fit=crop"),
+    (18, "EyeNarrator 视觉叙述", "基于 AI 的实时图像描述工具，帮助视障人士理解环境", '["Python","GPT-4V","TTS","Flutter"]', "https://images.unsplash.com/photo-1516321318423-f06f85e504b3?w=800&h=400&fit=crop"),
+    (19, "K8sShield 集群守护者", "Kubernetes 集群安全审计与策略管理工具", '["Go","Kubernetes","OPA","Helm"]', "https://images.unsplash.com/photo-1667372393119-3d4c48d07fc9?w=800&h=400&fit=crop"),
+    (20, "MazeRunner 迷宫导航", "基于 SLAM 的机器人自主迷宫导航与地图构建", '["ROS2","Python","LiDAR","SLAM"]', "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=800&h=400&fit=crop"),
+    (21, "QuantumOpt 量子优化", "量子退火算法求解组合优化问题的实验平台", '["Qiskit","Python","QAOA","量子电路"]', "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=800&h=400&fit=crop"),
+    (22, "LiveBuy 直播带货助手", "AI 驱动的直播间实时商品推荐与弹幕互动系统", '["Python","WebSocket","推荐算法","React"]', "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=800&h=400&fit=crop"),
+    (23, "CodeLens 代码分析器", "VS Code 插件：AI 驱动的代码复杂度分析与重构建议", '["TypeScript","VS Code API","AST","AI"]', "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=800&h=400&fit=crop"),
+    (24, "UltraStream 超低延迟", "基于 WebTransport 的超低延迟直播方案", '["WebTransport","Rust","QUIC","WebCodecs"]', "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=800&h=400&fit=crop"),
+]
+
+
+def _seed_aura_admin(session: Session):
+    """Create aura admin user, enroll in all hackathons, create teams & submissions."""
+
+    existing = session.exec(select(User).where(User.email == "admin@aura.com")).first()
+    if existing:
+        print("Aura admin already exists. Skipping.")
+        return
+
+    aura = User(
+        email="admin@aura.com",
+        full_name="Aura Admin",
+        nickname="Aura Admin",
+        hashed_password=pwd_context.hash("admin123"),
+        is_active=True,
+        is_superuser=True,
+    )
+    session.add(aura)
+    session.flush()
+    print(f"  Created aura admin (id={aura.id})")
+
+    hackathons = session.exec(select(Hackathon)).all()
+    sub_lookup = {s[0]: s for s in SUBMISSION_DATA}
+
+    for hackathon in hackathons:
+        hid = hackathon.id
+        created_at = hackathon.created_at or datetime.utcnow()
+
+        # Enroll
+        session.add(Enrollment(
+            user_id=aura.id, hackathon_id=hid,
+            status=EnrollmentStatus.APPROVED, joined_at=created_at,
+        ))
+
+        # Organizer
+        session.add(HackathonOrganizer(
+            hackathon_id=hid, user_id=aura.id,
+            role=OrganizerRole.OWNER, status=OrganizerStatus.ACCEPTED,
+            created_at=created_at, updated_at=created_at,
+        ))
+
+        team_id = None
+        if hackathon.registration_type == RegistrationType.TEAM:
+            team = Team(
+                hackathon_id=hid, name="Aura 战队",
+                description="管理员的个人战队",
+                looking_for="欢迎各路大神加入",
+                leader_id=aura.id, created_at=created_at,
+            )
+            session.add(team)
+            session.flush()
+            team_id = team.id
+
+            session.add(TeamMember(
+                team_id=team.id, user_id=aura.id, joined_at=created_at,
+            ))
+
+        # Submission
+        if hid in sub_lookup:
+            _, title, desc, tech, cover = sub_lookup[hid]
+            session.add(Submission(
+                title=title, description=desc,
+                tech_stack=tech, cover_image=cover,
+                demo_url=f"https://demo.example.com/{hid}",
+                repo_url=f"https://github.com/aura-admin/project-{hid}",
+                hackathon_id=hid,
+                team_id=team_id,
+                user_id=aura.id if not team_id else None,
+                status=SubmissionStatus.SUBMITTED,
+                created_at=created_at,
+            ))
+
+    session.commit()
+    print(f"  Enrolled in {len(hackathons)} hackathons with submissions")
     print("Done!")
 
 

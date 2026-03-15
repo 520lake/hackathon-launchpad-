@@ -1,191 +1,792 @@
+"""
+Seed script: populates the database with 24 sample hackathons and related data.
+
+Usage:
+    cd backend
+    DATABASE_URL="sqlite:///../vibebuild.db" .venv/bin/python3 scripts/seed_hackathons.py
+
+Idempotent — skips seeding if hackathons already exist.
+"""
+
 import sys
 import os
-from datetime import datetime, timedelta
+from datetime import datetime
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from sqlmodel import create_engine, Session, select
+from sqlmodel import create_engine, Session, select, SQLModel
 from app.models.user import User
 from app.models.hackathon import Hackathon, HackathonStatus, HackathonFormat, RegistrationType
+from app.models.hackathon_host import HackathonHost
+from app.models.hackathon_organizer import HackathonOrganizer, OrganizerRole, OrganizerStatus
+from app.models.section import Section, SectionType
+from app.models.schedule import Schedule
+from app.models.prize import Prize
+from app.models.judging_criteria import JudgingCriteria
 from app.core.config import settings
 
-def create_sample_hackathons():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+
+def dt(s: str) -> datetime:
+    return datetime.fromisoformat(s)
+
+
+HACKATHONS = [
+    {
+        "id": 1,
+        "title": "AI 创新应用黑客松 2026",
+        "description": "汇聚全国顶尖开发者，围绕人工智能技术开发创新应用",
+        "tags": '["AI","LLM","计算机视觉","NLP"]',
+        "cover_image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-03-10T09:00:00"),
+        "end_date": dt("2026-04-10T18:00:00"),
+        "status": HackathonStatus.ONGOING,
+        "province": "上海市", "city": "上海市", "district": "浦东新区", "address": "张江高科技园区",
+        "overview": """## 关于本次黑客松
+
+本次 AI 创新应用黑客松旨在汇聚全国顶尖开发者，围绕人工智能技术，开发创新应用解决方案。我们相信 AI 将彻底改变人们的生活和工作方式。
+
+### 赛题方向
+- **智能助手**：基于大语言模型的创新应用
+- **计算机视觉**：图像识别、视频分析等应用
+- **AI + 教育**：利用 AI 技术革新教育体验
+- **AI + 医疗**：医疗健康领域的 AI 应用
+
+### 参赛要求
+- 每队 2-5 人
+- 需在活动期间完成项目开发
+- 提交完整的项目演示和文档
+
+### 特别福利
+- 顶级 AI 导师一对一指导
+- GPU 算力资源赞助
+- 优秀项目可获得投资机构对接机会""",
+        "schedules": [
+            ("开幕式 & 赛题发布", "2026-03-10 09:00", "2026-03-10 11:00"),
+            ("导师答疑 & 技术分享", "2026-03-15 14:00", "2026-03-15 17:00"),
+            ("中期检查", "2026-03-25 10:00", "2026-03-25 16:00"),
+            ("项目提交截止 & 路演评审", "2026-04-10 09:00", "2026-04-10 18:00"),
+        ],
+        "prizes": [
+            ("一等奖", "技术创新性突出，产品完成度高", 1, 50000),
+            ("二等奖", "技术方案优秀，产品体验良好", 2, 20000),
+            ("三等奖", "完成度高，具有实用价值", 3, 10000),
+            ("最佳创意奖", "创意新颖，解决方案独特", 1, 5000),
+        ],
+        "criteria": [
+            ("技术创新", 30, "技术方案的创新性和先进性"),
+            ("产品完成度", 25, "产品功能的完整性和稳定性"),
+            ("用户体验", 20, "界面设计和交互体验"),
+            ("商业价值", 15, "市场潜力和商业化可行性"),
+            ("团队协作", 10, "团队分工和协作效率"),
+        ],
+        "hosts": ["创新科技基金会", "AI 研究院"],
+    },
+    {
+        "id": 2,
+        "title": "Web3 去中心化应用挑战赛",
+        "description": "探索区块链与去中心化技术的无限可能",
+        "tags": '["Web3","区块链","DeFi","NFT"]',
+        "cover_image": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-04-15T09:00:00"),
+        "end_date": dt("2026-04-17T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "北京市", "city": "北京市", "district": "海淀区", "address": "中关村创业大街",
+        "overview": """## Web3 去中心化应用挑战赛
+
+探索区块链与去中心化技术的无限可能！
+
+### 赛题方向
+- **DeFi 创新**：去中心化金融协议与应用
+- **NFT & 数字藏品**：数字资产创新应用
+- **DAO 治理工具**：去中心化组织管理工具
+- **跨链互操作**：多链生态基础设施
+
+### 参赛要求
+- 每队 2-5 人，需有至少 1 名智能合约开发者
+- 项目需部署在测试网
+- 提交完整的技术文档和演示视频
+
+### 技术支持
+- 提供测试网 Gas 费补贴
+- 链上开发工具套件
+- 安全审计指导""",
+        "schedules": [
+            ("签到 & 破冰社交", "2026-04-15 09:00", "2026-04-15 10:00"),
+            ("开幕式 & 赛题发布", "2026-04-15 10:00", "2026-04-15 12:00"),
+            ("Hacking Time", "2026-04-15 13:00", "2026-04-16 18:00"),
+            ("项目路演 & 评审", "2026-04-17 09:00", "2026-04-17 15:00"),
+            ("颁奖典礼", "2026-04-17 16:00", "2026-04-17 18:00"),
+        ],
+        "prizes": [
+            ("一等奖", "技术创新性突出，DApp 完成度高", 1, 80000),
+            ("二等奖", "智能合约设计优秀", 2, 30000),
+            ("三等奖", "项目完整可运行", 3, 15000),
+            ("最佳 DeFi 创新奖", "在去中心化金融领域有突破性创新", 1, 10000),
+        ],
+        "criteria": [
+            ("技术架构", 30, "智能合约安全性、链上/链下架构合理性"),
+            ("产品体验", 25, "DApp 前端交互流畅度"),
+            ("创新性", 20, "解决方案的独特性"),
+            ("商业可行性", 15, "代币经济模型、可持续发展能力"),
+            ("演示效果", 10, "路演表达清晰度"),
+        ],
+        "hosts": ["区块链协会", "以太坊基金会"],
+    },
+    {
+        "id": 3,
+        "title": "开源之夏 2026 编程马拉松",
+        "description": "面向全球开发者的线上开源编程马拉松",
+        "tags": '["开源","编程","全栈","后端"]',
+        "cover_image": "https://images.unsplash.com/photo-1555066931-4365d14bab8c?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-01-15T09:00:00"),
+        "end_date": dt("2026-02-28T18:00:00"),
+        "status": HackathonStatus.ENDED,
+        "overview": """## 开源之夏 2026
+
+面向全球开发者的线上编程马拉松。选择感兴趣的开源项目，在导师指导下贡献代码。
+
+### 参与方式
+1. 浏览可选开源项目列表
+2. 提交项目提案
+3. 在导师指导下完成开发
+4. 提交代码并参与评审
+
+### 可选项目方向
+- **前端框架**：React、Vue 生态贡献
+- **后端基础设施**：数据库、消息队列优化
+- **DevOps 工具**：CI/CD、容器编排改进
+- **AI/ML 库**：机器学习框架功能扩展
+
+### 特别说明
+- 个人参赛，无需组队
+- 全程线上，灵活安排时间
+- 导师来自知名开源社区""",
+        "schedules": [
+            ("线上启动仪式", "2026-01-15 10:00", "2026-01-15 12:00"),
+            ("项目提案提交", "2026-01-15 12:00", "2026-01-31 23:59"),
+            ("导师配对 & 开发阶段", "2026-02-01 00:00", "2026-02-20 23:59"),
+            ("成果提交截止", "2026-02-25 00:00", "2026-02-25 23:59"),
+            ("线上评审 & 结果发布", "2026-02-26 10:00", "2026-02-28 18:00"),
+        ],
+        "prizes": [
+            ("杰出贡献奖", "代码贡献量大且质量高", 3, 20000),
+            ("最佳新人奖", "首次参与开源，表现突出", 5, 5000),
+            ("社区人气奖", "获得社区投票最多的项目", 1, 8000),
+        ],
+        "criteria": [
+            ("代码质量", 35, "代码规范性、测试覆盖率"),
+            ("项目影响", 25, "对上游开源项目的实际贡献"),
+            ("技术难度", 25, "解决问题的复杂度"),
+            ("社区参与", 15, "与社区互动、Code Review 参与度"),
+        ],
+        "hosts": ["开源中国", "Linux 基金会"],
+    },
+    {
+        "id": 4,
+        "title": "智能硬件创客马拉松",
+        "description": "结合软硬件技术，48小时内打造创新智能设备",
+        "tags": '["IoT","硬件","嵌入式","Arduino"]',
+        "cover_image": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-05-01T09:00:00"),
+        "end_date": dt("2026-05-03T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "广东省", "city": "深圳市", "district": "南山区", "address": "深圳湾科技生态园",
+        "overview": """## 智能硬件创客马拉松
+
+结合软硬件技术，打造创新智能设备！提供 Arduino、ESP32、树莓派等开发板和传感器套件。
+
+### 赛题方向
+- **智能家居**：家庭自动化与能源管理
+- **健康监测**：可穿戴设备与健康数据分析
+- **农业科技**：智能灌溉、环境监测
+- **教育机器人**：STEM 教育互动设备
+
+### 参赛要求
+- 每队 3-5 人，需有硬件和软件开发者
+- 48 小时内完成硬件原型和配套软件
+- 需现场展示可运行的原型""",
+        "schedules": [
+            ("签到 & 硬件领取", "2026-05-01 09:00", "2026-05-01 10:00"),
+            ("开幕式 & 技术分享", "2026-05-01 10:00", "2026-05-01 12:00"),
+            ("48 小时极限开发", "2026-05-01 13:00", "2026-05-03 13:00"),
+            ("项目展示 & Demo Day", "2026-05-03 14:00", "2026-05-03 17:00"),
+            ("颁奖 & 闭幕", "2026-05-03 17:00", "2026-05-03 18:00"),
+        ],
+        "prizes": [
+            ("一等奖", "硬件原型完成度高，创新性强", 1, 60000),
+            ("二等奖", "技术方案可行，展示效果出色", 2, 25000),
+            ("三等奖", "原型可运行，文档完整", 3, 10000),
+            ("最佳工业设计奖", "产品外观设计精美", 1, 8000),
+        ],
+        "criteria": [
+            ("硬件完成度", 30, "原型的功能完整性和稳定性"),
+            ("创新性", 25, "方案的新颖程度和技术突破"),
+            ("工业设计", 20, "外观设计、人机交互体验"),
+            ("实用价值", 15, "解决的实际问题和市场需求"),
+            ("团队表现", 10, "分工协作、现场调试能力"),
+        ],
+        "hosts": ["深圳创客中心", "华为开发者联盟"],
+    },
+    {
+        "id": 5,
+        "title": "全球气候科技黑客松",
+        "description": "利用科技手段应对气候变化，构建可持续未来",
+        "tags": '["气候","碳中和","可持续","绿色科技"]',
+        "cover_image": "https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-04-01T09:00:00"),
+        "end_date": dt("2026-04-30T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "overview": """## 全球气候科技黑客松
+
+用技术对抗气候变化！聚焦碳足迹追踪、清洁能源优化、气候模型预测等方向。
+
+### 赛题方向
+- **碳足迹追踪**：个人/企业碳排放监测与可视化
+- **清洁能源**：太阳能、风能效率优化算法
+- **气候建模**：基于 AI 的气候变化预测
+- **绿色消费**：可持续生活方式工具
+
+### 参赛要求
+- 每队 2-5 人，支持跨国组队
+- 全程线上，提交代码 + 演示视频
+- 项目需有明确的环保影响评估""",
+        "schedules": [
+            ("线上启动仪式", "2026-04-01 10:00", "2026-04-01 12:00"),
+            ("导师 Office Hour", "2026-04-10 14:00", "2026-04-10 17:00"),
+            ("中期 Demo Day", "2026-04-15 10:00", "2026-04-15 16:00"),
+            ("项目提交截止", "2026-04-28 00:00", "2026-04-28 23:59"),
+            ("评审与颁奖", "2026-04-30 14:00", "2026-04-30 18:00"),
+        ],
+        "prizes": [
+            ("一等奖", "环保影响显著，技术方案可行", 1, 40000),
+            ("二等奖", "创新性强，数据分析深入", 2, 20000),
+            ("三等奖", "项目完整，文档清晰", 3, 10000),
+            ("最佳碳中和方案奖", "碳减排效果可量化", 1, 8000),
+        ],
+        "criteria": [
+            ("环保影响", 30, "对碳减排的实际贡献"),
+            ("技术可行性", 25, "技术方案的科学性"),
+            ("创新性", 20, "解决方案的独特性"),
+            ("数据驱动", 15, "数据分析的深度"),
+            ("展示效果", 10, "演示的清晰度"),
+        ],
+        "hosts": ["联合国开发计划署", "清华大学环境学院"],
+    },
+    {
+        "id": 6,
+        "title": "FinTech 金融科技创新赛",
+        "description": "探索金融科技前沿，重塑数字金融体验",
+        "tags": '["FinTech","支付","风控","量化"]',
+        "cover_image": "https://images.unsplash.com/photo-1611974789855-9c2a0a7236a3?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-04-20T09:00:00"),
+        "end_date": dt("2026-04-22T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "上海市", "city": "上海市", "district": "黄浦区", "address": "外滩金融中心",
+        "overview": """## FinTech 金融科技创新赛
+
+在外滩金融中心，探索数字金融的未来。
+
+### 赛题方向
+- **智能风控**：基于 AI 的反欺诈与信用评估
+- **数字支付**：跨境支付与数字货币结算
+- **量化交易**：高频交易策略与回测系统
+- **合规科技**：RegTech 监管合规自动化""",
+        "schedules": [
+            ("签到 & 破冰", "2026-04-20 08:30", "2026-04-20 10:00"),
+            ("开幕 & 赛题发布", "2026-04-20 10:00", "2026-04-20 12:00"),
+            ("48 小时开发", "2026-04-20 13:00", "2026-04-22 13:00"),
+            ("路演评审", "2026-04-22 14:00", "2026-04-22 17:00"),
+            ("颁奖晚宴", "2026-04-22 18:00", "2026-04-22 20:00"),
+        ],
+        "prizes": [
+            ("一等奖", "风控模型效果优异，合规性强", 1, 100000),
+            ("二等奖", "产品体验流畅，商业逻辑清晰", 2, 40000),
+            ("三等奖", "技术实现完整", 3, 20000),
+            ("最佳风控创新奖", "反欺诈方案突破性创新", 1, 15000),
+        ],
+        "criteria": [
+            ("合规性", 25, "金融监管合规"),
+            ("技术深度", 25, "算法与架构"),
+            ("产品体验", 20, "用户体验"),
+            ("商业价值", 20, "市场潜力"),
+            ("演示效果", 10, "路演表现"),
+        ],
+        "hosts": ["蚂蚁金服", "上海金融科技联盟"],
+    },
+    {
+        "id": 7,
+        "title": "元宇宙创意开发大赛",
+        "description": "打造沉浸式虚拟体验，探索元宇宙无限可能",
+        "tags": '["元宇宙","VR","AR","3D"]',
+        "cover_image": "https://images.unsplash.com/photo-1633356122102-3fe601e05bd2?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-05-10T09:00:00"),
+        "end_date": dt("2026-05-12T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "浙江省", "city": "杭州市", "district": "滨江区", "address": "网易蜗牛读书馆",
+        "overview": "## 元宇宙创意开发大赛\n\n用 VR/AR/3D 技术构建沉浸式虚拟世界。\n\n### 赛题方向\n- **虚拟社交**：元宇宙社交空间\n- **数字孪生**：物理空间的数字化映射\n- **沉浸式教育**：VR/AR 教育应用\n- **虚拟商业**：元宇宙电商与虚拟展厅",
+        "schedules": [("签到 & 设备调试","2026-05-10 09:00","2026-05-10 10:00"),("开幕式","2026-05-10 10:00","2026-05-10 12:00"),("沉浸式开发","2026-05-10 13:00","2026-05-12 12:00"),("Demo 展示","2026-05-12 13:00","2026-05-12 16:00"),("颁奖","2026-05-12 16:30","2026-05-12 18:00")],
+        "prizes": [("一等奖","沉浸感强，交互自然",1,70000),("二等奖","场景创意独特",2,30000),("三等奖","原型完整可体验",3,15000),("最佳视觉奖","3D 美术效果出色",1,10000)],
+        "criteria": [("沉浸感",30,"用户的沉浸式体验"),("创意",25,"场景设计创新性"),("技术实现",20,"渲染与交互技术"),("流畅度",15,"帧率与加载性能"),("可玩性",10,"内容深度")],
+        "hosts": ["网易伏羲", "Unity 中国"],
+    },
+    {
+        "id": 8,
+        "title": "智慧城市数据挑战赛",
+        "description": "利用城市开放数据，构建智慧城市解决方案",
+        "tags": '["智慧城市","大数据","GIS","交通"]',
+        "cover_image": "https://images.unsplash.com/photo-1480714378408-67cf0d13bc1b?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-03-20T09:00:00"),
+        "end_date": dt("2026-04-20T18:00:00"),
+        "status": HackathonStatus.ONGOING,
+        "province": "北京市", "city": "北京市", "district": "朝阳区", "address": "望京 SOHO",
+        "overview": "## 智慧城市数据挑战赛\n\n利用北京市公开数据集，构建智慧交通、环保、民生等领域的创新解决方案。\n\n### 赛题方向\n- **智慧交通**：交通流量预测与信号灯优化\n- **环境监测**：空气质量预警与污染溯源\n- **公共服务**：政务服务智能化升级\n- **城市安全**：应急响应与灾害预警系统",
+        "schedules": [("数据开放说明会","2026-03-20 10:00","2026-03-20 12:00"),("技术答疑","2026-03-28 14:00","2026-03-28 17:00"),("中期检查","2026-04-05 10:00","2026-04-05 16:00"),("成果提交","2026-04-18 00:00","2026-04-18 23:59"),("路演 & 颁奖","2026-04-20 09:00","2026-04-20 18:00")],
+        "prizes": [("一等奖","数据应用深入，社会效益显著",1,60000),("二等奖","分析维度丰富",2,25000),("三等奖","可视化效果优秀",3,12000),("最佳数据洞察奖","从数据中发现独特洞察",1,8000)],
+        "criteria": [("数据应用",30,"数据利用深度"),("社会价值",25,"对城市治理的贡献"),("技术水平",20,"算法与工程质量"),("可视化",15,"数据展示效果"),("可落地性",10,"方案实际可行性")],
+        "hosts": ["北京市大数据中心", "百度智慧城市"],
+    },
+    {
+        "id": 9,
+        "title": "网络安全攻防大赛 CTF",
+        "description": "以赛促学，提升网络安全实战能力",
+        "tags": '["安全","CTF","渗透","逆向"]',
+        "cover_image": "https://images.unsplash.com/photo-1550751827-4bd374c3f58b?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-05-15T09:00:00"),
+        "end_date": dt("2026-05-17T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "overview": "## 网络安全攻防大赛 CTF\n\n以赛促学，通过 Web 渗透、逆向工程、密码学等多维度挑战提升安全实战能力。\n\n### 赛题类别\n- **Web 安全**：SQL 注入、XSS、CSRF\n- **逆向工程**：二进制分析与漏洞挖掘\n- **密码学**：加密算法破解\n- **Pwn**：内存安全与漏洞利用\n- **Misc**：隐写术、取证分析",
+        "schedules": [("平台开放 & 签到","2026-05-15 09:00","2026-05-15 10:00"),("比赛开始","2026-05-15 10:00","2026-05-17 10:00"),("WriteUp 提交","2026-05-17 10:00","2026-05-17 14:00"),("解题分享","2026-05-17 15:00","2026-05-17 17:00"),("颁奖","2026-05-17 17:00","2026-05-17 18:00")],
+        "prizes": [("冠军","综合得分最高",1,50000),("亚军","解题数量与速度优秀",1,25000),("季军","技术分析深入",1,15000),("最佳 WriteUp 奖","报告质量最高",1,5000)],
+        "criteria": [("解题得分",50,"CTF 平台自动评分"),("解题速度",20,"首次解出时间"),("WriteUp 质量",20,"报告分析深度"),("团队协作",10,"分工与配合效率")],
+        "hosts": ["360 安全", "看雪学院"],
+    },
+    {
+        "id": 10,
+        "title": "游戏开发 Game Jam 48H",
+        "description": "48 小时极限游戏开发，从零到一做出可玩游戏",
+        "tags": '["游戏","Unity","Godot","像素"]',
+        "cover_image": "https://images.unsplash.com/photo-1511512578047-dfb367046420?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-06-01T09:00:00"),
+        "end_date": dt("2026-06-03T09:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "overview": "## 游戏开发 Game Jam 48H\n\n48 小时内从零开始制作一款完整可玩的游戏！\n\n### 规则\n- 开赛时公布主题关键词\n- 48 小时内独立完成游戏开发\n- 个人参赛，可使用任意引擎\n- 提交可运行的游戏构建包",
+        "schedules": [("主题公布","2026-06-01 09:00","2026-06-01 09:30"),("开发阶段","2026-06-01 09:30","2026-06-03 09:00"),("游戏提交","2026-06-03 09:00","2026-06-03 09:30"),("互相试玩","2026-06-03 10:00","2026-06-03 14:00"),("评审 & 颁奖","2026-06-03 14:00","2026-06-03 16:00")],
+        "prizes": [("金奖","游戏性出色，创意与主题契合",1,15000),("银奖","美术风格独特",2,8000),("铜奖","完成度高",3,5000),("最佳音效奖","游戏音效与配乐出色",1,3000)],
+        "criteria": [("创意",30,"游戏创意与主题契合度"),("游戏性",25,"核心玩法趣味性"),("美术",20,"视觉风格与一致性"),("完成度",15,"功能完整性"),("音效",10,"音乐与音效")],
+        "hosts": ["IndieNova", "Game Creator 社区"],
+    },
+    {
+        "id": 11,
+        "title": "医疗健康 AI 黑客松",
+        "description": "用 AI 赋能医疗健康，让技术温暖生命",
+        "tags": '["医疗","AI","健康","生物信息"]',
+        "cover_image": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-04-05T09:00:00"),
+        "end_date": dt("2026-04-07T18:00:00"),
+        "status": HackathonStatus.ONGOING,
+        "province": "广东省", "city": "广州市", "district": "天河区", "address": "广州国际生物岛",
+        "overview": "## 医疗健康 AI 黑客松\n\n用 AI 技术赋能医疗健康。\n\n### 赛题方向\n- **医学影像**：X光、CT、MRI 智能诊断\n- **电子病历**：NLP 驱动的病历结构化\n- **药物发现**：AI 辅助新药筛选\n- **健康管理**：慢性病风险预测与干预",
+        "schedules": [("签到 & 数据领取","2026-04-05 09:00","2026-04-05 10:00"),("开幕 & 专家讲座","2026-04-05 10:00","2026-04-05 12:00"),("开发阶段","2026-04-05 13:00","2026-04-07 12:00"),("成果汇报","2026-04-07 13:00","2026-04-07 17:00"),("颁奖","2026-04-07 17:00","2026-04-07 18:00")],
+        "prizes": [("一等奖","诊断准确率高，临床价值显著",1,80000),("二等奖","模型泛化性强",2,35000),("三等奖","方案完整可部署",3,15000),("最佳社会价值奖","对公共卫生贡献突出",1,10000)],
+        "criteria": [("准确率",30,"模型诊断精度"),("临床价值",25,"实际医疗应用前景"),("技术创新",20,"算法与方法创新"),("数据处理",15,"数据清洗与特征工程"),("可解释性",10,"模型决策可解释性")],
+        "hosts": ["中山大学医学院", "腾讯健康"],
+    },
+    {
+        "id": 12,
+        "title": "低代码平台创新赛",
+        "description": "重新定义应用开发，让人人都是开发者",
+        "tags": '["低代码","无代码","SaaS","效率"]',
+        "cover_image": "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-03-01T09:00:00"),
+        "end_date": dt("2026-03-31T18:00:00"),
+        "status": HackathonStatus.ONGOING,
+        "overview": "## 低代码平台创新赛\n\n用低代码/无代码平台构建完整应用。\n\n### 赛题方向\n- **企业 OA**：内部管理与审批流程\n- **CRM 系统**：客户关系管理\n- **数据看板**：业务数据可视化\n- **自动化流程**：工作流自动化编排",
+        "schedules": [("线上启动","2026-03-01 10:00","2026-03-01 12:00"),("平台使用培训","2026-03-05 14:00","2026-03-05 16:00"),("中期展示","2026-03-15 10:00","2026-03-15 16:00"),("作品提交","2026-03-29 00:00","2026-03-29 23:59"),("评审颁奖","2026-03-31 14:00","2026-03-31 18:00")],
+        "prizes": [("一等奖","应用功能完整，用户体验优秀",1,20000),("二等奖","业务逻辑清晰",2,10000),("三等奖","基本功能实现",3,5000),("最佳效率奖","开发效率最高",1,3000)],
+        "criteria": [("功能完整性",30,"业务需求覆盖度"),("用户体验",25,"界面设计与交互"),("技术难度",20,"平台能力运用深度"),("文档质量",15,"说明文档清晰度"),("创意",10,"应用场景创新性")],
+        "hosts": ["飞书", "钉钉低代码"],
+    },
+    {
+        "id": 13,
+        "title": "自动驾驶算法挑战赛",
+        "description": "面向 L4 自动驾驶场景的感知与决策算法竞赛",
+        "tags": '["自动驾驶","SLAM","点云","深度学习"]',
+        "cover_image": "https://images.unsplash.com/photo-1549317661-bd32c8ce0afa?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-06-15T09:00:00"),
+        "end_date": dt("2026-07-15T18:00:00"),
+        "status": HackathonStatus.DRAFT,
+        "overview": "## 自动驾驶算法挑战赛\n\n面向 L4 级别自动驾驶场景，挑战感知融合与决策规划算法极限。\n\n### 赛题方向\n- **3D 目标检测**：基于点云的车辆、行人检测\n- **语义分割**：道路场景理解\n- **轨迹预测**：交通参与者运动预测\n- **规划决策**：自动驾驶路径规划",
+        "schedules": [("数据集发布","2026-06-15 10:00","2026-06-15 12:00"),("Baseline 发布","2026-06-20 10:00","2026-06-20 12:00"),("排行榜开放","2026-06-25 00:00","2026-07-10 23:59"),("最终提交","2026-07-12 00:00","2026-07-12 23:59"),("结果公布","2026-07-15 14:00","2026-07-15 18:00")],
+        "prizes": [("冠军","mAP 最高且推理速度达标",1,100000),("亚军","综合指标第二",1,50000),("季军","综合指标第三",1,30000),("最佳创新算法奖","方法论创新突出",1,20000)],
+        "criteria": [("mAP 精度",40,"目标检测平均精度"),("推理速度",25,"实时性满足要求"),("泛化能力",20,"跨场景鲁棒性"),("代码质量",15,"工程可读性与规范")],
+        "hosts": ["小鹏汽车", "Waymo 中国"],
+    },
+    {
+        "id": 14,
+        "title": "教育科技 EdTech 黑客松",
+        "description": "用技术革新教育体验，让学习更高效有趣",
+        "tags": '["教育","EdTech","在线学习","自适应"]',
+        "cover_image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-05-20T09:00:00"),
+        "end_date": dt("2026-05-22T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "四川省", "city": "成都市", "district": "高新区", "address": "天府软件园",
+        "overview": "## 教育科技 EdTech 黑客松\n\n在天府之国成都，用技术让教育更公平、更高效。\n\n### 赛题方向\n- **自适应学习**：AI 驱动的个性化学习路径\n- **虚拟实验室**：在线实验模拟环境\n- **知识图谱**：学科知识结构化与智能推荐\n- **学情分析**：学习行为数据分析与预警",
+        "schedules": [("签到 & 教育圆桌","2026-05-20 09:00","2026-05-20 11:00"),("开幕 & 赛题","2026-05-20 11:00","2026-05-20 12:00"),("开发阶段","2026-05-20 13:00","2026-05-22 12:00"),("Demo 展示","2026-05-22 13:00","2026-05-22 17:00"),("颁奖","2026-05-22 17:00","2026-05-22 18:00")],
+        "prizes": [("一等奖","教育效果提升显著",1,50000),("二等奖","交互设计优秀",2,20000),("三等奖","产品完成度高",3,10000),("最佳公益奖","关注教育公平",1,8000)],
+        "criteria": [("教育效果",30,"学习效果可量化提升"),("创新性",25,"教学方法创新"),("用户体验",20,"界面交互流畅"),("技术实现",15,"代码质量与架构"),("公平性",10,"是否关注教育公平")],
+        "hosts": ["好未来", "成都教育局"],
+    },
+    {
+        "id": 15,
+        "title": "Rust 系统编程挑战赛",
+        "description": "用 Rust 构建高性能系统级软件",
+        "tags": '["Rust","系统编程","性能","安全"]',
+        "cover_image": "https://images.unsplash.com/photo-1515879218367-8466d910auj7?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-02-01T09:00:00"),
+        "end_date": dt("2026-02-28T18:00:00"),
+        "status": HackathonStatus.ENDED,
+        "overview": "## Rust 系统编程挑战赛\n\n用 Rust 构建高性能、内存安全的系统级软件。\n\n### 赛题方向\n- **高性能网络**：异步网络框架与代理\n- **嵌入式系统**：Rust on bare metal\n- **编译器/解释器**：DSL 设计与实现\n- **数据库引擎**：存储引擎与查询优化",
+        "schedules": [("题目发布","2026-02-01 10:00","2026-02-01 12:00"),("Rust 入门工作坊","2026-02-05 14:00","2026-02-05 17:00"),("中期交流","2026-02-15 10:00","2026-02-15 16:00"),("代码提交","2026-02-26 00:00","2026-02-26 23:59"),("评审 & 颁奖","2026-02-28 14:00","2026-02-28 18:00")],
+        "prizes": [("一等奖","性能极致，代码优雅",1,30000),("二等奖","架构合理，benchmark 优秀",2,15000),("三等奖","功能完整，测试充分",3,8000),("最佳 unsafe-free 奖","完全不使用 unsafe",1,5000)],
+        "criteria": [("性能",35,"Benchmark 测试成绩"),("代码质量",25,"Rust 惯用写法与安全性"),("功能完整性",20,"需求覆盖度"),("测试覆盖",10,"单元测试与集成测试"),("文档",10,"API 文档与使用说明")],
+        "hosts": ["Rust 中文社区", "字节跳动基础架构"],
+    },
+    {
+        "id": 16,
+        "title": "数字艺术与生成式 AI 赛",
+        "description": "当艺术遇见 AI，探索数字创作的新边界",
+        "tags": '["生成式AI","数字艺术","Stable Diffusion","创意"]',
+        "cover_image": "https://images.unsplash.com/photo-1547826039-bfc35e0f1ea8?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-04-10T09:00:00"),
+        "end_date": dt("2026-05-10T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "overview": "## 数字艺术与生成式 AI 赛\n\n用 AI 工具创作数字艺术作品。\n\n### 赛题方向\n- **AI 绘画**：生成式 AI 艺术创作\n- **音乐生成**：AI 音乐作曲\n- **动画短片**：AI 辅助动画制作\n- **交互装置**：AI 驱动的互动艺术装置",
+        "schedules": [("创作主题公布","2026-04-10 10:00","2026-04-10 12:00"),("AI 工具工作坊","2026-04-15 14:00","2026-04-15 17:00"),("作品初稿提交","2026-04-25 00:00","2026-04-25 23:59"),("社区投票","2026-04-26 00:00","2026-05-05 23:59"),("评审 & 颁奖","2026-05-10 14:00","2026-05-10 18:00")],
+        "prizes": [("金奖","艺术性与技术性完美融合",1,25000),("银奖","创意独特",2,12000),("铜奖","AI 工具运用巧妙",3,6000),("社区人气奖","获得社区投票最多",1,5000)],
+        "criteria": [("艺术性",30,"美学价值与表现力"),("创意",25,"作品创意独特性"),("AI 运用",20,"AI 工具的创造性使用"),("技术实现",15,"制作工艺"),("创作理念",10,"艺术理念阐述")],
+        "hosts": ["中央美术学院", "Stability AI"],
+    },
+    {
+        "id": 17,
+        "title": "供应链数字化黑客松",
+        "description": "用数字技术重塑供应链管理",
+        "tags": '["供应链","物流","ERP","数字化"]',
+        "cover_image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-05-25T09:00:00"),
+        "end_date": dt("2026-05-27T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "江苏省", "city": "苏州市", "district": "工业园区", "address": "苏州国际博览中心",
+        "overview": "## 供应链数字化黑客松\n\n在制造业重镇苏州，用数字技术重塑供应链管理全流程。\n\n### 赛题方向\n- **智能仓储**：WMS 系统与机器人调度\n- **物流优化**：路径规划与运力调度\n- **需求预测**：基于 AI 的销量预测\n- **溯源系统**：区块链产品溯源",
+        "schedules": [("工厂参观","2026-05-25 09:00","2026-05-25 12:00"),("开幕 & 需求对接","2026-05-25 13:00","2026-05-25 15:00"),("开发阶段","2026-05-25 15:00","2026-05-27 12:00"),("成果汇报","2026-05-27 13:00","2026-05-27 17:00"),("颁奖","2026-05-27 17:00","2026-05-27 18:00")],
+        "prizes": [("一等奖","效率提升可量化",1,60000),("二等奖","方案系统性强",2,25000),("三等奖","原型完整",3,12000),("最佳落地奖","与企业需求匹配度最高",1,10000)],
+        "criteria": [("业务价值",30,"对供应链效率的提升"),("技术深度",25,"算法与架构设计"),("落地性",20,"方案实际可行性"),("创新性",15,"解决方案独特性"),("演示效果",10,"路演清晰度")],
+        "hosts": ["京东物流", "苏州工业园区管委会"],
+    },
+    {
+        "id": 18,
+        "title": "无障碍技术创新赛",
+        "description": "用技术消除障碍，让科技惠及每一个人",
+        "tags": '["无障碍","辅助技术","公益","包容设计"]',
+        "cover_image": "https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-06-05T09:00:00"),
+        "end_date": dt("2026-06-30T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "overview": "## 无障碍技术创新赛\n\n用技术消除障碍，让每个人都能平等地使用数字产品。\n\n### 赛题方向\n- **视觉辅助**：AI 图像描述与导航\n- **听觉辅助**：实时语音转文字与手语翻译\n- **运动辅助**：适配性输入设备与界面\n- **认知辅助**：简化交互与信息无障碍",
+        "schedules": [("线上启动","2026-06-05 10:00","2026-06-05 12:00"),("无障碍设计工作坊","2026-06-10 14:00","2026-06-10 17:00"),("用户测试日","2026-06-20 10:00","2026-06-20 16:00"),("作品提交","2026-06-28 00:00","2026-06-28 23:59"),("颁奖典礼","2026-06-30 14:00","2026-06-30 18:00")],
+        "prizes": [("一等奖","无障碍体验优秀",1,40000),("二等奖","用户反馈正面",2,18000),("三等奖","功能完整",3,8000),("最佳用户体验奖","残障用户测试评分最高",1,10000)],
+        "criteria": [("无障碍性",35,"WCAG 合规与实际可用性"),("用户反馈",25,"目标用户测试评分"),("技术创新",20,"辅助技术创新程度"),("完成度",10,"功能完整性"),("社会影响",10,"对无障碍推广的贡献")],
+        "hosts": ["中国残联信息中心", "微软亚洲研究院"],
+    },
+    {
+        "id": 19,
+        "title": "云原生应用开发大赛",
+        "description": "基于 K8s 生态构建云原生应用",
+        "tags": '["云原生","Kubernetes","微服务","DevOps"]',
+        "cover_image": "https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-01-01T09:00:00"),
+        "end_date": dt("2026-01-31T18:00:00"),
+        "status": HackathonStatus.ENDED,
+        "overview": "## 云原生应用开发大赛\n\n基于 Kubernetes 生态构建高可用、可扩展的云原生应用。\n\n### 赛题方向\n- **微服务架构**：服务拆分与治理\n- **Serverless**：函数计算应用\n- **可观测性**：监控/日志/追踪\n- **混沌工程**：系统韧性测试工具",
+        "schedules": [("K8s 集群分配","2026-01-01 10:00","2026-01-01 12:00"),("云原生入门讲座","2026-01-05 14:00","2026-01-05 17:00"),("中期检查","2026-01-15 10:00","2026-01-15 16:00"),("项目提交","2026-01-29 00:00","2026-01-29 23:59"),("评审颁奖","2026-01-31 14:00","2026-01-31 18:00")],
+        "prizes": [("一等奖","架构优秀，弹性扩展能力强",1,50000),("二等奖","可观测性完善",2,22000),("三等奖","微服务拆分合理",3,10000),("最佳 SRE 实践奖","运维自动化最佳",1,8000)],
+        "criteria": [("架构设计",30,"微服务拆分与治理"),("弹性扩展",25,"自动伸缩能力"),("可观测性",20,"监控/日志/追踪"),("安全性",15,"容器安全与网络策略"),("文档",10,"部署文档与 README")],
+        "hosts": ["阿里云", "CNCF 中国"],
+    },
+    {
+        "id": 20,
+        "title": "智能机器人编程赛",
+        "description": "编程控制机器人完成指定任务挑战",
+        "tags": '["机器人","ROS","控制","编程"]',
+        "cover_image": "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-06-20T09:00:00"),
+        "end_date": dt("2026-06-22T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "湖北省", "city": "武汉市", "district": "洪山区", "address": "华中科技大学",
+        "overview": "## 智能机器人编程赛\n\n编程控制机器人完成迷宫导航、物品搬运等任务挑战。\n\n### 赛题类型\n- **迷宫导航**：自主路径规划与避障\n- **物品识别与抓取**：视觉引导的机械臂操作\n- **多机协作**：多机器人编队\n- **自由创意**：开放式机器人应用",
+        "schedules": [("签到 & 机器人配发","2026-06-20 09:00","2026-06-20 10:00"),("开幕 & 规则说明","2026-06-20 10:00","2026-06-20 12:00"),("编程与调试","2026-06-20 13:00","2026-06-22 12:00"),("任务挑战赛","2026-06-22 13:00","2026-06-22 17:00"),("颁奖","2026-06-22 17:00","2026-06-22 18:00")],
+        "prizes": [("一等奖","任务完成率最高",1,50000),("二等奖","算法优秀",2,22000),("三等奖","完成基础任务",3,10000),("最佳创意应用奖","机器人应用创意突出",1,8000)],
+        "criteria": [("任务完成率",35,"指定任务的完成度"),("算法效率",25,"路径规划与决策效率"),("代码质量",20,"可读性与模块化"),("创意",10,"应用场景创新"),("团队协作",10,"分工与配合")],
+        "hosts": ["华中科技大学", "大疆创新"],
+    },
+    {
+        "id": 21,
+        "title": "量子计算编程挑战赛",
+        "description": "探索量子计算的应用前沿",
+        "tags": '["量子计算","Qiskit","算法","前沿"]',
+        "cover_image": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-07-01T09:00:00"),
+        "end_date": dt("2026-07-31T18:00:00"),
+        "status": HackathonStatus.DRAFT,
+        "overview": "## 量子计算编程挑战赛\n\n探索量子计算在优化、模拟、密码学等领域的前沿应用。\n\n### 赛题方向\n- **量子优化**：组合优化问题的量子算法\n- **量子化学**：分子模拟与材料设计\n- **量子机器学习**：混合量子-经典 ML\n- **量子密码**：量子密钥分发协议",
+        "schedules": [("量子入门讲座","2026-07-01 10:00","2026-07-01 12:00"),("真机配额分配","2026-07-05 10:00","2026-07-05 12:00"),("中期交流","2026-07-15 14:00","2026-07-15 17:00"),("论文/代码提交","2026-07-29 00:00","2026-07-29 23:59"),("评审颁奖","2026-07-31 14:00","2026-07-31 18:00")],
+        "prizes": [("一等奖","量子优势验证成功",1,60000),("二等奖","算法设计巧妙",2,25000),("三等奖","实验完整",3,12000),("最佳论文奖","学术贡献突出",1,10000)],
+        "criteria": [("量子优势",30,"相比经典算法的加速比"),("算法设计",25,"量子电路与算法创新"),("实验完整性",20,"实验设计与结果复现"),("论文质量",15,"报告学术水平"),("可扩展性",10,"量子比特扩展能力")],
+        "hosts": ["IBM Quantum", "中科院量子信息实验室"],
+    },
+    {
+        "id": 22,
+        "title": "社交电商创新黑客松",
+        "description": "构建下一代社交电商产品与工具",
+        "tags": '["电商","社交","直播","推荐算法"]',
+        "cover_image": "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-04-25T09:00:00"),
+        "end_date": dt("2026-04-27T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "浙江省", "city": "杭州市", "district": "余杭区", "address": "阿里巴巴西溪园区",
+        "overview": "## 社交电商创新黑客松\n\n在阿里巴巴西溪园区，构建下一代社交电商产品。\n\n### 赛题方向\n- **直播电商**：互动直播间与实时推荐\n- **社群运营**：私域流量工具\n- **内容种草**：AI 内容生成与分发\n- **供需匹配**：智能选品与库存优化",
+        "schedules": [("签到 & 产品分享","2026-04-25 09:00","2026-04-25 11:00"),("开幕","2026-04-25 11:00","2026-04-25 12:00"),("48 小时开发","2026-04-25 13:00","2026-04-27 13:00"),("产品路演","2026-04-27 14:00","2026-04-27 17:00"),("颁奖","2026-04-27 17:00","2026-04-27 18:00")],
+        "prizes": [("一等奖","商业模型清晰，GMV 增长可验证",1,80000),("二等奖","用户增长策略有效",2,30000),("三等奖","产品完整可用",3,15000),("最佳增长黑客奖","增长策略最有创意",1,10000)],
+        "criteria": [("商业价值",30,"商业模式可行性"),("增长策略",25,"用户获取与留存"),("产品体验",20,"界面与交互设计"),("技术实现",15,"代码与架构质量"),("数据验证",10,"数据支撑说服力")],
+        "hosts": ["阿里巴巴", "拼多多"],
+    },
+    {
+        "id": 23,
+        "title": "DevTools 开发者工具赛",
+        "description": "为开发者打造更好用的工具和平台",
+        "tags": '["开发工具","CLI","IDE插件","效率"]',
+        "cover_image": "https://images.unsplash.com/photo-1461749280684-dccba630e2f6?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.INDIVIDUAL,
+        "format": HackathonFormat.ONLINE,
+        "start_date": dt("2026-02-15T09:00:00"),
+        "end_date": dt("2026-03-15T18:00:00"),
+        "status": HackathonStatus.ENDED,
+        "overview": "## DevTools 开发者工具赛\n\n为开发者打造更好用的命令行工具、IDE 插件等。\n\n### 赛题方向\n- **CLI 工具**：命令行效率工具\n- **IDE 插件**：VS Code / JetBrains 插件\n- **代码分析**：静态分析与代码质量\n- **文档工具**：API 文档自动生成",
+        "schedules": [("赛题公布","2026-02-15 10:00","2026-02-15 12:00"),("开发者访谈","2026-02-20 14:00","2026-02-20 16:00"),("中期分享","2026-03-01 10:00","2026-03-01 16:00"),("工具发布","2026-03-13 00:00","2026-03-13 23:59"),("评审颁奖","2026-03-15 14:00","2026-03-15 18:00")],
+        "prizes": [("一等奖","工具实用性极高",1,25000),("二等奖","解决真实痛点",2,12000),("三等奖","功能完整可用",3,6000),("社区之星奖","GitHub Star 最多",1,5000)],
+        "criteria": [("实用性",35,"解决真实开发痛点"),("代码质量",25,"开源代码规范"),("用户体验",20,"文档与上手难度"),("创新性",10,"独特解决方案"),("社区反响",10,"Star/下载量")],
+        "hosts": ["GitHub", "VS Code 中文社区"],
+    },
+    {
+        "id": 24,
+        "title": "音视频技术创新赛",
+        "description": "探索实时音视频与流媒体技术的新边界",
+        "tags": '["音视频","WebRTC","编解码","直播"]',
+        "cover_image": "https://images.unsplash.com/photo-1598488035139-bdbb2231ce04?w=1200&h=600&fit=crop",
+        "registration_type": RegistrationType.TEAM,
+        "format": HackathonFormat.OFFLINE,
+        "start_date": dt("2026-05-05T09:00:00"),
+        "end_date": dt("2026-05-07T18:00:00"),
+        "status": HackathonStatus.PUBLISHED,
+        "province": "广东省", "city": "深圳市", "district": "福田区", "address": "腾讯滨海大厦",
+        "overview": "## 音视频技术创新赛\n\n在腾讯滨海大厦，探索实时音视频技术的新边界。\n\n### 赛题方向\n- **超低延迟直播**：端到端延迟 < 500ms\n- **AI 音频处理**：降噪、回声消除、声纹识别\n- **视频编解码**：新一代编解码器优化\n- **互动体验**：多人实时互动与虚拟场景",
+        "schedules": [("签到 & 技术分享","2026-05-05 09:00","2026-05-05 11:00"),("开幕","2026-05-05 11:00","2026-05-05 12:00"),("开发阶段","2026-05-05 13:00","2026-05-07 12:00"),("Demo 展示","2026-05-07 13:00","2026-05-07 17:00"),("颁奖","2026-05-07 17:00","2026-05-07 18:00")],
+        "prizes": [("一等奖","延迟指标业界领先",1,80000),("二等奖","音质/画质优化显著",2,35000),("三等奖","方案完整",3,15000),("最佳互动体验奖","实时互动创新突出",1,10000)],
+        "criteria": [("技术指标",30,"延迟/码率/质量客观指标"),("创新性",25,"技术方案创新"),("体验质量",20,"主观音视频体验"),("工程质量",15,"代码架构与可维护性"),("演示效果",10,"Demo 展示效果")],
+        "hosts": ["腾讯云", "声网 Agora"],
+    },
+]
+
+
+def seed():
+    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
     db_path = os.path.join(project_root, "vibebuild.db")
     db_url = f"sqlite:///{db_path}"
-    
     print(f"Using database: {db_path}")
-    
+
     engine = create_engine(db_url)
-    
+
+    # Ensure tables exist
+    SQLModel.metadata.create_all(engine)
+
     with Session(engine) as session:
-        print("Creating sample hackathons...")
-        
-        admin = session.exec(select(User).where(User.email == "admin@aura.com")).first()
+        # Check if data already exists
+        existing = session.exec(select(Hackathon)).first()
+        if existing:
+            print(f"Database already has hackathon data (found: {existing.title}). Skipping seed.")
+            return
+
+        # Ensure admin user exists
+        admin = session.exec(select(User).where(User.email == "admin@example.com")).first()
         if not admin:
             admin = session.exec(select(User)).first()
-            if not admin:
-                print("No users found. Please create a user first.")
-                return
+        if not admin:
+            admin = User(
+                email="admin@example.com",
+                full_name="Admin",
+                nickname="Admin",
+                hashed_password="$2b$12$LJ3a5M5v6F8K9Q7x0W1b0e8G4R2y6T4u8I0o2E4a6C8g0K2m4O6q",
+                is_active=True,
+                is_superuser=True,
+            )
+            session.add(admin)
+            session.flush()
+            print(f"Created admin user (id={admin.id})")
 
-        hackathons_data = [
-            {
-                "title": "AI 创新黑客松 2026",
-                "subtitle": "探索人工智能的无限可能",
-                "description": "探索人工智能的无限可能，与全球开发者一起创造未来。我们寻找最具创新性的 AI 应用解决方案，包括但不限于：自然语言处理、计算机视觉、智能推荐、AI Agent 等方向。",
-                "start_date": datetime.utcnow() + timedelta(days=15),
-                "end_date": datetime.utcnow() + timedelta(days=30),
-                "registration_start_date": datetime.utcnow(),
-                "registration_end_date": datetime.utcnow() + timedelta(days=14),
-                "status": HackathonStatus.PUBLISHED,
-                "format": HackathonFormat.ONLINE,
-                "location": "线上",
-                "organizer_name": "Aurathon 官方",
-                "organizer_id": admin.id,
-                "theme_tags": "AI,机器学习,深度学习,创新赛",
-                "professionalism_tags": "Python,TensorFlow,PyTorch",
-                "awards_detail": "一等奖: ¥10万 + GPU算力支持\n二等奖: ¥5万 + 云服务器\n三等奖: ¥2万 + 技术支持",
-                "cover_image": "https://images.unsplash.com/photo-1677442136019-21780ecad995?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "Web3 开发者挑战赛",
-                "subtitle": "构建去中心化未来",
-                "description": "聚焦区块链、DeFi、NFT 等前沿技术，连接开发者与资本，打造下一代 Web3 应用。本次比赛将邀请顶级投资机构参与评审，优秀项目有机会获得投资。",
-                "start_date": datetime.utcnow() + timedelta(days=30),
-                "end_date": datetime.utcnow() + timedelta(days=45),
-                "registration_start_date": datetime.utcnow() + timedelta(days=5),
-                "registration_end_date": datetime.utcnow() + timedelta(days=28),
-                "status": HackathonStatus.PUBLISHED,
-                "format": HackathonFormat.ONLINE,
-                "location": "线上",
-                "organizer_name": "Blockchain Labs",
-                "organizer_id": admin.id,
-                "theme_tags": "Web3,区块链,DeFi,NFT",
-                "professionalism_tags": "Solidity,Ethereum,Solana",
-                "awards_detail": "冠军: ¥20万 + 代币激励\n亚军: ¥10万 + 孵化支持\n季军: ¥5万 + 社区推广",
-                "cover_image": "https://images.unsplash.com/photo-1639762681485-074b7f938ba0?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "智能医疗创新大赛",
-                "subtitle": "科技赋能健康",
-                "description": "创新医疗科技解决方案，涵盖远程医疗、智能诊断、健康管理等方向。与顶级医疗机构合作，将创意转化为实际应用。",
-                "start_date": datetime.utcnow() - timedelta(days=5),
-                "end_date": datetime.utcnow() + timedelta(days=10),
-                "registration_start_date": datetime.utcnow() - timedelta(days=20),
-                "registration_end_date": datetime.utcnow() - timedelta(days=7),
-                "status": HackathonStatus.ONGOING,
-                "format": HackathonFormat.OFFLINE,
-                "location": "上海市浦东新区",
-                "organizer_name": "健康科技创新联盟",
-                "organizer_id": admin.id,
-                "theme_tags": "医疗,健康,智能诊断,远程医疗",
-                "professionalism_tags": "Python,医学影像,数据分析",
-                "awards_detail": "一等奖: ¥15万 + 医院合作机会\n二等奖: ¥8万 + 导师指导\n三等奖: ¥3万 + 实习机会",
-                "cover_image": "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "绿色能源黑客松",
-                "subtitle": "可持续发展的未来",
-                "description": "开发可持续能源解决方案，包括智能电网、碳足迹追踪、能源优化等。为碳中和目标贡献技术力量。",
-                "start_date": datetime.utcnow() - timedelta(days=30),
-                "end_date": datetime.utcnow() - timedelta(days=15),
-                "registration_start_date": datetime.utcnow() - timedelta(days=50),
-                "registration_end_date": datetime.utcnow() - timedelta(days=35),
-                "status": HackathonStatus.ENDED,
-                "format": HackathonFormat.OFFLINE,
-                "location": "深圳市南山区",
-                "organizer_name": "绿色科技基金会",
-                "organizer_id": admin.id,
-                "theme_tags": "能源,环保,可持续发展,碳中和",
-                "professionalism_tags": "IoT,数据分析,智能硬件",
-                "awards_detail": "冠军: ¥20万 + 项目孵化\n亚军: ¥10万 + 技术支持\n季军: ¥5万",
-                "cover_image": "https://images.unsplash.com/photo-1473341304170-971dccb5ac1e?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "教育科技创新赛",
-                "subtitle": "重塑学习体验",
-                "description": "利用技术改变教育方式，包括在线学习平台、游戏化教育、AI 辅导等方向。让优质教育触手可及。",
-                "start_date": datetime.utcnow() + timedelta(days=60),
-                "end_date": datetime.utcnow() + timedelta(days=62),
-                "registration_start_date": datetime.utcnow() + timedelta(days=30),
-                "registration_end_date": datetime.utcnow() + timedelta(days=55),
-                "status": HackathonStatus.PUBLISHED,
-                "format": HackathonFormat.ONLINE,
-                "location": "线上",
-                "organizer_name": "教育创新实验室",
-                "organizer_id": admin.id,
-                "theme_tags": "教育,在线学习,游戏化,AI教育",
-                "professionalism_tags": "React,Node.js,Unity",
-                "awards_detail": "一等奖: ¥10万 + 教育机构合作\n二等奖: ¥5万 + 产品推广\n三等奖: ¥2万",
-                "cover_image": "https://images.unsplash.com/photo-1503676260728-1c00da094a0b?auto=format&fit=crop&q=80&w=2022"
-            },
-            {
-                "title": "金融科技创新峰会",
-                "subtitle": "数字化金融未来",
-                "description": "探索金融科技前沿，涵盖数字支付、智能投顾、风险管理等方向。与顶级金融机构合作，打造下一代金融产品。",
-                "start_date": datetime.utcnow() + timedelta(days=10),
-                "end_date": datetime.utcnow() + timedelta(days=12),
-                "registration_start_date": datetime.utcnow() + timedelta(days=2),
-                "registration_end_date": datetime.utcnow() + timedelta(days=8),
-                "status": HackathonStatus.PUBLISHED,
-                "format": HackathonFormat.OFFLINE,
-                "location": "北京市朝阳区",
-                "organizer_name": "金融科技联盟",
-                "organizer_id": admin.id,
-                "theme_tags": "金融科技,支付,投资,风控",
-                "professionalism_tags": "Java,Spring,微服务",
-                "awards_detail": "冠军: ¥30万 + 投资对接\n亚军: ¥15万 + 银行合作\n季军: ¥8万 + 导师指导",
-                "cover_image": "https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "元宇宙开发者大赛",
-                "subtitle": "构建虚拟新世界",
-                "description": "探索元宇宙技术，包括 VR/AR 应用、虚拟社交、数字孪生等方向。创造沉浸式体验，定义未来交互方式。",
-                "start_date": datetime.utcnow() + timedelta(days=45),
-                "end_date": datetime.utcnow() + timedelta(days=60),
-                "registration_start_date": datetime.utcnow() + timedelta(days=15),
-                "registration_end_date": datetime.utcnow() + timedelta(days=40),
-                "status": HackathonStatus.PUBLISHED,
-                "format": HackathonFormat.ONLINE,
-                "location": "线上 + 上海",
-                "organizer_name": "元宇宙创新中心",
-                "organizer_id": admin.id,
-                "theme_tags": "元宇宙,VR,AR,虚拟社交",
-                "professionalism_tags": "Unity,Unreal,WebXR",
-                "awards_detail": "一等奖: ¥25万 + 设备支持\n二等奖: ¥12万 + 云服务\n三等奖: ¥6万 + 技术培训",
-                "cover_image": "https://images.unsplash.com/photo-1633356122544-f134324a6cee?auto=format&fit=crop&q=80&w=2070"
-            },
-            {
-                "title": "物联网创新挑战赛",
-                "subtitle": "万物互联新时代",
-                "description": "开发物联网解决方案，涵盖智能家居、工业物联网、智慧城市等方向。连接物理世界与数字世界。",
-                "start_date": datetime.utcnow() - timedelta(days=2),
-                "end_date": datetime.utcnow() + timedelta(days=5),
-                "registration_start_date": datetime.utcnow() - timedelta(days=15),
-                "registration_end_date": datetime.utcnow() - timedelta(days=5),
-                "status": HackathonStatus.ONGOING,
-                "format": HackathonFormat.OFFLINE,
-                "location": "杭州市西湖区",
-                "organizer_name": "物联网产业联盟",
-                "organizer_id": admin.id,
-                "theme_tags": "物联网,智能家居,智慧城市,工业4.0",
-                "professionalism_tags": "嵌入式,C++,MQTT",
-                "awards_detail": "冠军: ¥15万 + 产业对接\n亚军: ¥8万 + 硬件支持\n季军: ¥4万 + 培训机会",
-                "cover_image": "https://images.unsplash.com/photo-1558346490-a72e53ae2d4f?auto=format&fit=crop&q=80&w=2070"
-            }
-        ]
+        now = datetime.utcnow()
 
-        count = 0
-        for h_data in hackathons_data:
-            existing = session.exec(select(Hackathon).where(Hackathon.title == h_data["title"])).first()
-            if not existing:
-                hackathon = Hackathon(**h_data)
-                session.add(hackathon)
-                count += 1
-                print(f"  + {h_data['title']}")
-        
+        for h_data in HACKATHONS:
+            created_at = h_data.get("start_date", now)
+
+            # Create hackathon
+            hackathon = Hackathon(
+                title=h_data["title"],
+                description=h_data["description"],
+                tags=h_data["tags"],
+                cover_image=h_data["cover_image"],
+                registration_type=h_data["registration_type"],
+                format=h_data["format"],
+                start_date=h_data["start_date"],
+                end_date=h_data["end_date"],
+                status=h_data["status"],
+                province=h_data.get("province"),
+                city=h_data.get("city"),
+                district=h_data.get("district"),
+                address=h_data.get("address"),
+                created_by=admin.id,
+                created_at=created_at,
+                updated_at=created_at,
+            )
+            session.add(hackathon)
+            session.flush()
+
+            hid = hackathon.id
+
+            # Organizer
+            session.add(HackathonOrganizer(
+                hackathon_id=hid, user_id=admin.id,
+                role=OrganizerRole.OWNER, status=OrganizerStatus.ACCEPTED,
+                created_at=created_at, updated_at=created_at,
+            ))
+
+            # Hosts
+            for i, host_name in enumerate(h_data["hosts"]):
+                session.add(HackathonHost(
+                    hackathon_id=hid, name=host_name, display_order=i,
+                    created_at=created_at, updated_at=created_at,
+                ))
+
+            # Overview section
+            overview_section = Section(
+                hackathon_id=hid, section_type=SectionType.MARKDOWN,
+                title="活动介绍", display_order=0, content=h_data["overview"],
+                created_at=created_at, created_by=admin.id, updated_at=created_at,
+            )
+            session.add(overview_section)
+
+            # Schedule section + items
+            sched_section = Section(
+                hackathon_id=hid, section_type=SectionType.SCHEDULES,
+                title="活动日程", display_order=1,
+                created_at=created_at, created_by=admin.id, updated_at=created_at,
+            )
+            session.add(sched_section)
+            session.flush()
+
+            for i, (name, start, end) in enumerate(h_data["schedules"]):
+                session.add(Schedule(
+                    hackathon_id=hid, section_id=sched_section.id,
+                    event_name=name,
+                    start_time=datetime.fromisoformat(start.replace(" ", "T")),
+                    end_time=datetime.fromisoformat(end.replace(" ", "T")),
+                    display_order=i,
+                    created_at=created_at, updated_at=created_at,
+                ))
+
+            # Prize section + items
+            prize_section = Section(
+                hackathon_id=hid, section_type=SectionType.PRIZES,
+                title="奖项设置", display_order=2,
+                created_at=created_at, created_by=admin.id, updated_at=created_at,
+            )
+            session.add(prize_section)
+            session.flush()
+
+            for i, (name, standards, qty, amount) in enumerate(h_data["prizes"]):
+                session.add(Prize(
+                    hackathon_id=hid, section_id=prize_section.id,
+                    name=name, winning_standards=standards,
+                    quantity=qty, total_cash_amount=amount,
+                    awards_sublist="[]", display_order=i,
+                    created_at=created_at, updated_at=created_at,
+                ))
+
+            # Judging criteria section + items
+            jc_section = Section(
+                hackathon_id=hid, section_type=SectionType.JUDGING_CRITERIA,
+                title="评审标准", display_order=3,
+                created_at=created_at, created_by=admin.id, updated_at=created_at,
+            )
+            session.add(jc_section)
+            session.flush()
+
+            for i, (name, weight, desc) in enumerate(h_data["criteria"]):
+                session.add(JudgingCriteria(
+                    hackathon_id=hid, section_id=jc_section.id,
+                    name=name, weight_percentage=weight, description=desc,
+                    display_order=i,
+                    created_at=created_at, updated_at=created_at,
+                ))
+
+            print(f"  Created hackathon {hid}: {h_data['title']}")
+
         session.commit()
-        print(f"\nSuccessfully added {count} new hackathons!")
+        print(f"\nDone! Seeded {len(HACKATHONS)} hackathons with full data.")
+
 
 if __name__ == "__main__":
-    create_sample_hackathons()
+    seed()

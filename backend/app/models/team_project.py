@@ -9,7 +9,9 @@ from app.models.user import User, UserRead
 class TeamBase(SQLModel):
     name: str
     description: Optional[str] = None
-    looking_for: Optional[str] = None
+    recruitment_roles: Optional[str] = None  # JSON array of role objects
+    recruitment_contact: Optional[str] = None
+    recruitment_status: str = "closed"
 
 class Team(TeamBase, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -19,7 +21,6 @@ class Team(TeamBase, table=True):
 
     members: List["TeamMember"] = Relationship(back_populates="team")
     submissions: List["Submission"] = Relationship(back_populates="team")
-    recruitments: List["Recruitment"] = Relationship(back_populates="team")
 
 class TeamMember(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -39,8 +40,12 @@ class TeamMemberRead(SQLModel):
 class TeamMemberReadWithUser(TeamMemberRead):
     user: Optional[UserRead] = None
 
-class TeamCreate(TeamBase):
-    pass
+class TeamCreate(SQLModel):
+    name: str
+    description: Optional[str] = None
+    recruitment_roles: Optional[str] = None
+    recruitment_contact: Optional[str] = None
+    recruitment_status: str = "closed"
 
 class TeamRead(TeamBase):
     id: int
@@ -50,7 +55,6 @@ class TeamRead(TeamBase):
 
 class TeamReadWithMembers(TeamRead):
     members: List[TeamMemberReadWithUser] = []
-    recruitments: List["RecruitmentRead"] = []
 
 
 class SubmissionStatus(str, Enum):
@@ -96,44 +100,14 @@ class SubmissionRead(SubmissionBase):
 class SubmissionReadWithTeam(SubmissionRead):
     team: Optional[TeamRead] = None
 
-# Keep backward-compat aliases for imports that haven't migrated
+class TeamReadWithSubmissions(TeamRead):
+    submissions: List[SubmissionRead] = []
+
+# Backward-compat aliases
 ProjectStatus = SubmissionStatus
 ProjectBase = SubmissionBase
 Project = Submission
 ProjectCreate = SubmissionCreate
 ProjectRead = SubmissionRead
 ProjectReadWithTeam = SubmissionReadWithTeam
-
-
-# Recruitment Models
-class RecruitmentBase(SQLModel):
-    role: str
-    skills: str
-    count: int = 1
-    description: Optional[str] = None
-    contact_info: Optional[str] = None
-    status: str = "open"
-
-class Recruitment(RecruitmentBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
-    team_id: int = Field(foreign_key="team.id")
-    created_at: datetime = Field(default_factory=datetime.utcnow)
-
-    team: Optional[Team] = Relationship(back_populates="recruitments")
-
-class RecruitmentCreate(RecruitmentBase):
-    pass
-
-class RecruitmentRead(RecruitmentBase):
-    id: int
-    team_id: int
-    created_at: datetime
-
-class TeamReadWithSubmissions(TeamRead):
-    submissions: List[SubmissionRead] = []
-
-# Backward-compat alias
 TeamReadWithProjects = TeamReadWithSubmissions
-
-class RecruitmentReadWithTeam(RecruitmentRead):
-    team: Optional[TeamReadWithSubmissions] = None

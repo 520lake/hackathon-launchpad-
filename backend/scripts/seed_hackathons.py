@@ -3,13 +3,14 @@ Seed script: populates the database with 24 sample hackathons and related data.
 
 Usage:
     cd backend
-    DATABASE_URL="sqlite:///../vibebuild.db" .venv/bin/python3 scripts/seed_hackathons.py
+    .venv/bin/python3 scripts/seed_hackathons.py
 
 Idempotent — skips seeding if hackathons already exist.
 """
 
 import sys
 import os
+import json
 from datetime import datetime, timedelta
 
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
@@ -25,7 +26,6 @@ from app.models.prize import Prize
 from app.models.judging_criteria import JudgingCriteria
 from app.models.enrollment import Enrollment, EnrollmentStatus
 from app.models.team_project import Team, TeamMember, Submission, SubmissionStatus
-from app.models.recruitment import Recruitment
 from app.core.config import settings
 
 import random
@@ -865,14 +865,6 @@ def _seed_participants(session: Session, admin: User):
         "来自高校的研究型团队，理论与实践并重",
     ]
 
-    LOOKING_FOR = [
-        "寻找前端开发者，熟悉 React/Vue",
-        "需要 AI/ML 工程师，有模型部署经验",
-        "招募产品设计师，擅长 Figma",
-        "寻找后端开发者，熟悉微服务架构",
-        "需要数据分析师，擅长可视化",
-    ]
-
     RECRUIT_ROLES = [
         ("前端开发","React,TypeScript,CSS","负责产品前端界面开发"),
         ("后端开发","Python,Go,数据库","负责 API 和数据架构"),
@@ -946,7 +938,11 @@ def _seed_participants(session: Session, admin: User):
                     hackathon_id=hid,
                     name=TEAM_NAMES[team_counter % len(TEAM_NAMES)],
                     description=TEAM_DESCS[team_counter % len(TEAM_DESCS)],
-                    looking_for=LOOKING_FOR[team_counter % len(LOOKING_FOR)],
+                    recruitment_roles=json.dumps([
+                        {"role": r, "skills": s, "description": d}
+                        for r, s, d in [RECRUIT_ROLES[team_counter % len(RECRUIT_ROLES)]]
+                    ]) if random.random() < 0.5 else None,
+                    recruitment_status="open" if random.random() < 0.5 else "closed",
                     leader_id=leader, created_at=joined,
                 )
                 session.add(team)
@@ -955,15 +951,6 @@ def _seed_participants(session: Session, admin: User):
                 for uid in team_members:
                     session.add(TeamMember(
                         team_id=team.id, user_id=uid, joined_at=joined,
-                    ))
-
-                # 50% chance of a recruitment post
-                if random.random() < 0.5:
-                    role, skills, desc = RECRUIT_ROLES[team_counter % len(RECRUIT_ROLES)]
-                    session.add(Recruitment(
-                        team_id=team.id, role=role, skills=skills,
-                        count=random.randint(1, 2), description=desc,
-                        status="OPEN", created_at=joined,
                     ))
 
     session.commit()

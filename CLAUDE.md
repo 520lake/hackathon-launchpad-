@@ -13,6 +13,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 cd backend
 .venv/bin/python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 ```
+> **Always use `--reload`** in dev — without it, uvicorn won't pick up code changes and you'll get stale-code errors.
 
 **Database migrations:**
 ```bash

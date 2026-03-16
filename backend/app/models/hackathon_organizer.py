@@ -2,6 +2,7 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 from sqlmodel import SQLModel, Field, Column, Integer, ForeignKey, UniqueConstraint
+from sqlalchemy import String
 
 
 class OrganizerRole(str, Enum):
@@ -25,8 +26,8 @@ class OrganizerStatus(str, Enum):
 # ---------------------------------------------------------------------------
 
 class HackathonOrganizerBase(SQLModel):
-    role: OrganizerRole = Field(default=OrganizerRole.ADMIN)
-    status: OrganizerStatus = Field(default=OrganizerStatus.PENDING)
+    role: OrganizerRole = Field(default=OrganizerRole.ADMIN, sa_type=String)
+    status: OrganizerStatus = Field(default=OrganizerStatus.PENDING, sa_type=String)
 
 
 class HackathonOrganizer(HackathonOrganizerBase, table=True):

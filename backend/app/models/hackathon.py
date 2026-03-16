@@ -3,6 +3,7 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 from sqlmodel import SQLModel, Field
+from sqlalchemy import String
 
 
 class HackathonStatus(str, Enum):
@@ -38,8 +39,8 @@ class HackathonBase(SQLModel):
     tags: Optional[str] = None  # JSON-encoded string array, e.g. '["AI","Web3"]'
     cover_image: Optional[str] = None
 
-    registration_type: RegistrationType = Field(default=RegistrationType.TEAM)
-    format: HackathonFormat = Field(default=HackathonFormat.ONLINE)
+    registration_type: RegistrationType = Field(default=RegistrationType.TEAM, sa_type=String)
+    format: HackathonFormat = Field(default=HackathonFormat.ONLINE, sa_type=String)
 
     # Core dates – only the overall event window.
     # Granular phase dates (registration, submission, judging) are stored
@@ -57,7 +58,7 @@ class HackathonBase(SQLModel):
     # have not been approved for the hackathon.
     is_address_hidden: bool = Field(default=False)
 
-    status: HackathonStatus = Field(default=HackathonStatus.DRAFT)
+    status: HackathonStatus = Field(default=HackathonStatus.DRAFT, sa_type=String)
 
 
 class Hackathon(HackathonBase, table=True):

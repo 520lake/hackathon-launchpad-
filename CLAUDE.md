@@ -53,8 +53,8 @@ SQLite (dev) database is at `backend/data/vibebuild.db`. The path is resolved vi
 ### Section-Based Content System
 Hackathon detail content lives in the `section` table, NOT as hackathon columns. Sections have a `section_type` enum (MARKDOWN, SCHEDULES, PRIZES, JUDGING_CRITERIA) and child tables (`schedule`, `prize`, `judgingcriteria`, `partner`) that CASCADE on section/hackathon deletion.
 
-### SQLAlchemy Enum Storage
-All `str`-Enum fields use SQLAlchemy native Enum type — stored as **UPPERCASE names** in DB (e.g. `'ONGOING'`), but FastAPI/Pydantic serializes to JSON as **lowercase values** (e.g. `'ongoing'`). Do NOT lowercase enum values in migrations.
+### Enum Storage
+All `str`-Enum fields use `sa_type=String` — stored and serialized as **lowercase values** (e.g. `'ongoing'`, `'draft'`). DB values match API JSON responses.
 
 ### Backend Structure
 - `backend/app/api/v1/endpoints/` — 18 endpoint modules, aggregated in `api.py`

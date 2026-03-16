@@ -2,6 +2,7 @@ from typing import Optional
 from datetime import datetime
 from enum import Enum
 from sqlmodel import SQLModel, Field, Column, Integer, ForeignKey
+from sqlalchemy import String
 
 
 class SectionType(str, Enum):
@@ -22,7 +23,7 @@ class SectionType(str, Enum):
 # ---------------------------------------------------------------------------
 
 class SectionBase(SQLModel):
-    section_type: SectionType
+    section_type: SectionType = Field(sa_type=String)
     title: Optional[str] = Field(default=None, max_length=255)
     display_order: int = Field(default=0)
     # For MARKDOWN sections this holds the rich text (JSON string).

@@ -2,6 +2,7 @@ from typing import Optional, List
 from datetime import datetime
 from enum import Enum
 from sqlmodel import SQLModel, Field, Relationship
+from sqlalchemy import String
 from app.models.user import User, UserRead
 
 
@@ -73,7 +74,7 @@ class Submission(SubmissionBase, table=True):
     team_id: Optional[int] = Field(default=None, foreign_key="team.id")
     user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     project_id: Optional[int] = Field(default=None, foreign_key="master_project.id")
-    status: SubmissionStatus = Field(default=SubmissionStatus.DRAFT)
+    status: SubmissionStatus = Field(default=SubmissionStatus.DRAFT, sa_type=String)
     total_score: Optional[float] = Field(default=0.0)
     created_at: datetime = Field(default_factory=datetime.utcnow)
 

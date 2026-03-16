@@ -68,7 +68,7 @@ def _validate_section_type(section: Section, expected: SectionType) -> None:
     if section.section_type != expected:
         raise HTTPException(
             status_code=400,
-            detail=f"Section type must be '{expected.value}', got '{section.section_type.value}'",
+            detail=f"Section type must be '{expected.value}', got '{section.section_type}'",
         )
 
 

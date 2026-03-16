@@ -236,32 +236,6 @@ export default function EventsPage() {
       {/* 页面头部 */}
       <div className="px-6 pt-10 pb-6">
         <div className="max-w-7xl mx-auto">
-          <div className="flex items-center gap-4 mb-5 text-sm text-muted-foreground">
-            <Button
-              variant="ghost"
-              size="sm"
-              className="px-2 py-1 h-7"
-              onClick={() => navigate("/")}
-            >
-              <svg
-                className="w-4 h-4 mr-1 flex-shrink-0"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              返回
-            </Button>
-            <span>/</span>
-            <span>探索网络</span>
-          </div>
-
           <div className="text-center mt-8">
             <div className="inline-flex items-center justify-center mb-3">
               <span className="text-muted-foreground font-mono mr-2">//</span>

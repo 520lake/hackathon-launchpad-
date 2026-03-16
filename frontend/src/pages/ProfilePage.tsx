@@ -581,19 +581,6 @@ export default function ProfilePage() {
           animate={{ opacity: 1, y: 0 }}
           className="mb-8"
         >
-          <div className="flex items-center gap-4 mb-6 py-2">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/")}
-              className="text-ink-dim hover:text-ink transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-4 py-2 hover:bg-surface rounded-[16px]"
-            >
-              <span>←</span> 返回首页
-            </Button>
-            <span className="text-ink-dim/30">/</span>
-            <span className="text-brand text-sm font-bold tracking-wide px-4 py-2 bg-brand/5 rounded-[16px]">
-              个人中心
-            </span>
-          </div>
           <h1 className="text-3xl font-bold text-white flex items-center gap-2">
             <span className="text-[#FBBF24] font-mono">//</span>
             个人中心

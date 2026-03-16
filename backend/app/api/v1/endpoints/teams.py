@@ -7,7 +7,6 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.hackathon import Hackathon
 from app.models.team_project import Team, TeamCreate, TeamRead, TeamMember, TeamMemberRead, TeamReadWithMembers, Recruitment, RecruitmentCreate, RecruitmentRead, RecruitmentReadWithTeam
-from app.models.user import User
 from app.models.enrollment import Enrollment, EnrollmentStatus
 
 router = APIRouter()

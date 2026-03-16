@@ -5,7 +5,7 @@ Revises: b2c3d4e5f6a7
 Create Date: 2026-03-14 12:00:00.000000
 
 Aligns the SQLite schema with the current SQLModel definitions:
-- Normalise enum values to lowercase (status, registration_type, format)
+- Normalise enum values to UPPERCASE (status, registration_type, format)
 - Apply NOT NULL constraints to required columns
 - Add missing foreign-key constraints (via table rebuild)
 - Replace composite section index with single-column index

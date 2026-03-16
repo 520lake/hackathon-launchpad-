@@ -208,7 +208,7 @@ def read_public_participants(
                     skills_list = parsed
                 else:
                     skills_list = [str(parsed)]
-            except:
+            except (ValueError, TypeError):
                 # Fallback to comma-separated
                 skills_list = [s.strip() for s in user.skills.split(',') if s.strip()]
 

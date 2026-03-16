@@ -37,13 +37,16 @@ backend/uploads/
 # Database
 vibebuild.db
 
-# Deploy artifacts — never commit .env files with real secrets
-deploy_temp/**/.env
-deploy_temp/**/.env.*
-deploy_bundle/**/.env
-deploy_bundle/**/.env.*
-upload_bundle/**/.env
-upload_bundle/**/.env.*
+# Deploy artifacts — entire directories excluded
+deploy_bundle/
+deploy_temp/
+upload_bundle/
+studio_deploy/
+_ms_space_*/
+.modelscope_clone/
+modelscope_*/
+.deploy_temp_clone/
+.trae/
 
 # OS
 .DS_Store

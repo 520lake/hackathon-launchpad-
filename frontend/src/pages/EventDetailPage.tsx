@@ -447,42 +447,6 @@ export default function EventDetailPage() {
 
         {/* Content */}
         <div className="relative z-10 h-full flex flex-col justify-end p-8 md:p-12 max-w-7xl mx-auto w-full">
-          {/* Breadcrumb - 优化返回导航 */}
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/")}
-              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
-            >
-              <svg
-                className="w-4 h-4"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M15 19l-7-7 7-7"
-                />
-              </svg>
-              返回首页
-            </Button>
-            <span className="text-gray-600">/</span>
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/events")}
-              className="text-gray-400 hover:text-white transition-colors duration-200 text-sm font-medium tracking-wide flex items-center gap-2 px-2 py-1 hover:bg-white/5 rounded-md"
-            >
-              探索网络
-            </Button>
-            <span className="text-gray-600">/</span>
-            <span className="text-[#FBBF24] text-sm font-bold tracking-wide px-2 py-1 bg-[#FBBF24]/5 rounded-md">
-              {hackathon.title}
-            </span>
-          </div>
-
           {/* Title */}
           <h1 className="text-3xl md:text-4xl font-bold text-white mb-3 tracking-tight">
             {hackathon.title}

@@ -1,6 +1,6 @@
 ---
 title: Aura AI Hackathon Platform
-emoji: 🚀
+emoji: "\U0001F680"
 colorFrom: gray
 colorTo: black
 sdk: docker
@@ -8,120 +8,163 @@ app_port: 7860
 license: apache-2.0
 ---
 
-# Aura - AI-Empowered Hackathon Platform (AI 赋能黑客松平台)
+# Aura
 
-> **China's Devpost** —— A brutalist-styled, AI-empowered platform for hackathon organizers, participants, and judges.
->
-> 打造中国的 Devpost：一个极具“粗野主义”风格、由 AI 深度赋能的黑客松创新协作平台。
+**AI 赋能黑客松平台** —— 在一个平台上发起、参加和评审黑客松。
 
-📄 **[阅读项目白皮书 (Project White Paper)](docs/Aura_WhitePaper.md)** - 包含详细的功能介绍与技术架构说明。
+> 打造中国的 Devpost：粗野主义风格、全生命周期管理、AI 深度集成的黑客松创新协作平台。
 
----
+## 技术栈
 
-## 🚀 最新更新 (What's New)
+| 层级 | 技术 |
+|------|------|
+| 前端 | React 19、TypeScript、Vite、Tailwind CSS、shadcn/ui、Zustand |
+| 后端 | FastAPI、SQLModel、Alembic、Pydantic |
+| 数据库 | SQLite（开发）、PostgreSQL（生产） |
+| 认证 | JWT、邮箱密码、邮箱验证码、微信扫码、GitHub OAuth |
+| AI | 通义千问 (Qwen-Plus)，经由 ModelScope（智能评分、组队匹配、内容生成） |
+| 部署 | Docker Compose、Nginx |
 
-**Version 2.8.0 (Registration & Project Workflow Refactor)**
+## 快速开始
 
-1.  **⚡ 报名与项目流程重构 (Registration & Project Refactor)**:
-    -   **即时解锁**: 报名成功后立即解锁“我的项目”标签页，无需手动刷新。
-    -   **数据全量同步**: 个人中心与活动详情页数据打通，支持从个人中心一键跳转至特定活动的项目空间。
-    -   **状态自动同步**: 修复了报名状态、项目创建状态、招募发布状态在多页面间的不一致问题。
-2.  **🤖 AI 项目助手增强 (AI Assistant Plus)**:
-    -   **智能方案生成**: 支持根据关键词生成项目创意、技术路径与实施计划。
-    -   **招募文案一键润色**: AI 自动生成并优化团队招募描述，提高组队成功率。
-    -   **无缝衔接提交**: AI 生成的项目描述可直接填充至项目提交表单。
-3.  **📢 招募系统联动 (Recruitment Ecosystem)**:
-    -   **全平台发布**: 在项目空间发布的招募信息会自动同步至“社区 & 组队”大厅。
-    -   **精准筛选**: 支持按角色、技能标签快速寻找心仪的战队。
+### 环境要求
 
-**Version 2.7.0 (AI Judging + Smart Dimensions)**
+- Python 3.10+
+- Node.js 18+
+- Git
 
-1.  **⚡ AI 辅助评审 (AI-Assisted Judging)**:
-    -   **智能评分**: 评委终端集成 ModelScope AI Agent，可根据项目详情与自定义评分维度，自动生成建议分数与评语。
-    -   **多维考核**: 支持在创建活动时自定义复杂的评分维度（权重、细则），AI 能够理解并针对性打分。
-2.  **模拟实名认证 (Mock Verification)**:
-    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
-    -   一键绕过实名限制，快速测试“发起活动”全流程。
-3.  **UI/UX 优化**:
-    -   评审终端 (Judging Terminal) 升级，支持详细维度打分展示与 AI 交互。
+### 后端
 
-**Version 2.6.0 (Secure + Mock Auth)**
-
-1.  **模拟实名认证 (Mock Verification)**:
-    -   在个人中心 (User Dashboard) 新增绿色脉冲按钮 **"CLICK TO MOCK VERIFY"**。
-    -   一键绕过实名限制，快速测试“发起活动”全流程。
-2.  **ModelScope 兼容性增强**:
-    -   **Cookie Auth Fallback**: 修复了在 iframe 中 LocalStorage 失效导致的 401 登录问题。
-    -   **Mock WeChat Login**: 本地与测试环境支持模拟微信登录（自动生成模拟二维码），无需真实扫码。
-3.  **UI/UX 优化**:
-    -   修复了导航栏管理员显示逻辑，优先展示昵称/全名。
-    -   优化了“发起活动”的状态检测逻辑，认证后立即刷新权限，无需重复登录。
-
----
-
-## ✨ 核心特性 (Key Features)
-
-*   **🤖 AI-Native**: 
-    -   基于 ModelScope (Qwen-Plus) 的**AI 社区洞察**、活动一键策划、智能组队匹配、项目润色与**AI 辅助评审**。
-*   **🎨 Brutalist Design**: 
-    -   独特的极客审美，拒绝平庸，强调内容与代码的硬核本质。
-*   **🔄 Full Lifecycle**: 
-    -   覆盖活动发布、报名审核、组队协作、项目提交、评委打分的全流程。
-*   **🔐 Dual Auth**: 
-    -   支持微信（测试号）扫码与邮箱验证码双重登录。
-
----
-
-## 🛠️ 快速开始 (Getting Started)
-
-### ModelScope 部署 (Production)
-平台已预配置 `Dockerfile` 和启动脚本，推送到 ModelScope Space 即可自动构建。
-- **启动脚本**: `start_modelscope.sh` (自动处理数据库挂载与迁移)
-- **端口**: 7860
-
-### 本地开发 (Local Development)
-
-**1. 后端 (Backend)**:
 ```bash
 cd backend
-# 激活虚拟环境 (可选)
-python -m uvicorn app.main:app --reload
-```
-*   访问: `http://localhost:8000/docs`
+python -m venv .venv
+source .venv/bin/activate   # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
 
-**2. 前端 (Frontend)**:
+# 初始化数据库
+python -m app.initial_data   # 创建默认管理员 (admin@aura.com / admin123)
+
+# 启动服务
+python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+API 文档：`http://localhost:8000/docs`
+
+### 前端
+
 ```bash
 cd frontend
 npm install
 npm run dev
 ```
-*   访问: `http://localhost:5173`
 
-**3. 模拟登录指南**:
-*   点击登录 -> 选择微信 -> 点击二维码（或等待） -> 自动登录。
-*   点击右上角用户名 -> 点击 "CLICK TO MOCK VERIFY" -> 完成实名。
+开发服务器运行在 `http://localhost:5173`，自动将 `/api/*` 代理到后端。
 
----
+### Docker 部署（生产环境）
 
-## 📂 项目结构 (Project Structure)
-
-```
-.
-├── backend/                 # FastAPI 后端
-│   ├── app/                 # 应用核心代码
-│   ├── alembic/             # 数据库迁移脚本
-│   └── start_modelscope.sh  # 魔搭启动脚本
-├── frontend/                # React + Tailwind v4 前端
-├── docs/                    # 项目文档
-│   ├── Aura_WhitePaper.md   # 项目白皮书
-│   └── PRD.md               # 产品需求文档
-└── Dockerfile               # ModelScope 部署文件
+```bash
+docker-compose up
 ```
 
----
+后端运行在 8000 端口，前端（Nginx）运行在 80 端口。
 
-## 🤝 贡献 (Contributing)
+### 填充测试数据
 
-欢迎提交 Issue 和 Pull Request！让我们一起打造最好的黑客松平台。
+```bash
+cd backend
+.venv/bin/python3 scripts/seed_hackathons.py   # 24 场黑客松 + 用户 + 提交
+.venv/bin/python3 -m app.initial_data            # 默认管理员账号
+```
 
-License: Apache-2.0
+## 项目结构
+
+```
+hackathon-platform/
+├── backend/
+│   ├── app/
+│   │   ├── api/v1/endpoints/   # 15 个接口模块（认证、活动、团队等）
+│   │   ├── models/             # 18 个 SQLModel 数据表定义
+│   │   ├── core/config.py      # 配置项与数据库 URL 逻辑
+│   │   └── db/session.py       # 引擎、init_db、get_session
+│   ├── alembic/                # 数据库迁移脚本
+│   └── scripts/                # 数据填充脚本
+├── frontend/
+│   ├── src/
+│   │   ├── pages/              # 路由级页面组件
+│   │   ├── components/ui/      # shadcn/Radix 基础组件
+│   │   ├── store/              # Zustand 认证状态管理
+│   │   ├── types/              # TypeScript 类型（对应后端 Schema）
+│   │   └── utils/              # 工具函数、常量、数据转换
+│   └── vite.config.ts
+├── docs/                       # 白皮书、PRD、技术参考
+├── docker-compose.yml
+└── CLAUDE.md                   # AI 助手上下文配置
+```
+
+## 系统架构
+
+### 双轨数据模型
+
+- **轨道 A —— 主项目（Master Projects）**：持久化的全局项目组合（`master_project` + `project_collaborator`），接口前缀 `/api/v1/projects`
+- **轨道 B —— 参赛作品（Submissions）**：绑定特定活动，`hackathon_id` 必填，`team_id` 可选，接口前缀 `/api/v1/submissions`
+- 参赛作品可通过 `project_id` 外键关联到主项目
+
+### 模块化内容系统
+
+活动详情内容存储在 `section` 表中（而非活动表的字段）。内容类型包括 Markdown、日程安排、奖项和评分维度，各有独立的子表，级联删除。
+
+### 评分系统
+
+评委根据可配置的评分维度（含权重）对参赛作品打分。AI 辅助评分功能可根据作品内容自动生成建议分数与评语。系统预计算每个维度的平均分摘要。
+
+### 前端设计
+
+粗野主义（Brutalist）美学风格，圆角全部为零，自定义 Tailwind 色彩令牌（`brand`、`void`、`surface`、`ink`），字体为 Inter + JetBrains Mono。基于 shadcn/Radix UI 组件库，搭配 Framer Motion 动画。
+
+## 页面路由
+
+| 路径 | 页面 |
+|------|------|
+| `/` | 首页 |
+| `/events` | 活动列表 |
+| `/events/:id` | 活动详情（内容模块、参赛作品、团队） |
+| `/profile` | 个人中心 |
+| `/create` | 创建活动 |
+| `/admin` | 管理后台 |
+| `/notifications` | 通知中心 |
+| `/community` | 社区与组队大厅 |
+
+## API 接口
+
+所有接口前缀为 `/api/v1/`，主要模块：
+
+- **auth** —— 登录、注册、OAuth 流程
+- **hackathons** —— 活动增删改查、软删除、状态管理
+- **enrollments** —— 活动报名
+- **teams** —— 组队（含招募字段）
+- **submissions** —— 按活动提交参赛作品
+- **ai** —— AI 内容生成、评分建议、组队匹配
+- **sections** —— 活动内容管理（日程、奖项、评分维度）
+- **discussions** —— 活动内讨论区
+- **community** —— 跨活动的组队招募看板
+
+## 环境变量
+
+复制 `.env.example` 为 `.env` 并配置：
+
+| 变量 | 说明 |
+|------|------|
+| `SECRET_KEY` | JWT 签名密钥 |
+| `DATABASE_URL` | PostgreSQL 连接地址（留空则使用 SQLite 开发默认值） |
+| `BACKEND_CORS_ORIGINS` | 允许的跨域来源 |
+| `MODELSCOPE_API_KEY` | AI 功能所需的 ModelScope API 密钥 |
+
+## 文档
+
+- [项目白皮书](docs/Aura_WhitePaper.md) —— 功能概览与技术架构
+- [产品需求文档](docs/PRD.md) —— 产品需求说明
+- [技术参考](docs/TECHNICAL_REFERENCE.md) —— 功能清单、用户流程、页面结构
+
+## 许可证
+
+[Apache License 2.0](LICENSE)

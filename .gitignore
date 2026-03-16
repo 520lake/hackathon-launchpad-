@@ -25,9 +25,11 @@ backend/*.db
 backend/*.sqlite3
 backend/uploads/
 
-# IDE
+# IDE & AI assistants
 .vscode/
 .idea/
+.claude/
+.trae/
 *.swp
 *.swo
 
@@ -46,7 +48,6 @@ _ms_space_*/
 .modelscope_clone/
 modelscope_*/
 .deploy_temp_clone/
-.trae/
 
 # OS
 .DS_Store

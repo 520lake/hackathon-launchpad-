@@ -87,7 +87,7 @@ Vite dev server proxies `/api/*` and `/static/*` to `http://localhost:8000`. No 
 - shadcn/Radix for UI primitives, Lucide for icons, Framer Motion for animations
 
 ### Alembic Migration Notes
-- Current head: `e5f6a7b8c9d0` (dual_track_architecture)
+- Current head: `h8i9j0k1l2m3` (softdelete_uniqueness_scoring)
 - Running full migration chain from scratch on SQLite fails at `c3d4e5f6a7b8`. Use `SQLModel.metadata.create_all()` for fresh DBs instead.
 
 ## Routes (Frontend)

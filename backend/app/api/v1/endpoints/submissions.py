@@ -13,7 +13,8 @@ from app.models.team_project import (
 )
 from app.models.project import MasterProject, ProjectCollaborator
 from app.models.judge import Judge
-from app.models.score import Score, ScoreCreate, ScoreRead
+from app.models.score import Score, ScoreCreate, ScoreRead, CriteriaScoreSummary
+from app.models.judging_criteria import JudgingCriteria
 
 router = APIRouter()
 
@@ -220,7 +221,7 @@ def read_submission(*, session: Session = Depends(get_session), submission_id: i
     return submission
 
 
-@router.post("/{submission_id}/score", response_model=ScoreRead)
+@router.post("/{submission_id}/score", response_model=List[ScoreRead])
 def score_submission(
     *,
     session: Session = Depends(get_session),
@@ -244,24 +245,94 @@ def score_submission(
     if not judge:
         raise HTTPException(status_code=403, detail="You are not a judge for this hackathon")
 
-    score = Score(
-        judge_id=current_user.id,
-        submission_id=submission_id,
-        score_value=score_in.score_value,
-        details=score_in.details,
-        comment=score_in.comment,
-    )
-    session.add(score)
-    session.commit()
-    session.refresh(score)
-
-    # Recalculate average score
-    scores = session.exec(
-        select(Score).where(Score.submission_id == submission_id)
+    # Validate criteria belong to this hackathon
+    criteria_ids = [cs.criteria_id for cs in score_in.scores]
+    criteria = session.exec(
+        select(JudgingCriteria).where(
+            JudgingCriteria.id.in_(criteria_ids),
+            JudgingCriteria.hackathon_id == hackathon_id,
+        )
     ).all()
-    total = sum(s.score_value for s in scores)
-    submission.total_score = total / len(scores) if scores else 0
+    if len(criteria) != len(criteria_ids):
+        raise HTTPException(status_code=400, detail="Invalid criteria_id(s) for this hackathon")
+    criteria_map = {c.id: c for c in criteria}
+
+    # Create one Score row per criterion (upsert: delete old + insert new)
+    existing = session.exec(
+        select(Score).where(
+            Score.judge_id == current_user.id,
+            Score.submission_id == submission_id,
+            Score.criteria_id.in_(criteria_ids),
+        )
+    ).all()
+    for s in existing:
+        session.delete(s)
+
+    created_scores = []
+    for cs in score_in.scores:
+        score = Score(
+            judge_id=current_user.id,
+            submission_id=submission_id,
+            criteria_id=cs.criteria_id,
+            score_value=cs.score_value,
+            comment=cs.comment,
+        )
+        session.add(score)
+        created_scores.append(score)
+
+    session.flush()
+
+    # Recalculate CriteriaScoreSummary for each affected criterion
+    for cid in criteria_ids:
+        all_scores = session.exec(
+            select(Score).where(
+                Score.submission_id == submission_id,
+                Score.criteria_id == cid,
+            )
+        ).all()
+        avg = sum(s.score_value for s in all_scores) / len(all_scores) if all_scores else 0
+
+        summary = session.exec(
+            select(CriteriaScoreSummary).where(
+                CriteriaScoreSummary.submission_id == submission_id,
+                CriteriaScoreSummary.criteria_id == cid,
+            )
+        ).first()
+        if summary:
+            summary.avg_score = avg
+        else:
+            summary = CriteriaScoreSummary(
+                submission_id=submission_id,
+                criteria_id=cid,
+                avg_score=avg,
+            )
+        session.add(summary)
+
+    # Recalculate Submission.total_score as weighted sum
+    all_summaries = session.exec(
+        select(CriteriaScoreSummary).where(
+            CriteriaScoreSummary.submission_id == submission_id,
+        )
+    ).all()
+    total_weight = sum(criteria_map.get(s.criteria_id, JudgingCriteria(weight_percentage=0)).weight_percentage for s in all_summaries)
+    # Fetch full criteria set for complete weight info
+    all_criteria = session.exec(
+        select(JudgingCriteria).where(JudgingCriteria.hackathon_id == hackathon_id)
+    ).all()
+    full_criteria_map = {c.id: c for c in all_criteria}
+    total_weight = sum(full_criteria_map[s.criteria_id].weight_percentage for s in all_summaries if s.criteria_id in full_criteria_map)
+
+    if total_weight > 0:
+        submission.total_score = sum(
+            s.avg_score * full_criteria_map[s.criteria_id].weight_percentage / total_weight
+            for s in all_summaries if s.criteria_id in full_criteria_map
+        )
+    else:
+        submission.total_score = sum(s.avg_score for s in all_summaries) / len(all_summaries) if all_summaries else 0
+
     session.add(submission)
     session.commit()
 
-    return score
+    for s in created_scores:
+        session.refresh(s)
+    return created_scores

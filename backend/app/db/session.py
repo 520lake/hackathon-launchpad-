@@ -11,7 +11,7 @@ def init_db():
     from app.models.project import MasterProject, ProjectCollaborator  # noqa: F401
     from app.models.enrollment import Enrollment  # noqa: F401
     from app.models.judge import Judge  # noqa: F401
-    from app.models.score import Score  # noqa: F401
+    from app.models.score import Score, CriteriaScoreSummary  # noqa: F401
     from app.models.community import CommunityPost, CommunityComment  # noqa: F401
     from app.models.hackathon_host import HackathonHost  # noqa: F401
     from app.models.section import Section  # noqa: F401

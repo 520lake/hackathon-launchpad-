@@ -11,7 +11,7 @@ from app.models.team_project import Team, Submission, TeamMember
 from app.models.project import MasterProject, ProjectCollaborator
 from app.models.enrollment import Enrollment
 from app.models.judge import Judge
-from app.models.score import Score
+from app.models.score import Score, CriteriaScoreSummary
 from app.models.community import CommunityPost, CommunityComment
 from app.models.hackathon_host import HackathonHost
 from app.models.section import Section

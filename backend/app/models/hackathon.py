@@ -12,6 +12,7 @@ class HackathonStatus(str, Enum):
     PUBLISHED = "published"
     ONGOING = "ongoing"
     ENDED = "ended"
+    DELETED = "deleted"
 
 
 class RegistrationType(str, Enum):

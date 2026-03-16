@@ -27,9 +27,6 @@ from app.models.prize import Prize, PrizeRead
 from app.models.judging_criteria import JudgingCriteria, JudgingCriteriaRead
 from app.models.partner import Partner, PartnerRead
 from app.models.judge import Judge, JudgeCreate, JudgeRead
-from app.models.enrollment import Enrollment
-from app.models.team_project import Team, TeamMember, Project
-from app.models.score import Score
 from app.db.session import get_session
 from app.api.deps import get_current_user, get_current_organizer
 from app.models.user import User, UserRead
@@ -262,7 +259,7 @@ def read_hackathons(
     search: Optional[str] = None,
 ):
     """List hackathons with optional filters on status, format, and location."""
-    query = select(Hackathon)
+    query = select(Hackathon).where(Hackathon.status != HackathonStatus.DELETED)
 
     if status:
         query = query.where(Hackathon.status == status)
@@ -355,44 +352,18 @@ def delete_hackathon(
     current_user: User = Depends(get_current_organizer),
 ):
     """
-    Delete a hackathon. All child tables (sections, schedules, prizes,
-    judging_criteria, hosts, partners, organizers) are cleaned up by
-    DB-level ON DELETE CASCADE. Teams/projects/scores/enrollments still
-    need manual cascade since those tables predate the refactor.
+    Soft-delete a hackathon by setting its status to DELETED.
+    The hackathon and all child data are preserved but hidden from queries.
     """
     db_hackathon = session.get(Hackathon, hackathon_id)
     if not db_hackathon:
         raise HTTPException(status_code=404, detail="Hackathon not found")
     _check_organizer_permission(session, hackathon_id, current_user.id)
 
-    # Manual cascade for pre-existing tables that lack ON DELETE CASCADE
-    teams = session.exec(select(Team).where(Team.hackathon_id == hackathon_id)).all()
-    team_ids = [t.id for t in teams]
-    if team_ids:
-        projects = session.exec(select(Project).where(Project.team_id.in_(team_ids))).all()
-        project_ids = [p.id for p in projects]
-        if project_ids:
-            scores = session.exec(select(Score).where(Score.project_id.in_(project_ids))).all()
-            for s in scores:
-                session.delete(s)
-            for p in projects:
-                session.delete(p)
-        members = session.exec(select(TeamMember).where(TeamMember.team_id.in_(team_ids))).all()
-        for m in members:
-            session.delete(m)
-        for t in teams:
-            session.delete(t)
-
-    enrollments = session.exec(select(Enrollment).where(Enrollment.hackathon_id == hackathon_id)).all()
-    for e in enrollments:
-        session.delete(e)
-
-    judges = session.exec(select(Judge).where(Judge.hackathon_id == hackathon_id)).all()
-    for j in judges:
-        session.delete(j)
-
-    # Sections, hosts, partners, organizers cleaned up by ON DELETE CASCADE
-    session.delete(db_hackathon)
+    db_hackathon.status = HackathonStatus.DELETED
+    db_hackathon.updated_at = datetime.utcnow()
+    db_hackathon.updated_by = current_user.id
+    session.add(db_hackathon)
     session.commit()
     return None
 

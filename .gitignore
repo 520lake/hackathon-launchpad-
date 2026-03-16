@@ -35,7 +35,7 @@ backend/uploads/
 .env
 
 # Database
-vibebuild.db
+backend/data/
 
 # Deploy artifacts — entire directories excluded
 deploy_bundle/

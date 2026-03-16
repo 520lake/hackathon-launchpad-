@@ -1,8 +1,13 @@
 
+import os
 import secrets
 from typing import List, Union
 from pydantic import AnyHttpUrl, EmailStr, PostgresDsn, validator
 from pydantic_settings import BaseSettings
+
+# Resolve backend/ root relative to this file (config.py → core/ → app/ → backend/)
+_BACKEND_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+_DEFAULT_SQLITE_URL = f"sqlite:///{os.path.join(_BACKEND_DIR, 'data', 'vibebuild.db')}"
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Aura API"
@@ -23,23 +28,19 @@ class Settings(BaseSettings):
     def assemble_db_connection(cls, v: Union[str, None], values: dict[str, any]) -> any:
         if isinstance(v, str):
             return v
-        
-        # ModelScope/Local Dev Compatibility: Default to SQLite if no Postgres config
-        if not values.get("POSTGRES_SERVER") or values.get("POSTGRES_SERVER") == "db":
-             # Check if we are in Docker Compose (usually sets a specific hostname or env)
-             # For now, let's allow fallback. In production, DATABASE_URL should be set explicitly.
-             pass
-             
-        if values.get("POSTGRES_SERVER") and values.get("POSTGRES_USER") and values.get("POSTGRES_PASSWORD"):
+
+        # Only build PostgreSQL URL if POSTGRES_SERVER is a real host (not the Docker default "db")
+        pg_server = values.get("POSTGRES_SERVER")
+        if pg_server and pg_server != "db" and values.get("POSTGRES_USER") and values.get("POSTGRES_PASSWORD"):
             return PostgresDsn.build(
                 scheme="postgresql",
                 username=values.get("POSTGRES_USER"),
                 password=values.get("POSTGRES_PASSWORD"),
-                host=values.get("POSTGRES_SERVER"),
+                host=pg_server,
                 path=f"/{values.get('POSTGRES_DB') or ''}",
             ).unicode_string()
-            
-        return "sqlite:///./vibebuild.db"
+
+        return _DEFAULT_SQLITE_URL
 
     # CORS
     BACKEND_CORS_ORIGINS: List[str] = ["*"]
@@ -75,7 +76,3 @@ class Settings(BaseSettings):
         env_file = "../.env"
 
 settings = Settings()
-# [ModelScope Compatibility] FORCE the key to be this string for demo stability. 
-# Remove this line in production to use the randomly generated secret or env var.
-# settings.SECRET_KEY = "aura_hackathon_stable_secret_key_2026_FIXED"
-print(f"DEBUG: Config loaded. SECRET_KEY={settings.SECRET_KEY[:5]}...")

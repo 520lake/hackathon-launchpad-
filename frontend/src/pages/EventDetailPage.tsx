@@ -21,13 +21,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import type {
-  HackathonDetail,
-  Section,
-  ScheduleItem,
-  PrizeItem,
-  JudgingCriterionItem,
-} from "@/types/hackathon";
+import type { HackathonDetail } from "@/types/hackathon";
 import { formatLocation } from "@/utils/hackathon";
 import { getTagColor } from "@/utils/constants";
 
@@ -342,43 +336,6 @@ export default function EventDetailPage() {
     }
   };
 
-  // 创建个人项目（自动创建单人战队）
-  const handleCreatePersonalTeam = async () => {
-    try {
-      const token = localStorage.getItem("token");
-      // 1. 创建个人战队
-      const teamRes = await axios.post(
-        `/api/v1/teams?hackathon_id=${hackathonId}`,
-        {
-          name: `${currentUser?.nickname || currentUser?.full_name || "我"}的个人项目`,
-          description: "个人参赛项目",
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      // 2. 自动创建提交
-      await axios.post(
-        `/api/v1/submissions?hackathon_id=${hackathonId}&team_id=${teamRes.data.id}`,
-        {
-          title: "未命名项目",
-          description: "请完善项目描述",
-        },
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        },
-      );
-
-      fetchTeams();
-      fetchEnrollment();
-      setIsSubmitOpen(true);
-    } catch (e: any) {
-      const detail = e.response?.data?.detail;
-      alert(typeof detail === 'string' ? detail : "创建失败");
-    }
-  };
-
   // 处理创建战队
   const handleCreateTeam = async (teamData: {
     name: string;
@@ -497,28 +454,24 @@ export default function EventDetailPage() {
             {/* 增强的活动状态徽标 */}
             <div
               className={`px-4 py-1.5 text-[12px] font-medium flex items-center gap-2 rounded-[16px] ${
-                hackathon.status === "registration"
+                hackathon.status === "published"
                   ? "bg-emerald-500/20 border border-emerald-500/40 text-emerald-400"
                   : hackathon.status === "ongoing"
                     ? "bg-sky-500/20 border border-sky-500/40 text-sky-400"
-                    : hackathon.status === "judging"
-                      ? "bg-violet-500/20 border border-violet-500/40 text-violet-400"
-                      : hackathon.status === "completed"
-                        ? "bg-gray-500/20 border border-gray-500/40 text-gray-400"
-                        : "bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#FBBF24]"
+                    : hackathon.status === "ended"
+                      ? "bg-gray-500/20 border border-gray-500/40 text-gray-400"
+                      : "bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#FBBF24]"
               }`}
             >
               <span
                 className={`w-2 h-2 rounded-full animate-pulse ${
-                  hackathon.status === "registration"
+                  hackathon.status === "published"
                     ? "bg-emerald-400"
                     : hackathon.status === "ongoing"
                       ? "bg-sky-400"
-                      : hackathon.status === "judging"
-                        ? "bg-violet-400"
-                        : hackathon.status === "completed"
-                          ? "bg-gray-400"
-                          : "bg-brand"
+                      : hackathon.status === "ended"
+                        ? "bg-gray-400"
+                        : "bg-brand"
                 }`}
               />
               {getStatusText(hackathon.status)}
@@ -1699,6 +1652,7 @@ export default function EventDetailPage() {
                         {
                           id: 0,
                           name: "Aura 平台",
+                          logo_url: null,
                           display_order: 0,
                         },
                       ]

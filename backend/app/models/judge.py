@@ -1,8 +1,12 @@
 from typing import Optional
 from datetime import datetime
 from sqlmodel import SQLModel, Field
+from sqlalchemy import UniqueConstraint
 
 class Judge(SQLModel, table=True):
+    __table_args__ = (
+        UniqueConstraint("user_id", "hackathon_id", name="uq_judge_user_hackathon"),
+    )
     id: Optional[int] = Field(default=None, primary_key=True)
     user_id: int = Field(foreign_key="user.id")
     hackathon_id: int = Field(foreign_key="hackathon.id")

@@ -34,6 +34,7 @@ import TeamMatchModal from "../components/TeamMatchModal";
 import CreateTeamModal from "../components/CreateTeamModal";
 import AIProjectAssistant from "../components/AIProjectAssistant";
 import CreateRecruitmentModal from "../components/CreateRecruitmentModal";
+import LeaderboardTable from "../components/LeaderboardTable";
 
 // Interfaces
 interface Recruitment {
@@ -151,6 +152,7 @@ export default function EventDetailPage() {
   const [teams, setTeams] = useState<Team[]>([]);
   const [participants, setParticipants] = useState<any[]>([]);
   const [galleryProjects, setGalleryProjects] = useState<Project[]>([]);
+  const [isJudge, setIsJudge] = useState(false);
 
   // Filter states
   const [identityFilter, setIdentityFilter] = useState<
@@ -209,6 +211,7 @@ export default function EventDetailPage() {
       fetchGallery();
       if (isLoggedIn) {
         fetchEnrollment();
+        fetchJudgeStatus();
       }
     }
   }, [hackathonId, isLoggedIn]);
@@ -259,6 +262,19 @@ export default function EventDetailPage() {
       setGalleryProjects(res.data);
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const fetchJudgeStatus = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await axios.get(
+        `/api/v1/hackathons/${hackathonId}/judges/me`,
+        { headers: { Authorization: `Bearer ${token}` } },
+      );
+      setIsJudge(res.data.is_judge);
+    } catch {
+      setIsJudge(false);
     }
   };
 
@@ -655,22 +671,24 @@ export default function EventDetailPage() {
                   </TabsList>
                 </Tabs>
 
-                {isOrganizer && (
+                {(isOrganizer || isJudge) && (
                   <div className="ml-auto flex items-center gap-2">
                     <Button
                       variant="ghost"
                       onClick={() => setIsJudgingOpen(true)}
                       className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
                     >
-                      评审管理
+                      {isOrganizer ? "评审管理" : "评审"}
                     </Button>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setIsResultPublishOpen(true)}
-                      className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
-                    >
-                      发布结果
-                    </Button>
+                    {isOrganizer && (
+                      <Button
+                        variant="ghost"
+                        onClick={() => setIsResultPublishOpen(true)}
+                        className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
+                      >
+                        发布结果
+                      </Button>
+                    )}
                   </div>
                 )}
               </div>
@@ -1537,14 +1555,10 @@ export default function EventDetailPage() {
               {/* RESULTS TAB - 评审结果 */}
               {activeTab === "results" && (
                 <div>
-                  <div className="text-center py-20 border border-white/[0.05]">
-                    <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
-                      结果尚未公布
-                    </div>
-                    <p className="text-sm text-gray-500">
-                      请等待评审结束后查看
-                    </p>
-                  </div>
+                  <h3 className="text-[11px] tracking-[0.2em] text-gray-600 uppercase mb-4">
+                    评分排行榜
+                  </h3>
+                  <LeaderboardTable hackathonId={hackathonId!} />
                 </div>
               )}
             </motion.div>
@@ -1734,6 +1748,7 @@ export default function EventDetailPage() {
             onClose={() => setIsJudgingOpen(false)}
             hackathonId={hackathonId}
             hackathonTitle={hackathon?.title || ""}
+            isOrganizer={isOrganizer}
           />
           <ResultPublishModal
             isOpen={isResultPublishOpen}

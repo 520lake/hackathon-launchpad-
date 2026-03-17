@@ -4,7 +4,7 @@ from typing import List, Optional
 from datetime import datetime
 
 from app.db.session import get_session
-from app.api.deps import get_current_user
+from app.api.deps import get_current_user, verify_judge
 from app.models.user import User
 from app.models.hackathon import Hackathon, RegistrationType
 from app.models.team_project import (
@@ -221,6 +221,27 @@ def read_submission(*, session: Session = Depends(get_session), submission_id: i
     return submission
 
 
+@router.get("/{submission_id}/scores/me", response_model=List[ScoreRead])
+def read_my_scores(
+    *,
+    session: Session = Depends(get_session),
+    submission_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """Return the current judge's scores for a specific submission."""
+    submission = session.get(Submission, submission_id)
+    if not submission:
+        raise HTTPException(status_code=404, detail="Submission not found")
+
+    scores = session.exec(
+        select(Score).where(
+            Score.judge_id == current_user.id,
+            Score.submission_id == submission_id,
+        )
+    ).all()
+    return scores
+
+
 @router.post("/{submission_id}/score", response_model=List[ScoreRead])
 def score_submission(
     *,
@@ -236,14 +257,7 @@ def score_submission(
     hackathon_id = submission.hackathon_id
 
     # Verify Judge
-    judge = session.exec(
-        select(Judge).where(
-            Judge.user_id == current_user.id,
-            Judge.hackathon_id == hackathon_id,
-        )
-    ).first()
-    if not judge:
-        raise HTTPException(status_code=403, detail="You are not a judge for this hackathon")
+    verify_judge(session, current_user.id, hackathon_id)
 
     # Validate criteria belong to this hackathon
     criteria_ids = [cs.criteria_id for cs in score_in.scores]

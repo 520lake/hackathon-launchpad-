@@ -30,6 +30,11 @@ backend/uploads/
 .idea/
 .claude/
 .trae/
+.kiro/
+.cursor/
+.windsurf/
+.agent/
+.agents/
 *.swp
 *.swo
 

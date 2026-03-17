@@ -267,6 +267,9 @@ def score_submission(
     ).all()
     for s in existing:
         session.delete(s)
+    # Flush deletes before inserts to avoid UNIQUE constraint violation
+    if existing:
+        session.flush()
 
     created_scores = []
     for cs in score_in.scores:

@@ -709,7 +709,7 @@ export default function UserDashboardModal({
                           return now >= actStart && now < actEnd;
                         if (status === "ended") return now >= actEnd;
                         if (status === "other")
-                          return !regStart && !regEnd && !actStart && !actEnd;
+                          return !actStart && !actEnd;
                         return false;
                       });
 

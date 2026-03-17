@@ -988,6 +988,8 @@ export default function ProfilePage() {
                           const listItem: HackathonListItem = {
                             id: enroll.hackathon_id,
                             title: enroll.hackathon?.title || `活动 #${enroll.hackathon_id}`,
+                            description: null,
+                            tags: [],
                             cover_image: enroll.hackathon?.cover_image ?? null,
                             registration_type: "individual",
                             format: "online",

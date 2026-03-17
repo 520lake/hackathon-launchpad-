@@ -118,11 +118,9 @@ export function LatestEvents({
               <div className="flex justify-between items-start">
                 <span
                   className={`text-[10px] font-mono px-2 py-1 rounded-sm ${
-                    h.status === "registration"
-                      ? "bg-green-500/10 text-green-500"
-                      : h.status === "ongoing"
-                        ? "bg-blue-500/10 text-blue-500"
-                        : "bg-gray-500/10 text-gray-500"
+                    h.status === "ongoing"
+                      ? "bg-blue-500/10 text-blue-500"
+                      : "bg-gray-500/10 text-gray-500"
                   }`}
                 >
                   {h.status.toUpperCase()}

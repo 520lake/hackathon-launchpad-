@@ -24,6 +24,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { HackathonDetail } from "@/types/hackathon";
 import { formatLocation } from "@/utils/hackathon";
 import { getTagColor } from "@/utils/constants";
+import { Users, Pencil } from "lucide-react";
 
 // Modals
 import SubmitProjectModal from "../components/SubmitProjectModal";
@@ -480,31 +481,6 @@ export default function EventDetailPage() {
 
           {/* Action Buttons - 头栏操作按钮 */}
           <div className="flex items-center gap-3 mt-6">
-            {/* 参赛者视角提示 */}
-            {isLoggedIn && !isOrganizer && (
-              <div className="flex-1 p-3 bg-brand/10 border border-brand/20 rounded-[16px] flex items-start gap-3">
-                <svg
-                  className="w-5 h-5 text-brand flex-shrink-0 mt-0.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                  />
-                </svg>
-                <div className="text-sm text-brand/80">
-                  <p className="font-medium mb-0.5">参赛者视角</p>
-                  <p className="text-brand/60 text-xs">
-                    您正在浏览他人创建的活动，仅可查看公开信息和参与竞赛。
-                  </p>
-                </div>
-              </div>
-            )}
-
             {/* 编辑活动 - 仅发起者可见 */}
             {isOrganizer && (
               <>
@@ -624,38 +600,35 @@ export default function EventDetailPage() {
 
       {/* Main Content - 左三右一布局 */}
       <div className="max-w-7xl mx-auto w-full px-8 py-8">
-        <div className="flex gap-8">
-          {/* 左侧主内容区 75% */}
-          <div className="flex-1 min-w-0" style={{ flexBasis: "75%" }}>
-            {/* Navigation Tabs - 1px底线指示器 */}
-            <div className="border-b border-[#222222] mb-8">
-              <div className="flex items-center">
-                <Tabs value={activeTab} onValueChange={setActiveTab}>
-                  <TabsList className="bg-transparent p-0 h-auto" variant="line">
-                    {[
-                      { id: "overview", label: "活动详情" },
-                      {
-                        id: "myproject",
-                        label: isOrganizer ? "作品管理" : "我的作品",
-                      },
-                      {
-                        id: "participants",
-                        label: isOrganizer ? "参赛管理" : "参赛人员",
-                      },
-                      { id: "results", label: "评审结果" },
-                    ].map((tab) => (
-                      <TabsTrigger
-                        key={tab.id}
-                        value={tab.id}
-                        className="px-6 py-4 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors duration-200 rounded-none border-transparent bg-transparent text-gray-500 hover:text-gray-300 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-transparent data-[state=active]:shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:outline-none after:bg-[#FBBF24]"
-                      >
-                        {tab.label}
-                      </TabsTrigger>
-                    ))}
-                  </TabsList>
-                </Tabs>
+        {/* Navigation Tabs - 1px底线指示器 (full width) */}
+        <div className="border-b border-[#222222] mb-8">
+          <div className="flex items-center">
+            <Tabs value={activeTab} onValueChange={setActiveTab}>
+              <TabsList className="bg-transparent p-0 h-auto" variant="line">
+                {[
+                  { id: "overview", label: "活动详情" },
+                  {
+                    id: "myproject",
+                    label: isOrganizer ? "作品管理" : "我的项目",
+                  },
+                  {
+                    id: "participants",
+                    label: isOrganizer ? "参赛管理" : "参赛人员",
+                  },
+                  { id: "results", label: "评审结果" },
+                ].map((tab) => (
+                  <TabsTrigger
+                    key={tab.id}
+                    value={tab.id}
+                    className="px-6 py-4 text-[13px] font-medium tracking-wide whitespace-nowrap transition-colors duration-200 rounded-none border-transparent bg-transparent text-gray-500 hover:text-gray-300 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=active]:border-transparent data-[state=active]:shadow-none focus-visible:ring-0 focus-visible:border-transparent focus-visible:outline-none after:bg-[#FBBF24]"
+                  >
+                    {tab.label}
+                  </TabsTrigger>
+                ))}
+              </TabsList>
+            </Tabs>
 
-                {isOrganizer && (
+            {isOrganizer && (
                   <div className="ml-auto flex items-center gap-2">
                     <Button
                       variant="ghost"
@@ -683,6 +656,9 @@ export default function EventDetailPage() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.2 }}
             >
+              <div className="flex gap-8">
+                {/* 左侧主内容区 75% */}
+                <div className="flex-1 min-w-0" style={{ flexBasis: "75%" }}>
               {/* OVERVIEW TAB - 活动详情（section-based rendering） */}
               {activeTab === "overview" && (
                 <div className="space-y-12">
@@ -702,55 +678,12 @@ export default function EventDetailPage() {
                           >
                             {section.title && (
                               <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                                <span className="w-6 h-[2px] bg-brand"></span>
+                                <span className="text-[#FBBF24] font-mono">//</span>
                                 {section.title}
                               </h3>
                             )}
-                            <div className="prose prose-invert max-w-none text-gray-300 border-l border-white/[0.08] pl-6">
+                            <div className="prose prose-invert max-w-none text-gray-300">
                               <ReactMarkdown>{section.content}</ReactMarkdown>
-                            </div>
-                          </section>
-                        );
-                      }
-
-                      // --- Schedule sections ---
-                      if (
-                        section.section_type === "schedules" &&
-                        section.schedules?.length
-                      ) {
-                        return (
-                          <section
-                            key={section.id}
-                            id={`section-${section.id}`}
-                          >
-                            <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                              <span className="w-6 h-[2px] bg-brand"></span>
-                              {section.title || "活动日程"}
-                            </h3>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                              {section.schedules
-                                .sort(
-                                  (a, b) => a.display_order - b.display_order,
-                                )
-                                .map((item) => (
-                                  <div
-                                    key={item.id}
-                                    className="border border-white/[0.08] p-4 hover:border-brand/30 transition-colors rounded-[16px]"
-                                  >
-                                    <div className="text-white font-medium text-sm mb-2">
-                                      {item.event_name}
-                                    </div>
-                                    <div className="text-brand font-mono text-xs">
-                                      {new Date(
-                                        item.start_time,
-                                      ).toLocaleDateString("zh-CN")}{" "}
-                                      -{" "}
-                                      {new Date(
-                                        item.end_time,
-                                      ).toLocaleDateString("zh-CN")}
-                                    </div>
-                                  </div>
-                                ))}
                             </div>
                           </section>
                         );
@@ -767,10 +700,10 @@ export default function EventDetailPage() {
                             id={`section-${section.id}`}
                           >
                             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                              <span className="w-6 h-[2px] bg-brand"></span>
+                              <span className="text-[#FBBF24] font-mono">//</span>
                               {section.title || "奖项设置"}
                             </h3>
-                            <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                            <div className="space-y-4">
                               {section.prizes
                                 .sort(
                                   (a, b) => a.display_order - b.display_order,
@@ -819,10 +752,10 @@ export default function EventDetailPage() {
                             id={`section-${section.id}`}
                           >
                             <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                              <span className="w-6 h-[2px] bg-brand"></span>
+                              <span className="text-[#FBBF24] font-mono">//</span>
                               {section.title || "评审标准"}
                             </h3>
-                            <div className="border-l border-white/[0.08] pl-6 space-y-4">
+                            <div className="space-y-4">
                               {section.judging_criteria
                                 .sort(
                                   (a, b) => a.display_order - b.display_order,
@@ -859,7 +792,7 @@ export default function EventDetailPage() {
                   {hackathon.partners && hackathon.partners.length > 0 && (
                     <section id="partners">
                       <h3 className="text-xl font-bold text-white mb-6 flex items-center gap-3">
-                        <span className="w-6 h-[2px] bg-brand"></span>
+                        <span className="text-[#FBBF24] font-mono">//</span>
                         合作伙伴
                       </h3>
                       <div className="space-y-6">
@@ -927,322 +860,96 @@ export default function EventDetailPage() {
               {/* MY PROJECT TAB - 我的作品/作品展示 */}
               {activeTab === "myproject" && (
                 <div className="space-y-8">
-                  {/* 我的项目区域 - 仅登录用户可见 */}
+                  {/* Quick action CTA buttons */}
                   {isLoggedIn && (
-                    <div className="border-b border-white/[0.08] pb-8">
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-3">
-                        <span className="w-5 h-[2px] bg-brand"></span>
-                        我的项目
-                      </h3>
-                      {!myTeam && !myProject ? (
-                        <div className="border border-white/[0.08] p-6 rounded-[16px]">
-                          <div className="flex flex-col gap-4">
-                            <div>
-                              <p className="text-white text-sm font-medium">
-                                开始您的黑客松之旅
-                              </p>
-                              <p className="text-[12px] text-gray-600 mt-1">
-                                {hackathon?.registration_type === "individual"
-                                  ? "本活动为个人参赛模式"
-                                  : "选择适合您的方式参与"}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap gap-3">
-                              {hackathon?.registration_type === "individual" ? (
-                                <Button
-                                  onClick={() => setIsSubmitOpen(true)}
-                                  className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
-                                >
-                                  <svg
-                                    className="w-4 h-4"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M12 4v16m8-8H4"
-                                    />
-                                  </svg>
-                                  提交作品
-                                </Button>
-                              ) : (
-                                <>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setIsCreateTeamOpen(true)}
-                                    className="flex items-center gap-2 px-5 py-2.5 bg-brand text-black text-sm font-medium hover:bg-white transition-colors rounded-[16px]"
-                                  >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                      />
-                                    </svg>
-                                    创建战队
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setActiveTab("participants")}
-                                    className="flex items-center gap-2 px-5 py-2.5 border border-[#FBBF24]/30 text-[#FBBF24] text-sm hover:bg-[#FBBF24]/10 transition-colors rounded-[16px]"
-                                  >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                                      />
-                                    </svg>
-                                    加入战队
-                                  </Button>
-                                </>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="space-y-4">
-                          {/* 项目卡片 */}
-                          <div className="border border-white/[0.08] rounded-[16px]">
-                            <div className="flex">
-                              <div className="w-[3px] bg-brand" />
-                              <div className="flex-1 p-6">
-                                <div className="flex items-start gap-6">
-                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] rounded-[16px] flex items-center justify-center flex-shrink-0">
-                                    {myProject?.cover_image ? (
-                                      <img
-                                        src={myProject.cover_image}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <span className="text-2xl font-bold text-white/20">
-                                        {(myProject?.title || "未命名")[0]}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-white mb-2">
-                                      {myProject?.title || "未命名项目"}
-                                    </h4>
-                                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                                      {myProject?.description || "暂无描述"}
-                                    </p>
-                                    <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                      {myProject?.tech_stack && (
-                                        <span>
-                                          技术栈: {myProject.tech_stack}
-                                        </span>
-                                      )}
-                                      {myProject?.total_score && (
-                                        <span className="text-brand">
-                                          得分:{" "}
-                                          {myProject.total_score.toFixed(1)}
-                                        </span>
-                                      )}
-                                      {myTeam && (
-                                        <span className="flex items-center gap-1">
-                                          <svg
-                                            className="w-3 h-3"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-                                            />
-                                          </svg>
-                                          {myTeam.name} (
-                                          {myTeam.members?.length || 1}/
-                                          {myTeam.max_members || "-"})
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setIsSubmitOpen(true)}
-                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors rounded-[16px]"
-                                  >
-                                    编辑项目
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* 快捷操作栏 */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsAIAssistantOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
-                            >
-                              <svg
-                                className="w-4 h-4 text-brand"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M13 10V3L4 14h7v7l9-11h-7z"
-                                />
-                              </svg>
-                              <span className="text-sm text-white">
-                                AI 助手
-                              </span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsTeamMatchOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
-                            >
-                              <svg
-                                className="w-4 h-4 text-brand"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-                                />
-                              </svg>
-                              <span className="text-sm text-white">
-                                智能组队
-                              </span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => setIsRecruitOpen(true)}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
-                            >
-                              <svg
-                                className="w-4 h-4 text-brand"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
-                                />
-                              </svg>
-                              <span className="text-sm text-white">
-                                发布招募
-                              </span>
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => navigate("/community")}
-                              className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
-                            >
-                              <svg
-                                className="w-4 h-4 text-brand"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                                />
-                              </svg>
-                              <span className="text-sm text-white">
-                                招募大厅
-                              </span>
-                            </Button>
-                          </div>
-                        </div>
-                      )}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsAIAssistantOpen(true)}
+                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        <span className="text-sm text-white">AI 助手</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsTeamMatchOpen(true)}
+                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <span className="text-sm text-white">智能组队</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setIsRecruitOpen(true)}
+                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z" />
+                        </svg>
+                        <span className="text-sm text-white">发布招募</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => navigate("/community")}
+                        className="flex items-center gap-2 px-4 py-3 bg-gradient-to-r from-brand/20 to-brand/10 border border-brand/30 rounded-[16px] hover:border-brand/50 transition-colors"
+                      >
+                        <svg className="w-4 h-4 text-brand" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                        </svg>
+                        <span className="text-sm text-white">招募大厅</span>
+                      </Button>
                     </div>
                   )}
 
-                  {/* 所有作品展示 - 对所有人可见 */}
-                  <div>
-                    <h3 className="text-lg font-semibold text-white mb-6 flex items-center gap-3">
-                      <span className="w-5 h-[2px] bg-brand"></span>
-                      所有作品{" "}
-                      <span className="text-[12px] text-gray-600 font-normal ml-2">
-                        {galleryProjects.length} 个
-                      </span>
-                    </h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {galleryProjects.map((proj) => (
-                        <div
-                          key={proj.id}
-                          className="group border border-white/[0.08] bg-black hover:border-brand/30 transition-all flex"
-                        >
-                          <div className="w-[3px] bg-gray-700 group-hover:bg-brand transition-colors" />
-                          <div className="flex-1 p-4 flex gap-4">
-                            <div className="w-20 h-16 bg-white/[0.02] flex-shrink-0">
-                              {proj.cover_image ? (
-                                <img
-                                  src={proj.cover_image}
-                                  className="w-full h-full object-cover"
-                                />
-                              ) : (
-                                <div className="w-full h-full flex items-center justify-center text-white/20 font-bold">
-                                  {proj.title[0]}
-                                </div>
-                              )}
+                  {/* Project cards grid — Figma exact: w-[180px] cards */}
+                  <div className="flex flex-wrap gap-4">
+                    {galleryProjects.map((proj) => (
+                      <div key={proj.id} className="bg-[#1a1a1a] border border-[#333] rounded-[14px] flex flex-col w-[180px] relative">
+                        {/* Square image — 180×180 */}
+                        <div className="min-h-[180px] min-w-[180px] w-full aspect-square bg-[#111] rounded-t-[14px] overflow-hidden relative">
+                          {proj.cover_image ? (
+                            <img src={proj.cover_image} className="absolute inset-0 w-full h-full object-cover" alt={proj.title} />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center text-white/20 text-2xl font-bold">
+                              {proj.title[0]}
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h5 className="font-medium text-white text-sm mb-1 truncate group-hover:text-brand transition-colors">
-                                {proj.title}
-                              </h5>
-                              <p className="text-[12px] text-gray-500 line-clamp-1">
-                                {proj.description}
-                              </p>
-                              <div className="flex items-center gap-3 mt-2 text-[10px] text-gray-600">
-                                <span>{proj.team?.name}</span>
-                                {proj.total_score && (
-                                  <span className="text-brand">
-                                    {proj.total_score.toFixed(1)}分
-                                  </span>
-                                )}
-                              </div>
-                            </div>
-                          </div>
+                          )}
                         </div>
-                      ))}
-                      {galleryProjects.length === 0 && (
-                        <div className="col-span-2 text-center py-16 border border-white/[0.05]">
-                          <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">
-                            暂无作品
-                          </div>
-                          <p className="text-[12px] text-gray-500 mt-2">
-                            活动作品将在这里展示
+                        {/* Edit button — top-right of card, visible for own project */}
+                        {(myProject?.id === proj.id || (currentUser && (proj.user_id === currentUser.id || proj.team?.leader_id === currentUser.id))) && (
+                          <button
+                            onClick={() => setIsSubmitOpen(true)}
+                            className="absolute top-2 right-2 z-10 p-1.5 rounded-lg text-white bg-black/70 hover:bg-black/90 backdrop-blur transition-colors"
+                          >
+                            <Pencil className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                        {/* Info */}
+                        <div className="px-4 py-3 flex flex-col gap-2 w-full">
+                          <p className="text-[14px] font-bold text-white leading-[20px] tracking-[-0.15px] whitespace-nowrap overflow-hidden text-ellipsis">{proj.title}</p>
+                          <p className="text-[12px] text-[#999] leading-[19.5px] line-clamp-2 max-h-[39px] overflow-hidden">
+                            {proj.description || "暂无描述"}
                           </p>
+                          {hackathon?.registration_type !== "individual" && (
+                            <div className="flex items-center gap-1.5 text-[12px] text-[#888] leading-[16px]">
+                              <Users className="w-3 h-3 flex-shrink-0" />
+                              <span className="whitespace-nowrap">{proj.team?.name || "未组队"}</span>
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
+                      </div>
+                    ))}
+                    {galleryProjects.length === 0 && (
+                      <div className="w-full text-center py-16 border border-white/[0.05] rounded-[14px]">
+                        <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">暂无作品</div>
+                        <p className="text-[12px] text-gray-500 mt-2">活动作品将在这里展示</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}
@@ -1547,8 +1254,7 @@ export default function EventDetailPage() {
                   </div>
                 </div>
               )}
-            </motion.div>
-          </div>
+                </div>
 
           {/* 右侧边栏 25% */}
           <div
@@ -1690,7 +1396,7 @@ export default function EventDetailPage() {
                 <div className="space-y-1">
                   {[
                     { id: "overview", label: "活动详情" },
-                    { id: "myproject", label: "我的作品" },
+                    { id: "myproject", label: "我的项目" },
                     { id: "participants", label: "参赛人员" },
                     { id: "results", label: "评审结果" },
                   ].map((item) => (
@@ -1712,7 +1418,8 @@ export default function EventDetailPage() {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
+    </div>
 
       {/* Modals */}
       {hackathonId && (

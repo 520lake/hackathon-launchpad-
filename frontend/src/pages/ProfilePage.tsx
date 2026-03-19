@@ -89,18 +89,14 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
-      <div className="max-w-7xl mx-auto px-4 py-8">
+      <div className="mx-auto w-full max-w-[1200px] px-4 py-8">
         <div className="flex gap-8">
-          {/* Sidebar */}
-          <div className="w-64 flex-shrink-0">
-            <ProfileSidebar
-              activeTab={activeTab}
-              setActiveTab={handleTabChange}
-            />
-          </div>
+          <ProfileSidebar
+            activeTab={activeTab}
+            setActiveTab={handleTabChange}
+          />
 
-          {/* Main Content */}
-          <div className="flex-1 min-w-0">
+          <div className="min-w-0 flex-1">
             <AnimatePresence mode="wait">
               <motion.div
                 key={activeTab}

@@ -241,6 +241,7 @@ export default function ProfileEditForm({
           value={editForm.bio}
           onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
           rows={3}
+          placeholder="介绍一下自己吧..."
           className="min-h-28"
         />
       </div>

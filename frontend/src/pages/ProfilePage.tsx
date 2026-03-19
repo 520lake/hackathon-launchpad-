@@ -10,6 +10,7 @@ import ProfileTab from "@/components/profile/ProfileTab";
 import PreferencesTab from "@/components/profile/PreferencesTab";
 import AccountTab from "@/components/profile/AccountTab";
 import type { ProfileUser } from "@/types/profile";
+import { UNSAVED_CHANGES_WARNING } from "@/hooks/useUnsavedChangesWarning";
 
 interface OutletContextType {
   isLoggedIn: boolean;
@@ -29,6 +30,21 @@ export default function ProfilePage() {
     useProfileData(isLoggedIn);
 
   const profileForm = useProfileForm({ currentUser, fetchCurrentUser });
+
+  const handleTabChange = (nextTab: TabId) => {
+    if (nextTab === activeTab) {
+      return;
+    }
+
+    if (
+      activeTab === "profile" &&
+      !profileForm.confirmDiscardChanges(UNSAVED_CHANGES_WARNING)
+    ) {
+      return;
+    }
+
+    setActiveTab(nextTab);
+  };
 
   if (!isLoggedIn) {
     return (
@@ -52,7 +68,7 @@ export default function ProfilePage() {
             fileInputRef={profileForm.fileInputRef}
             onEdit={() => profileForm.setIsEditing(true)}
             onSave={profileForm.handleSaveProfile}
-            onCancel={() => profileForm.setIsEditing(false)}
+            onCancel={profileForm.handleCancelEditing}
             onAvatarUpload={profileForm.handleAvatarUpload}
             onDrop={profileForm.handleDrop}
             onDragOver={profileForm.handleDragOver}
@@ -87,7 +103,7 @@ export default function ProfilePage() {
           <div className="w-64 flex-shrink-0">
             <ProfileSidebar
               activeTab={activeTab}
-              setActiveTab={setActiveTab}
+              setActiveTab={handleTabChange}
             />
           </div>
 

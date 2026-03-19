@@ -1,13 +1,16 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import type { ProfileUser } from "@/types/profile";
+import {
+  UNSAVED_CHANGES_WARNING,
+  useUnsavedChangesWarning,
+} from "@/hooks/useUnsavedChangesWarning";
 
 export interface EditFormState {
   full_name: string;
   nickname: string;
   bio: string;
   city: string;
-  phone: string;
   skills: string;
   interests: string;
   avatar_url: string;
@@ -17,6 +20,16 @@ interface UseProfileFormParams {
   currentUser: ProfileUser | null;
   fetchCurrentUser: () => void;
 }
+
+const buildEditForm = (user: ProfileUser | null): EditFormState => ({
+  full_name: user?.full_name || "",
+  nickname: user?.nickname || "",
+  bio: user?.bio || "",
+  city: user?.city || "",
+  skills: user?.skills || "",
+  interests: user?.interests || "",
+  avatar_url: user?.avatar_url || "",
+});
 
 export function useProfileForm({
   currentUser,
@@ -35,29 +48,16 @@ export function useProfileForm({
   };
 
   const [editForm, setEditForm] = useState<EditFormState>({
-    full_name: "",
-    nickname: "",
-    bio: "",
-    city: "",
-    phone: "",
-    skills: "",
-    interests: "",
-    avatar_url: "",
+    ...buildEditForm(null),
   });
+  const initialEditForm = buildEditForm(currentUser);
+  const hasUnsavedChanges =
+    isEditing &&
+    JSON.stringify(editForm) !== JSON.stringify(initialEditForm);
+  useUnsavedChangesWarning(hasUnsavedChanges);
 
   useEffect(() => {
-    if (currentUser) {
-      setEditForm({
-        full_name: currentUser.full_name || "",
-        nickname: currentUser.nickname || "",
-        bio: currentUser.bio || "",
-        city: currentUser.city || "",
-        phone: currentUser.phone || "",
-        skills: currentUser.skills || "",
-        interests: currentUser.interests || "",
-        avatar_url: currentUser.avatar_url || "",
-      });
-    }
+    setEditForm(buildEditForm(currentUser));
   }, [currentUser]);
 
   const handleSaveProfile = async () => {
@@ -114,6 +114,22 @@ export function useProfileForm({
     e.preventDefault();
   };
 
+  const handleCancelEditing = () => {
+    if (!confirmDiscardChanges()) {
+      return;
+    }
+  };
+
+  const confirmDiscardChanges = (message = UNSAVED_CHANGES_WARNING) => {
+    if (hasUnsavedChanges && !window.confirm(message)) {
+      return false;
+    }
+
+    setEditForm(initialEditForm);
+    setIsEditing(false);
+    return true;
+  };
+
   return {
     editForm,
     setEditForm,
@@ -126,5 +142,8 @@ export function useProfileForm({
     handleAvatarUpload,
     handleDrop,
     handleDragOver,
+    hasUnsavedChanges,
+    handleCancelEditing,
+    confirmDiscardChanges,
   };
 }

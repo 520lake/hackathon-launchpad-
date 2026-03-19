@@ -1,7 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import AIGenerateImageButton from "@/components/AIGenerateImageButton";
 import { UserIcon, CloseIcon, UploadIcon } from "./ProfileIcons";
 import type { EditFormState } from "@/hooks/useProfileForm";
 
@@ -50,6 +49,7 @@ export default function ProfileEditForm({
       <div className="flex flex-col sm:flex-row items-center gap-4">
         <div
           className="w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center overflow-hidden cursor-pointer hover:border-brand transition-colors relative"
+          style={{ overflow: "hidden", borderRadius: "50%" }}
           onClick={() => fileInputRef.current?.click()}
           onDrop={onDrop}
           onDragOver={onDragOver}
@@ -62,7 +62,9 @@ export default function ProfileEditForm({
           {editForm.avatar_url ? (
             <img
               src={editForm.avatar_url}
-              className="w-full h-full object-cover"
+              alt="avatar"
+              className="w-full h-full object-cover rounded-full"
+              style={{ borderRadius: "50%" }}
             />
           ) : (
             <div className="text-gray-500">
@@ -70,7 +72,10 @@ export default function ProfileEditForm({
             </div>
           )}
           {/* Upload Overlay on Hover */}
-          <div className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-full">
+          <div
+            className="absolute inset-0 bg-black/60 opacity-0 hover:opacity-100 transition-opacity flex items-center justify-center rounded-full"
+            style={{ borderRadius: "50%" }}
+          >
             <UploadIcon />
           </div>
         </div>
@@ -79,29 +84,16 @@ export default function ProfileEditForm({
             头像
           </label>
           <div className="flex flex-col gap-2">
-            <div className="flex flex-col sm:flex-row gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => fileInputRef.current?.click()}
-                disabled={uploading}
-                className="flex-1 px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-[16px] hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
-              >
-                <UploadIcon />
-                {uploading ? "上传中..." : "点击上传头像"}
-              </Button>
-              <AIGenerateImageButton
-                buttonText="AI 生成头像"
-                scene="avatar"
-                onImageGenerated={(url) =>
-                  setEditForm({
-                    ...editForm,
-                    avatar_url: url,
-                  })
-                }
-                className="flex-1 text-sm py-2.5"
-              />
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-4 py-2.5 bg-[#1A1A1A] border border-[#333] text-white text-sm rounded-[16px] hover:border-brand transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <UploadIcon />
+              {uploading ? "上传中..." : "点击上传头像"}
+            </Button>
             <div className="flex gap-2">
               {editForm.avatar_url && (
                 <Button
@@ -122,8 +114,7 @@ export default function ProfileEditForm({
             </div>
           </div>
           <p className="text-xs text-gray-500 mt-2">
-            支持上传 JPG、PNG 格式（最大 5MB），或使用 AI
-            生成头像
+            支持上传 JPG、PNG 格式，最大 5MB
           </p>
         </div>
       </div>
@@ -143,19 +134,9 @@ export default function ProfileEditForm({
       />
 
       {/* Form Fields */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-gray-400 text-sm mb-1 block">姓名</label>
-          <Input
-            value={editForm.full_name}
-            onChange={(e) =>
-              setEditForm({ ...editForm, full_name: e.target.value })
-            }
-            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
-          />
-        </div>
-        <div>
-          <label className="text-gray-400 text-sm mb-1 block">昵称</label>
+          <label className="text-gray-400 text-sm mb-1 block">用户名</label>
           <Input
             value={editForm.nickname}
             onChange={(e) =>
@@ -165,7 +146,17 @@ export default function ProfileEditForm({
           />
         </div>
         <div>
-          <label className="text-gray-400 text-sm mb-1 block">城市</label>
+          <label className="text-gray-400 text-sm mb-1 block">真实姓名</label>
+          <Input
+            value={editForm.full_name}
+            onChange={(e) =>
+              setEditForm({ ...editForm, full_name: e.target.value })
+            }
+            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label className="text-gray-400 text-sm mb-1 block">常住城市</label>
           <Input
             value={editForm.city}
             onChange={(e) =>
@@ -175,14 +166,33 @@ export default function ProfileEditForm({
             className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
           />
         </div>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
-          <label className="text-gray-400 text-sm mb-1 block">手机号</label>
+          <label className="text-gray-400 text-sm mb-1 block">
+            技能（用逗号分隔）
+          </label>
           <Input
-            value={editForm.phone}
+            value={editForm.skills}
             onChange={(e) =>
-              setEditForm({ ...editForm, phone: e.target.value })
+              setEditForm({ ...editForm, skills: e.target.value })
             }
-            placeholder="+86 138****8888"
+            placeholder="React, Python, AI..."
+            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
+          />
+        </div>
+
+        <div>
+          <label className="text-gray-400 text-sm mb-1 block">
+            兴趣领域（用逗号分隔）
+          </label>
+          <Input
+            value={editForm.interests}
+            onChange={(e) =>
+              setEditForm({ ...editForm, interests: e.target.value })
+            }
+            placeholder="AI, Web3, 可持续发展..."
             className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
           />
         </div>
@@ -197,34 +207,6 @@ export default function ProfileEditForm({
           }
           rows={3}
           className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none resize-none transition-colors"
-        />
-      </div>
-
-      <div>
-        <label className="text-gray-400 text-sm mb-1 block">
-          技能（用逗号分隔）
-        </label>
-        <Input
-          value={editForm.skills}
-          onChange={(e) =>
-            setEditForm({ ...editForm, skills: e.target.value })
-          }
-          placeholder="React, Python, AI..."
-          className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
-        />
-      </div>
-
-      <div>
-        <label className="text-gray-400 text-sm mb-1 block">
-          兴趣领域（用逗号分隔）
-        </label>
-        <Input
-          value={editForm.interests}
-          onChange={(e) =>
-            setEditForm({ ...editForm, interests: e.target.value })
-          }
-          placeholder="AI, Web3, 可持续发展..."
-          className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
         />
       </div>
 

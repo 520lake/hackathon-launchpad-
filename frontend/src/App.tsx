@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { ThemeProvider } from './contexts/ThemeContext'
+import { UnsavedChangesProvider } from './contexts/UnsavedChangesContext'
 
 // Pages
 import Layout from './pages/Layout'
@@ -15,20 +16,22 @@ import CommunityPage from './pages/CommunityPage'
 function App() {
   return (
     <BrowserRouter>
-      <ThemeProvider>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/events" element={<EventsPage />} />
-            <Route path="/events/:id" element={<EventDetailPage />} />
-            <Route path="/profile" element={<ProfilePage />} />
-            <Route path="/create" element={<CreateHackathonPage />} />
-            <Route path="/admin" element={<AdminPage />} />
-            <Route path="/notifications" element={<NotificationCenterPage />} />
-            <Route path="/community" element={<CommunityPage />} />
-          </Route>
-        </Routes>
-      </ThemeProvider>
+      <UnsavedChangesProvider>
+        <ThemeProvider>
+          <Routes>
+            <Route element={<Layout />}>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/events" element={<EventsPage />} />
+              <Route path="/events/:id" element={<EventDetailPage />} />
+              <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/create" element={<CreateHackathonPage />} />
+              <Route path="/admin" element={<AdminPage />} />
+              <Route path="/notifications" element={<NotificationCenterPage />} />
+              <Route path="/community" element={<CommunityPage />} />
+            </Route>
+          </Routes>
+        </ThemeProvider>
+      </UnsavedChangesProvider>
     </BrowserRouter>
   )
 }

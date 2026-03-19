@@ -5,15 +5,14 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { CloseIcon } from "./ProfileIcons";
+import type { ProfileUser } from "@/types/profile";
 
 interface AccountTabProps {
-  currentUser: any;
-  setActiveTab: (tab: string) => void;
+  currentUser: ProfileUser | null;
 }
 
 export default function AccountTab({
   currentUser,
-  setActiveTab,
 }: AccountTabProps) {
   const navigate = useNavigate();
   const [showChangePassword, setShowChangePassword] = useState(false);

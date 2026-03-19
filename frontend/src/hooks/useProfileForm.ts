@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import axios from "axios";
+import type { ProfileUser } from "@/types/profile";
 
 export interface EditFormState {
   full_name: string;
@@ -13,7 +14,7 @@ export interface EditFormState {
 }
 
 interface UseProfileFormParams {
-  currentUser: any;
+  currentUser: ProfileUser | null;
   fetchCurrentUser: () => void;
 }
 
@@ -25,6 +26,13 @@ export function useProfileForm({
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const getErrorMessage = (error: unknown) => {
+    if (axios.isAxiosError(error)) {
+      return error.response?.data?.detail || "保存失败";
+    }
+    return "保存失败";
+  };
 
   const [editForm, setEditForm] = useState<EditFormState>({
     full_name: "",
@@ -64,9 +72,9 @@ export function useProfileForm({
       fetchCurrentUser();
       setIsEditing(false);
       alert("保存成功");
-    } catch (e: any) {
-      console.error(e);
-      alert(e.response?.data?.detail || "保存失败");
+    } catch (error) {
+      console.error(error);
+      alert(getErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -87,7 +95,7 @@ export function useProfileForm({
     try {
       const localUrl = URL.createObjectURL(file);
       setEditForm({ ...editForm, avatar_url: localUrl });
-    } catch (e: any) {
+    } catch {
       alert("图片上传失败");
     } finally {
       setUploading(false);

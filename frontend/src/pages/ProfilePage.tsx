@@ -9,10 +9,11 @@ import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileTab from "@/components/profile/ProfileTab";
 import PreferencesTab from "@/components/profile/PreferencesTab";
 import AccountTab from "@/components/profile/AccountTab";
+import type { ProfileUser } from "@/types/profile";
 
 interface OutletContextType {
   isLoggedIn: boolean;
-  currentUser: any;
+  currentUser: ProfileUser | null;
   fetchCurrentUser: () => void;
   lang?: "zh" | "en";
 }
@@ -71,7 +72,6 @@ export default function ProfilePage() {
         return (
           <AccountTab
             currentUser={currentUser}
-            setActiveTab={setActiveTab}
           />
         );
       default:

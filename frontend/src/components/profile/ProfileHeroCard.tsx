@@ -6,9 +6,10 @@ import {
   EditIcon,
   QuoteIcon,
 } from "./ProfileIcons";
+import type { ProfileUser } from "@/types/profile";
 
 interface ProfileHeroCardProps {
-  currentUser: any;
+  currentUser: ProfileUser | null;
   onEdit: () => void;
 }
 

@@ -10,11 +10,12 @@ import SectionCard from "./SectionCard";
 import { ArrowLeftIcon } from "./ProfileIcons";
 import type { EditFormState } from "@/hooks/useProfileForm";
 import type { Enrollment } from "@/hooks/useProfileData";
+import type { ProfileUser } from "@/types/profile";
 
 type ExpandedSection = "organized" | "enrolled" | null;
 
 interface ProfileTabProps {
-  currentUser: any;
+  currentUser: ProfileUser | null;
   isEditing: boolean;
   editForm: EditFormState;
   setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;

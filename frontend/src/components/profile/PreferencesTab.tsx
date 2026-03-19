@@ -4,11 +4,41 @@ import axios from "axios";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
+import type { ProfileUser } from "@/types/profile";
 
 interface PreferencesTabProps {
-  currentUser: any;
+  currentUser: ProfileUser | null;
   fetchCurrentUser: () => void;
 }
+
+const getErrorMessage = (error: unknown) => {
+  if (axios.isAxiosError(error)) {
+    return error.response?.data?.detail || "保存失败";
+  }
+  return "保存失败";
+};
+
+const parseNotificationSettings = (
+  value: ProfileUser["notification_settings"],
+): Record<string, boolean> => {
+  if (!value) {
+    return {};
+  }
+
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === "object") {
+        return parsed as Record<string, boolean>;
+      }
+    } catch {
+      return {};
+    }
+    return {};
+  }
+
+  return value;
+};
 
 const DEFAULT_TOPICS = [
   "AI / 人工智能",
@@ -67,7 +97,7 @@ export default function PreferencesTab({
   );
   const [notificationSettings, setNotificationSettings] = useState<
     Record<string, boolean>
-  >(currentUser?.notification_settings || {});
+  >(parseNotificationSettings(currentUser?.notification_settings));
 
   const toggleTopic = (topic: string) => {
     setSelectedTopics((prev) =>
@@ -96,9 +126,9 @@ export default function PreferencesTab({
       );
       fetchCurrentUser();
       alert("话题保存成功，我们将根据您的话题偏好推送相关活动通知");
-    } catch (e: any) {
-      console.error(e);
-      alert(e.response?.data?.detail || "保存失败");
+    } catch (error) {
+      console.error(error);
+      alert(getErrorMessage(error));
     } finally {
       setSaving(false);
     }
@@ -116,9 +146,9 @@ export default function PreferencesTab({
         { headers: { Authorization: `Bearer ${token}` } },
       );
       alert("偏好设置保存成功");
-    } catch (e: any) {
-      console.error(e);
-      alert(e.response?.data?.detail || "保存失败");
+    } catch (error) {
+      console.error(error);
+      alert(getErrorMessage(error));
     } finally {
       setSaving(false);
     }

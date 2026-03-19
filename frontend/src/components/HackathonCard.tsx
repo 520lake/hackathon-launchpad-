@@ -162,46 +162,34 @@ export default function HackathonCard({
   const titleInitials = data.title.replace(/\s/g, "").slice(0, 2).toUpperCase();
 
   // ---- Host progressive disclosure via ResizeObserver ----
-  const hostsMeasureRef = useRef<HTMLDivElement>(null);
-  const summaryRef = useRef<HTMLSpanElement>(null);
+  const hostsContainerRef = useRef<HTMLDivElement>(null);
   const [visibleHostCount, setVisibleHostCount] = useState(data.hosts.length);
 
   useEffect(() => {
-    const container = hostsMeasureRef.current;
-    const summaryEl = summaryRef.current;
+    const container = hostsContainerRef.current;
     if (!container) return;
 
     const calculate = () => {
-      const containerWidth = container.clientWidth;
       const items = container.querySelectorAll<HTMLElement>("[data-host-item]");
-      const summaryWidth = summaryEl ? summaryEl.offsetWidth : 0;
-
       if (items.length === 0) {
         setVisibleHostCount(0);
         return;
       }
 
-      const lastItem = items[items.length - 1];
-      if (lastItem.offsetLeft + lastItem.offsetWidth <= containerWidth) {
-        setVisibleHostCount(items.length);
-        return;
-      }
-
-      let count = 1;
-      for (let i = 1; i < items.length; i++) {
-        const item = items[i];
-        const neededWidth =
-          item.offsetLeft + item.offsetWidth + 8 + summaryWidth;
-        if (neededWidth <= containerWidth) {
-          count = i + 1;
-        } else {
+      const containerRight = container.getBoundingClientRect().right;
+      let count = items.length;
+      for (let i = 0; i < items.length; i++) {
+        const rect = items[i].getBoundingClientRect();
+        if (rect.right > containerRight + 1) {
+          count = i;
           break;
         }
       }
-      setVisibleHostCount(count);
+      setVisibleHostCount(Math.max(count, 1));
     };
 
-    calculate();
+    // Defer initial calculation to ensure layout is complete
+    requestAnimationFrame(calculate);
     const observer = new ResizeObserver(calculate);
     observer.observe(container);
     return () => observer.disconnect();
@@ -277,77 +265,41 @@ export default function HackathonCard({
           {/* 主办方 */}
           <div className="flex items-center text-[14px] min-w-0 overflow-hidden">
             <span className="text-[#999] font-medium flex-shrink-0 mr-[8px]">主办方：</span>
-            <div className="relative min-w-0 flex-1">
-              {/* 不可见测量层 */}
-              <div
-                ref={hostsMeasureRef}
-                className="flex items-center gap-[8px] overflow-hidden invisible"
-                aria-hidden="true"
-              >
-                {data.hosts.map((h, i) => (
-                  <Fragment key={i}>
-                    {i > 0 && (
-                      <Separator
-                        orientation="vertical"
-                        className="!self-auto h-[14px] bg-[#333]"
+            <div
+              ref={hostsContainerRef}
+              className="flex items-center gap-[8px] min-w-0 flex-1 overflow-hidden"
+            >
+              {data.hosts.slice(0, visibleHostCount).map((h, i) => (
+                <Fragment key={i}>
+                  {i > 0 && (
+                    <Separator
+                      orientation="vertical"
+                      className="!self-auto h-[14px] bg-[#333]"
+                    />
+                  )}
+                  <div
+                    data-host-item
+                    className="flex items-center gap-[8px] flex-shrink-0"
+                  >
+                    {h.logo_url ? (
+                      <img
+                        src={h.logo_url}
+                        alt={h.name}
+                        className="h-[20px] w-[56px] rounded-[4px] object-contain bg-[#2a2a2a]"
                       />
+                    ) : (
+                      <span className="text-[14px] text-[#999] whitespace-nowrap">
+                        {h.name}
+                      </span>
                     )}
-                    <div
-                      data-host-item
-                      className="flex items-center gap-[8px] flex-shrink-0"
-                    >
-                      {h.logo_url ? (
-                        <img
-                          src={h.logo_url}
-                          alt={h.name}
-                          className="h-[20px] w-[56px] rounded-[4px] object-contain bg-[#2a2a2a]"
-                        />
-                      ) : (
-                        <span className="text-[14px] text-[#999] whitespace-nowrap">
-                          {h.name}
-                        </span>
-                      )}
-                    </div>
-                  </Fragment>
-                ))}
-                <span
-                  ref={summaryRef}
-                  className="text-[14px] text-[#999] whitespace-nowrap flex-shrink-0"
-                >
+                  </div>
+                </Fragment>
+              ))}
+              {visibleHostCount < data.hosts.length && (
+                <span className="text-[14px] text-[#999] whitespace-nowrap flex-shrink-0">
                   等 {data.hosts.length} 个
                 </span>
-              </div>
-              {/* 可见层 */}
-              <div className="absolute inset-0 flex items-center gap-[8px] overflow-hidden">
-                {data.hosts.slice(0, visibleHostCount).map((h, i) => (
-                  <Fragment key={i}>
-                    {i > 0 && (
-                      <Separator
-                        orientation="vertical"
-                        className="!self-auto h-[14px] bg-[#333]"
-                      />
-                    )}
-                    <div className="flex items-center gap-[8px] flex-shrink-0">
-                      {h.logo_url ? (
-                        <img
-                          src={h.logo_url}
-                          alt={h.name}
-                          className="h-[20px] w-[56px] rounded-[4px] object-contain bg-[#2a2a2a]"
-                        />
-                      ) : (
-                        <span className="text-[14px] text-[#999] whitespace-nowrap">
-                          {h.name}
-                        </span>
-                      )}
-                    </div>
-                  </Fragment>
-                ))}
-                {visibleHostCount < data.hosts.length && (
-                  <span className="text-[14px] text-[#999] whitespace-nowrap flex-shrink-0">
-                    等 {data.hosts.length} 个
-                  </span>
-                )}
-              </div>
+              )}
             </div>
           </div>
         </div>

@@ -91,7 +91,6 @@ async def team_match(
                 "id": c.id,
                 "name": c.nickname or c.full_name,
                 "skills": c.skills,
-                "interests": c.interests,
                 "personality": c.personality,
                 "bio": c.bio,
                 "mbti_type": c.personality if c.personality and len(c.personality) == 4 else None
@@ -100,7 +99,6 @@ async def team_match(
         user_profile = {
             "name": current_user.nickname or current_user.full_name,
             "skills": current_user.skills,
-            "interests": current_user.interests,
             "personality": current_user.personality,
             "mbti_type": current_user.personality if current_user.personality and len(current_user.personality) == 4 else None,
             "bio": current_user.bio,
@@ -140,7 +138,6 @@ Candidate Users:
                     "name": candidate.nickname or candidate.full_name,
                     "avatar_url": candidate.avatar_url,
                     "skills": candidate.skills,
-                    "interests": candidate.interests,
                     "personality": candidate.personality,
                     "mbti_type": candidate.personality if candidate.personality and len(candidate.personality) == 4 else None,
                     "bio": candidate.bio,
@@ -435,9 +432,8 @@ async def generate_content(
             return {"content": content}
             
         elif req.type == 'matching':
-            # Use current user's skills and interests to find matches
+            # Use current user's profile to find matches
             user_skills = current_user.skills or "General"
-            user_interests = current_user.interests or "General"
             
             system_prompt = get_system_prompt("matching_system")
             if req.prompt and len(req.prompt) > 10 and req.prompt != 'match':
@@ -445,7 +441,7 @@ async def generate_content(
             else:
                 context_prompt = "Context: General Hackathon Team. "
                 
-            user_prompt = f"{context_prompt}User Skills: {user_skills}. User Interests: {user_interests}. Suggest complementary teammates."
+            user_prompt = f"{context_prompt}User Skills: {user_skills}. Suggest complementary teammates."
             
             completion = client.chat.completions.create(
                 model=MODEL_NAME,
@@ -592,21 +588,17 @@ async def get_community_insights(
         # 2. Prepare participant data
         participants_data = []
         all_skills = []
-        all_interests = []
         mbti_types = {}
         
         for p in participants:
             if p.skills:
                 all_skills.extend([s.strip() for s in p.skills.split(',')])
-            if p.interests:
-                all_interests.extend([i.strip() for i in p.interests.split(',')])
             if p.personality and len(p.personality) == 4:
                 mbti_types[p.personality] = mbti_types.get(p.personality, 0) + 1
             
             participants_data.append({
                 "id": p.id,
                 "skills": p.skills,
-                "interests": p.interests,
                 "personality": p.personality,
                 "bio": p.bio
             })
@@ -643,17 +635,13 @@ MBTI Distribution:
         
         ai_analysis = json.loads(completion.choices[0].message.content)
         
-        # 5. Extract hot topics from interests
-        interest_counts = Counter(all_interests)
-        hot_topics = [item for item, count in interest_counts.most_common(8) if count > 1]
-        
         return {
             "summary": ai_analysis.get("summary", ""),
             "skill_distribution": skill_distribution,
             "interest_clusters": ai_analysis.get("interest_clusters", []),
             "recommendations": ai_analysis.get("recommendations", []),
             "mbti_distribution": mbti_types,
-            "hot_topics": hot_topics
+            "hot_topics": []
         }
         
     except Exception as e:

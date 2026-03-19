@@ -12,10 +12,11 @@ import { useNavigate } from "react-router-dom";
 import { useTheme } from "../../contexts/ThemeContext";
 import NotificationDropdown from "../NotificationDropdown";
 import axios from "axios";
+import type { ProfileUser } from "@/types/profile";
 
 interface NavbarProps {
   isLoggedIn: boolean;
-  currentUser: any;
+  currentUser: ProfileUser | null;
   onLoginClick: () => void;
   onRegisterClick: () => void; // Keeping this for potential future use or mobile menu
   onLogoutClick: () => void;
@@ -189,8 +190,9 @@ export default function Navbar({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ink truncate">
-                        {currentUser?.full_name ||
+                        {currentUser?.username ||
                           currentUser?.nickname ||
+                          currentUser?.full_name ||
                           "User"}
                       </p>
                       <p className="text-xs text-ink-dim truncate">

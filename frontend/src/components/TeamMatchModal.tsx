@@ -12,7 +12,6 @@ interface MatchResult {
   user_id: number
   name: string
   skills: string
-  interests: string
   personality: string
   bio: string
   match_reason: string
@@ -80,7 +79,7 @@ export default function TeamMatchModal({ isOpen, onClose, hackathonId }: TeamMat
                 </div>
                 <div>
                   <h3 className="text-white font-semibold">智能组队匹配</h3>
-                  <p className="text-[11px] text-gray-500">AI 根据您的技能和兴趣推荐最佳队友</p>
+                  <p className="text-[11px] text-gray-500">AI 根据您的技能和需求推荐最佳队友</p>
                 </div>
               </div>
               <button onClick={onClose} className="text-gray-500 hover:text-white transition-colors">

@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException
+from pydantic import BaseModel
 from sqlmodel import Session, select
 from typing import List
 from datetime import datetime
@@ -7,7 +8,6 @@ from app.api import deps
 from app.core.security import get_password_hash, verify_password
 from app.db.session import get_session
 from app.models.user import User, UserCreate, UserRead, UserUpdate, UserUpdateAdmin, InvitationCode
-from pydantic import BaseModel
 
 router = APIRouter()
 
@@ -85,8 +85,6 @@ def update_user(
     session.commit()
     session.refresh(user)
     return user
-
-from pydantic import BaseModel
 
 class ActivateOrganizerRequest(BaseModel):
     code: str
@@ -171,24 +169,6 @@ def change_password(
     session.commit()
     return {"message": "Password changed successfully"}
 
-class UpdatePreferencesRequest(BaseModel):
-    notification_settings: dict
-
-@router.patch("/me/preferences")
-def update_preferences(
-    *,
-    session: Session = Depends(get_session),
-    req: UpdatePreferencesRequest,
-    current_user: User = Depends(deps.get_current_user),
-):
-    if req.notification_settings:
-        import json
-        current_user.notification_settings = json.dumps(req.notification_settings)
-    session.add(current_user)
-    session.commit()
-    session.refresh(current_user)
-    return {"message": "Preferences updated successfully"}
-
 @router.delete("/me")
 def delete_user_me(
     *,
@@ -213,4 +193,3 @@ def deactivate_user_me(
     session.add(current_user)
     session.commit()
     return {"message": "Account deactivated successfully. You can reactivate by logging in again."}
-

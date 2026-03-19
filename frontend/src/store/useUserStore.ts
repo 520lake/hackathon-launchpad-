@@ -11,17 +11,10 @@ export interface UserInfo {
   avatar?: string
   bio?: string
   skills?: string
-  interests?: string
   personality?: string
   github_url?: string
   website?: string
   is_superuser?: boolean
-  notification_settings?: {
-    activity_reminder: boolean
-    new_hackathon_push: boolean
-    system_announcement: boolean
-    general_notification: boolean
-  }
 }
 
 // Store 状态接口

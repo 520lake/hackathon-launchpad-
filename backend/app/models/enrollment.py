@@ -29,5 +29,11 @@ class EnrollmentRead(SQLModel):
     joined_at: datetime
 
 from .hackathon import HackathonRead
+from .hackathon_host import HackathonHostRead
+
+class HackathonReadWithHosts(HackathonRead):
+    """HackathonRead + hosts list for enrollment responses."""
+    hosts: list[HackathonHostRead] = []
+
 class EnrollmentWithHackathon(EnrollmentRead):
-    hackathon: HackathonRead
+    hackathon: HackathonReadWithHosts

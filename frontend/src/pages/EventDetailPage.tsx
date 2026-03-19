@@ -27,6 +27,7 @@ import { getTagColor } from "@/utils/constants";
 
 // Modals
 import SubmitProjectModal from "../components/SubmitProjectModal";
+import ProjectCard from "../components/ProjectCard";
 import JudgingModal from "../components/JudgingModal";
 import ResultPublishModal from "../components/ResultPublishModal";
 import AIResumeModal from "../components/AIResumeModal";
@@ -1018,75 +1019,22 @@ export default function EventDetailPage() {
                       ) : (
                         <div className="space-y-4">
                           {/* 项目卡片 */}
-                          <div className="border border-white/[0.08] rounded-[16px]">
-                            <div className="flex">
-                              <div className="w-[3px] bg-brand" />
-                              <div className="flex-1 p-6">
-                                <div className="flex items-start gap-6">
-                                  <div className="w-32 h-24 bg-white/[0.02] border border-white/[0.08] rounded-[16px] flex items-center justify-center flex-shrink-0">
-                                    {myProject?.cover_image ? (
-                                      <img
-                                        src={myProject.cover_image}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    ) : (
-                                      <span className="text-2xl font-bold text-white/20">
-                                        {(myProject?.title || "未命名")[0]}
-                                      </span>
-                                    )}
-                                  </div>
-                                  <div className="flex-1">
-                                    <h4 className="text-lg font-semibold text-white mb-2">
-                                      {myProject?.title || "未命名项目"}
-                                    </h4>
-                                    <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                                      {myProject?.description || "暂无描述"}
-                                    </p>
-                                    <div className="flex items-center gap-4 text-[11px] text-gray-500">
-                                      {myProject?.tech_stack && (
-                                        <span>
-                                          技术栈: {myProject.tech_stack}
-                                        </span>
-                                      )}
-                                      {myProject?.total_score && (
-                                        <span className="text-brand">
-                                          得分:{" "}
-                                          {myProject.total_score.toFixed(1)}
-                                        </span>
-                                      )}
-                                      {myTeam && (
-                                        <span className="flex items-center gap-1">
-                                          <svg
-                                            className="w-3 h-3"
-                                            fill="none"
-                                            stroke="currentColor"
-                                            viewBox="0 0 24 24"
-                                          >
-                                            <path
-                                              strokeLinecap="round"
-                                              strokeLinejoin="round"
-                                              strokeWidth={2}
-                                              d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-                                            />
-                                          </svg>
-                                          {myTeam.name} (
-                                          {myTeam.members?.length || 1}/
-                                          {myTeam.max_members || "-"})
-                                        </span>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <Button
-                                    variant="outline"
-                                    onClick={() => setIsSubmitOpen(true)}
-                                    className="px-4 py-2 border border-white/[0.15] text-[12px] text-white hover:bg-white hover:text-black transition-colors rounded-[16px]"
-                                  >
-                                    编辑项目
-                                  </Button>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
+                          <ProjectCard
+                            project={{
+                              id: myProject?.id || 0,
+                              title: myProject?.title || "未命名项目",
+                              description: myProject?.description,
+                              tech_stack: myProject?.tech_stack,
+                              cover_image: myProject?.cover_image,
+                              total_score: myProject?.total_score,
+                            }}
+                            team={myTeam ? {
+                              name: myTeam.name,
+                              members: myTeam.members,
+                              max_members: myTeam.max_members,
+                            } : undefined}
+                            onEdit={() => setIsSubmitOpen(true)}
+                          />
 
                           {/* 快捷操作栏 */}
                           <div className="grid grid-cols-2 md:grid-cols-4 gap-3">

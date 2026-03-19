@@ -1275,7 +1275,7 @@ export default function CreateHackathonPage() {
             {/* Right: organizer name */}
             <div className="flex items-center gap-3">
               <span className="text-xs text-zinc-600 font-mono">
-                {currentUser?.full_name || "Organizer"}
+                {currentUser?.username || currentUser?.nickname || currentUser?.full_name || "Organizer"}
               </span>
             </div>
           </div>

@@ -8,7 +8,7 @@ import {
 
 export interface EditFormState {
   full_name: string;
-  nickname: string;
+  username: string;
   bio: string;
   city: string;
   skills: string;
@@ -23,7 +23,7 @@ interface UseProfileFormParams {
 
 const buildEditForm = (user: ProfileUser | null): EditFormState => ({
   full_name: user?.full_name || "",
-  nickname: user?.nickname || "",
+  username: user?.username || user?.nickname || "",
   bio: user?.bio || "",
   city: user?.city || "",
   skills: user?.skills || "",
@@ -66,7 +66,11 @@ export function useProfileForm({
 
     setSaving(true);
     try {
-      await axios.put("/api/v1/users/me", editForm, {
+      const payload = {
+        ...editForm,
+        nickname: editForm.username,
+      };
+      await axios.put("/api/v1/users/me", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
       fetchCurrentUser();

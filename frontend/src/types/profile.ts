@@ -2,6 +2,7 @@ export interface ProfileUser {
   id?: number;
   email?: string | null;
   email_verified?: boolean | null;
+  username?: string | null;
   full_name?: string | null;
   nickname?: string | null;
   avatar_url?: string | null;

@@ -37,9 +37,10 @@ export default function ProfileHeroCard({
       <div className="flex-1">
         <div className="flex items-center gap-3 mb-3">
           <h2 className="text-2xl font-bold text-white">
-            {currentUser?.full_name ||
+            {currentUser?.username ||
               currentUser?.nickname ||
-              "未设置姓名"}
+              currentUser?.full_name ||
+              "未设置用户名"}
           </h2>
         </div>
 

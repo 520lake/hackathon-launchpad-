@@ -189,8 +189,9 @@ export default function Navbar({
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-ink truncate">
-                        {currentUser?.full_name ||
+                        {currentUser?.username ||
                           currentUser?.nickname ||
+                          currentUser?.full_name ||
                           "User"}
                       </p>
                       <p className="text-xs text-ink-dim truncate">

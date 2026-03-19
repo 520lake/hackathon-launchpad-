@@ -138,9 +138,9 @@ export default function ProfileEditForm({
         <div>
           <label className="text-gray-400 text-sm mb-1 block">用户名</label>
           <Input
-            value={editForm.nickname}
+            value={editForm.username}
             onChange={(e) =>
-              setEditForm({ ...editForm, nickname: e.target.value })
+              setEditForm({ ...editForm, username: e.target.value })
             }
             className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
           />

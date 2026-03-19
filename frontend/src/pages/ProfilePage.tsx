@@ -89,7 +89,12 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen bg-[#0A0A0A]">
-      <div className="mx-auto w-full max-w-[1200px] px-4 py-8">
+      <div className="mx-auto w-full max-w-7xl px-4 py-8 xl:px-0">
+        <div className="mb-8 flex items-center gap-2">
+          <span className="text-[36px] font-bold text-brand">//</span>
+          <h1 className="text-[36px] font-bold text-white">个人中心</h1>
+        </div>
+
         <div className="flex gap-8">
           <ProfileSidebar
             activeTab={activeTab}

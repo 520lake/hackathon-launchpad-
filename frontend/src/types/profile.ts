@@ -10,5 +10,4 @@ export interface ProfileUser {
   phone?: string | null;
   skills?: string | null;
   interests?: string | null;
-  notification_settings?: Record<string, boolean> | string | null;
 }

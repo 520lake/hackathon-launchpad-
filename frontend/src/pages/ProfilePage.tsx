@@ -7,7 +7,6 @@ import { useProfileForm } from "@/hooks/useProfileForm";
 
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileTab from "@/components/profile/ProfileTab";
-import PreferencesTab from "@/components/profile/PreferencesTab";
 import AccountTab from "@/components/profile/AccountTab";
 import type { ProfileUser } from "@/types/profile";
 import { UNSAVED_CHANGES_WARNING } from "@/hooks/useUnsavedChangesWarning";
@@ -19,7 +18,7 @@ interface OutletContextType {
   lang?: "zh" | "en";
 }
 
-type TabId = "profile" | "preferences" | "account";
+type TabId = "profile" | "account";
 
 export default function ProfilePage() {
   const { isLoggedIn, currentUser, fetchCurrentUser } =
@@ -75,13 +74,6 @@ export default function ProfilePage() {
             enrollments={enrollments}
             organizedHackathons={organizedHackathons}
             loading={loading}
-          />
-        );
-      case "preferences":
-        return (
-          <PreferencesTab
-            currentUser={currentUser}
-            fetchCurrentUser={fetchCurrentUser}
           />
         );
       case "account":

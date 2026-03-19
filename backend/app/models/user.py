@@ -12,7 +12,6 @@ class UserBase(SQLModel):
     
     # New Fields for the platform
     can_create_hackathon: bool = Field(default=False)  # Organizer permission
-    theme_preference: str = Field(default='dark')  # 'dark' or 'light'
     skills_vector: Optional[str] = None  # For AI matching (stored as text for now)
     invitation_code: Optional[str] = Field(default=None, index=True)  # 邀请码
     
@@ -34,9 +33,6 @@ class UserBase(SQLModel):
     phone: Optional[str] = None
     personality: Optional[str] = None
     bio: Optional[str] = None
-    
-    # Notification preferences
-    notification_settings: Optional[str] = Field(default='{"activity_reminder": true, "new_hackathon_push": true, "system_announcement": true, "general_notification": true}')
     
     # Community Hall settings
     show_in_community: bool = Field(default=False)  # 是否展现在社区大厅
@@ -64,9 +60,7 @@ class UserUpdate(SQLModel):
     personality: Optional[str] = None
     bio: Optional[str] = None
     can_create_hackathon: Optional[bool] = None
-    theme_preference: Optional[str] = None
     skills_vector: Optional[str] = None
-    notification_settings: Optional[str] = None
     invitation_code: Optional[str] = None
     # Community Hall settings
     show_in_community: Optional[bool] = None
@@ -97,4 +91,3 @@ class InvitationCode(SQLModel, table=True):
     used_by_user_id: Optional[int] = Field(default=None, foreign_key="user.id")
     created_at: datetime = Field(default_factory=datetime.utcnow)
     expires_at: Optional[datetime] = None
-

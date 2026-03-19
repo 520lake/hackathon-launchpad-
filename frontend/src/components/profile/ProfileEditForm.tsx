@@ -168,34 +168,32 @@ export default function ProfileEditForm({
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div>
-          <label className="text-gray-400 text-sm mb-1 block">
-            技能（用逗号分隔）
-          </label>
-          <Input
-            value={editForm.skills}
-            onChange={(e) =>
-              setEditForm({ ...editForm, skills: e.target.value })
-            }
-            placeholder="React, Python, AI..."
-            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
-          />
-        </div>
+      <div>
+        <label className="text-gray-400 text-sm mb-1 block">
+          技能（用逗号分隔）
+        </label>
+        <Input
+          value={editForm.skills}
+          onChange={(e) =>
+            setEditForm({ ...editForm, skills: e.target.value })
+          }
+          placeholder="React, Python, AI..."
+          className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
+        />
+      </div>
 
-        <div>
-          <label className="text-gray-400 text-sm mb-1 block">
-            兴趣领域（用逗号分隔）
-          </label>
-          <Input
-            value={editForm.interests}
-            onChange={(e) =>
-              setEditForm({ ...editForm, interests: e.target.value })
-            }
-            placeholder="AI, Web3, 可持续发展..."
-            className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
-          />
-        </div>
+      <div>
+        <label className="text-gray-400 text-sm mb-1 block">
+          兴趣领域（用逗号分隔）
+        </label>
+        <Input
+          value={editForm.interests}
+          onChange={(e) =>
+            setEditForm({ ...editForm, interests: e.target.value })
+          }
+          placeholder="AI, Web3, 可持续发展..."
+          className="w-full px-3 py-2.5 bg-[#1A1A1A] border border-[#333] rounded-[16px] text-white text-sm focus:border-brand outline-none transition-colors"
+        />
       </div>
 
       <div>

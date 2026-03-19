@@ -57,7 +57,6 @@ interface User {
   nickname?: string;
   avatar_url?: string;
   skills?: string;
-  interests?: string;
   city?: string;
   phone?: string;
   personality?: string;
@@ -111,7 +110,6 @@ export default function UserDashboardModal({
   const [nickname, setNickname] = useState("");
   const [avatarUrl, setAvatarUrl] = useState("");
   const [skills, setSkills] = useState("");
-  const [interests, setInterests] = useState("");
   const [city, setCity] = useState("");
   const [phone, setPhone] = useState("");
   const [personality, setPersonality] = useState("");
@@ -180,7 +178,6 @@ export default function UserDashboardModal({
       setNickname(resUser.data.nickname || "");
       setAvatarUrl(resUser.data.avatar_url || "");
       setSkills(resUser.data.skills || "");
-      setInterests(resUser.data.interests || "");
       setCity(resUser.data.city || "");
       setPhone(resUser.data.phone || "");
       setPersonality(resUser.data.personality || "");
@@ -226,7 +223,6 @@ export default function UserDashboardModal({
           nickname,
           avatar_url: avatarUrl,
           skills: skillsString,
-          interests,
           city,
           phone,
           personality,
@@ -279,7 +275,6 @@ export default function UserDashboardModal({
           nickname,
           avatar_url: avatarUrl,
           skills,
-          interests,
           city,
           phone,
           personality,
@@ -539,19 +534,6 @@ export default function UserDashboardModal({
                       );
                     })}
                   </div>
-                </div>
-
-                <div className="group">
-                  <label className="block text-xs font-bold text-brand mb-2 uppercase tracking-wider font-mono">
-                    兴趣标签
-                  </label>
-                  <input
-                    type="text"
-                    value={interests}
-                    onChange={(e) => setInterests(e.target.value)}
-                    placeholder="Web3, AI, DeFi..."
-                    className="w-full px-4 py-3 bg-black/50 border border-brand/30 text-white font-mono text-sm focus:border-brand focus:outline-none transition-colors rounded-none"
-                  />
                 </div>
 
                 <div className="group">

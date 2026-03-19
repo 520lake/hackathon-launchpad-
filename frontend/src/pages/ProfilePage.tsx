@@ -7,7 +7,6 @@ import { useProfileForm } from "@/hooks/useProfileForm";
 
 import ProfileSidebar from "@/components/profile/ProfileSidebar";
 import ProfileTab from "@/components/profile/ProfileTab";
-import OrganizedTab from "@/components/profile/OrganizedTab";
 import PreferencesTab from "@/components/profile/PreferencesTab";
 import AccountTab from "@/components/profile/AccountTab";
 
@@ -18,12 +17,7 @@ interface OutletContextType {
   lang?: "zh" | "en";
 }
 
-type TabId =
-  | "profile"
-  | "organized"
-  | "preferences"
-  | "account"
-  | "notifications";
+type TabId = "profile" | "preferences" | "account";
 
 export default function ProfilePage() {
   const { isLoggedIn, currentUser, fetchCurrentUser } =
@@ -62,14 +56,7 @@ export default function ProfilePage() {
             onDrop={profileForm.handleDrop}
             onDragOver={profileForm.handleDragOver}
             enrollments={enrollments}
-            loading={loading}
-          />
-        );
-      case "organized":
-        return (
-          <OrganizedTab
             organizedHackathons={organizedHackathons}
-            currentUserId={currentUser?.id}
             loading={loading}
           />
         );
@@ -86,16 +73,6 @@ export default function ProfilePage() {
             currentUser={currentUser}
             setActiveTab={setActiveTab}
           />
-        );
-      case "notifications":
-        return (
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="text-center py-20 text-gray-400"
-          >
-            通知中心即将上线
-          </motion.div>
         );
       default:
         return null;

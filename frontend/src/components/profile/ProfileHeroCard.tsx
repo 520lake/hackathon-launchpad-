@@ -4,6 +4,7 @@ import {
   LocationIcon,
   WorkIcon,
   EditIcon,
+  QuoteIcon,
 } from "./ProfileIcons";
 
 interface ProfileHeroCardProps {
@@ -17,12 +18,14 @@ export default function ProfileHeroCard({
 }: ProfileHeroCardProps) {
   return (
     <div className="flex items-start gap-6">
-      {/* Avatar */}
-      <div className="w-24 h-24 rounded-[24px] bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0 overflow-hidden">
+      {/* Avatar — circular 100px per Figma */}
+      <div className="w-[100px] h-[100px] rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0" style={{ overflow: "hidden", borderRadius: "50%" }}>
         {currentUser?.avatar_url ? (
           <img
             src={currentUser.avatar_url}
             className="w-full h-full object-cover"
+            style={{ borderRadius: "50%" }}
+            alt="avatar"
           />
         ) : (
           <UserIcon />
@@ -37,14 +40,9 @@ export default function ProfileHeroCard({
               currentUser?.nickname ||
               "未设置姓名"}
           </h2>
-          {currentUser?.can_create_hackathon && (
-            <span className="px-3 py-1.5 bg-brand text-black text-[11px] font-medium rounded-[16px]">
-              组织者
-            </span>
-          )}
         </div>
 
-        <div className="flex items-center gap-6 text-gray-400 text-sm mb-4">
+        <div className="flex items-center gap-[32px] text-gray-400 text-sm mb-4">
           <span className="flex items-center gap-2">
             <LocationIcon />
             {currentUser?.city || "未设置城市"}
@@ -57,31 +55,17 @@ export default function ProfileHeroCard({
           </span>
         </div>
 
-        <p className="text-gray-400 text-sm leading-relaxed">
-          {currentUser?.bio || "暂无个人简介"}
-        </p>
-
-        {currentUser?.interests && (
-          <div className="flex flex-wrap gap-2 mt-4">
-            {currentUser.interests
-              .split(",")
-              .map((interest: string, i: number) => (
-                <span
-                  key={i}
-                  className="px-3 py-1.5 bg-[#222] text-gray-400 text-xs rounded-[16px]"
-                >
-                  {interest.trim()}
-                </span>
-              ))}
-          </div>
-        )}
+        <div className="flex items-start gap-2 text-gray-400 text-sm leading-relaxed">
+          <QuoteIcon />
+          <p>{currentUser?.bio || "暂无个人简介"}</p>
+        </div>
       </div>
 
-      {/* Edit Button */}
+      {/* Edit Button — Figma border style */}
       <Button
         variant="outline"
         onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2.5 border border-white/10 text-gray-300 text-sm rounded-[16px] hover:bg-white/[0.05] transition-colors"
+        className="flex items-center gap-2 px-4 py-2.5 border border-[#3f3f47] text-gray-300 text-sm rounded-[16px] hover:bg-white/[0.05] transition-colors"
       >
         <EditIcon />
         编辑资料

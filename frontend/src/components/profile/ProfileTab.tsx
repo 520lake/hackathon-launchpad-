@@ -1,13 +1,17 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Button } from "@/components/ui/button";
 import type { HackathonListItem } from "@/types/hackathon";
 import { toHackathonCardData } from "@/utils/hackathon";
 import HackathonCard from "@/components/HackathonCard";
+import ProjectCard from "@/components/ProjectCard";
 import ProfileHeroCard from "./ProfileHeroCard";
 import ProfileEditForm from "./ProfileEditForm";
+import SectionCard from "./SectionCard";
 import { ArrowLeftIcon } from "./ProfileIcons";
 import type { EditFormState } from "@/hooks/useProfileForm";
 import type { Enrollment } from "@/hooks/useProfileData";
+
+type ExpandedSection = "organized" | "enrolled" | null;
 
 interface ProfileTabProps {
   currentUser: any;
@@ -24,8 +28,20 @@ interface ProfileTabProps {
   onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
   onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   enrollments: Enrollment[];
+  organizedHackathons: HackathonListItem[];
   loading: boolean;
 }
+
+const MAX_PREVIEW = 3;
+
+// Placeholder projects until /api/v1/projects/me is wired up
+const placeholderProjects: {
+  id: number;
+  title: string;
+  description: string;
+  tech_stack: string;
+  cover_image?: string;
+}[] = [];
 
 export default function ProfileTab({
   currentUser,
@@ -42,13 +58,155 @@ export default function ProfileTab({
   onDrop,
   onDragOver,
   enrollments,
+  organizedHackathons,
   loading,
 }: ProfileTabProps) {
   const navigate = useNavigate();
+  const [expandedSection, setExpandedSection] =
+    useState<ExpandedSection>(null);
+  const organizedCount = organizedHackathons.length;
+  const enrolledCount = enrollments.length;
+  const showOrganizedSection = loading || organizedCount > 0;
+  const showEnrolledSection = loading || enrolledCount > 0;
+  const showExpandedSection =
+    expandedSection != null &&
+    (loading ||
+      (expandedSection === "organized" ? organizedCount > 0 : enrolledCount > 0));
 
+  /** Convert enrollment to HackathonListItem for HackathonCard */
+  const enrollmentToListItem = (enroll: Enrollment): HackathonListItem => {
+    // Backend returns tags as a JSON-encoded string, e.g. '["AI","Web3"]'
+    let parsedTags: string[] = [];
+    if (enroll.hackathon?.tags) {
+      try {
+        parsedTags = JSON.parse(enroll.hackathon.tags);
+      } catch {
+        parsedTags = [];
+      }
+    }
+
+    return {
+      id: enroll.hackathon_id,
+      title: enroll.hackathon?.title || `活动 #${enroll.hackathon_id}`,
+      description: enroll.hackathon?.description ?? null,
+      tags: parsedTags,
+      cover_image: enroll.hackathon?.cover_image ?? null,
+      registration_type: "individual",
+      format: "online",
+      start_date: enroll.hackathon?.start_date || "",
+      end_date: enroll.hackathon?.end_date || "",
+      province: enroll.hackathon?.province ?? null,
+      city: enroll.hackathon?.city ?? null,
+      district: enroll.hackathon?.district ?? null,
+      address: null,
+      is_address_hidden: false,
+      status:
+        (enroll.hackathon?.status as HackathonListItem["status"]) || "published",
+      created_by: enroll.hackathon?.created_by ?? 0,
+      created_at: enroll.created_at,
+      updated_at: enroll.created_at,
+      updated_by: null,
+      hosts: [],
+      total_cash_prize: 0,
+      has_non_cash_prizes: false,
+    };
+  };
+
+  /** Render a list of HackathonCards from HackathonListItem[] */
+  const renderHackathonCards = (
+    items: HackathonListItem[],
+    limit?: number,
+  ) => {
+    const list = limit ? items.slice(0, limit) : items;
+    return (
+      <div className="space-y-4">
+        {list.map((h, i) => (
+          <HackathonCard
+            key={h.id}
+            data={toHackathonCardData(h, currentUser?.id)}
+            index={i}
+            onClick={() => navigate(`/events/${h.id}`)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  /** Render enrollment cards */
+  const renderEnrollmentCards = (limit?: number) => {
+    const list = limit ? enrollments.slice(0, limit) : enrollments;
+    return (
+      <div className="space-y-4">
+        {list.map((enroll, i) => (
+          <HackathonCard
+            key={enroll.id}
+            data={toHackathonCardData(enrollmentToListItem(enroll))}
+            index={i}
+            onClick={() =>
+              navigate(`/events/${enroll.hackathon_id}?tab=myproject`)
+            }
+          />
+        ))}
+      </div>
+    );
+  };
+
+  // ── Expanded view ──
+  if (showExpandedSection && expandedSection) {
+    const isOrganized = expandedSection === "organized";
+    const count = isOrganized ? organizedCount : enrolledCount;
+    const title = isOrganized ? "我举办的黑客松" : "我参与的黑客松";
+
+    return (
+      <div className="space-y-6">
+        {/* Hero card stays */}
+        <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
+          {isEditing ? (
+            <ProfileEditForm
+              editForm={editForm}
+              setEditForm={setEditForm}
+              saving={saving}
+              uploading={uploading}
+              fileInputRef={fileInputRef}
+              onSave={onSave}
+              onCancel={onCancel}
+              onAvatarUpload={onAvatarUpload}
+              onDrop={onDrop}
+              onDragOver={onDragOver}
+            />
+          ) : (
+            <ProfileHeroCard currentUser={currentUser} onEdit={onEdit} />
+          )}
+        </div>
+
+        {/* Back + full list */}
+        <div className="bg-[rgba(9,9,11,0.5)] border border-[#27272a] rounded-[14px] p-6">
+          <button
+            onClick={() => setExpandedSection(null)}
+            className="flex items-center gap-2 text-[14px] text-[#e4e4e7] font-semibold mb-4 hover:text-white transition-colors"
+          >
+            <ArrowLeftIcon />
+            {title} ({count})
+          </button>
+          <div className="h-px bg-[#333] mb-4" />
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : isOrganized ? (
+            renderHackathonCards(organizedHackathons)
+          ) : (
+            renderEnrollmentCards()
+          )}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Default view ──
   return (
     <div className="space-y-6">
-      {/* User Hero Card */}
+      {/* Hero Card */}
       <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
         {isEditing ? (
           <ProfileEditForm
@@ -68,92 +226,59 @@ export default function ProfileTab({
         )}
       </div>
 
-      {/* My Participated Hackathons */}
-      <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/events")}
-              className="text-gray-400 hover:text-white transition-colors"
-            >
-              <ArrowLeftIcon />
-            </Button>
-            <h3 className="text-white font-semibold">我参与的黑客松</h3>
-            <span className="px-3 py-1.5 bg-[#222] text-gray-400 text-[12px] rounded-[16px]">
-              {enrollments.length}
-            </span>
-          </div>
-          <Button
-            variant="ghost"
-            onClick={() => navigate("/events")}
-            className="text-gray-500 text-sm hover:text-white transition-colors"
-          >
-            查看更多 →
-          </Button>
-        </div>
+      {/* 我举办的黑客松 */}
+      {showOrganizedSection && (
+        <SectionCard
+          title="我举办的黑客松"
+          count={organizedCount}
+          maxPreview={MAX_PREVIEW}
+          onViewMore={() => setExpandedSection("organized")}
+          emptyText="未找到相关项目"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            renderHackathonCards(organizedHackathons, MAX_PREVIEW)
+          )}
+        </SectionCard>
+      )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-          </div>
-        ) : enrollments.length > 0 ? (
-          <div className="space-y-4">
-            {enrollments.map((enroll, index) => {
-              const listItem: HackathonListItem = {
-                id: enroll.hackathon_id,
-                title: enroll.hackathon?.title || `活动 #${enroll.hackathon_id}`,
-                description: null,
-                tags: [],
-                cover_image: enroll.hackathon?.cover_image ?? null,
-                registration_type: "individual",
-                format: "online",
-                start_date: enroll.hackathon?.start_date || "",
-                end_date: enroll.hackathon?.end_date || "",
-                province: enroll.hackathon?.province ?? null,
-                city: enroll.hackathon?.city ?? null,
-                district: enroll.hackathon?.district ?? null,
-                address: null,
-                is_address_hidden: false,
-                status:
-                  (enroll.hackathon?.status as HackathonListItem["status"]) ||
-                  "published",
-                created_by: enroll.hackathon?.created_by ?? 0,
-                created_at: enroll.created_at,
-                updated_at: enroll.created_at,
-                updated_by: null,
-                hosts: [],
-                total_cash_prize: 0,
-                has_non_cash_prizes: false,
-              };
+      {/* 我参加的黑客松 */}
+      {showEnrolledSection && (
+        <SectionCard
+          title="我参加的黑客松"
+          count={enrolledCount}
+          maxPreview={MAX_PREVIEW}
+          onViewMore={() => setExpandedSection("enrolled")}
+          emptyText="未找到相关项目"
+        >
+          {loading ? (
+            <div className="flex items-center justify-center py-12">
+              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            </div>
+          ) : (
+            renderEnrollmentCards(MAX_PREVIEW)
+          )}
+        </SectionCard>
+      )}
 
-              return (
-                <HackathonCard
-                  key={enroll.id}
-                  data={toHackathonCardData(listItem)}
-                  index={index}
-                  onClick={() =>
-                    navigate(`/events/${enroll.hackathon_id}?tab=myproject`)
-                  }
-                />
-              );
-            })}
+      {/* 作品卡片 */}
+      {placeholderProjects.length > 0 && (
+        <SectionCard
+          title="我的作品"
+          count={placeholderProjects.length}
+          onViewMore={() => {}}
+          emptyText="暂无作品"
+        >
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {placeholderProjects.map((p) => (
+              <ProjectCard key={p.id} project={p} />
+            ))}
           </div>
-        ) : (
-          <div className="text-center py-12 text-gray-500">
-            <div className="text-4xl mb-4">🎯</div>
-            <p>还没有参与任何黑客松</p>
-            <Button
-              variant="outline"
-              onClick={() => navigate("/events")}
-              className="mt-4 px-6 py-3 bg-brand text-black text-sm font-medium rounded-[16px] hover:bg-white transition-colors"
-            >
-              去探索活动
-            </Button>
-          </div>
-        )}
-      </div>
+        </SectionCard>
+      )}
     </div>
   );
 }

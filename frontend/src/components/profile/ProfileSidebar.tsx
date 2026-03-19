@@ -1,13 +1,11 @@
 import { Button } from "@/components/ui/button";
 import {
   UserIcon,
-  EventIcon,
   PreferencesIcon,
   SettingsIcon,
-  BellIcon,
 } from "./ProfileIcons";
 
-type TabId = "profile" | "organized" | "preferences" | "account" | "notifications";
+type TabId = "profile" | "preferences" | "account";
 
 interface ProfileSidebarProps {
   activeTab: TabId;
@@ -16,10 +14,8 @@ interface ProfileSidebarProps {
 
 const menuItems = [
   { id: "profile" as const, label: "个人资料", icon: <UserIcon /> },
-  { id: "organized" as const, label: "我发起的活动", icon: <EventIcon /> },
   { id: "preferences" as const, label: "偏好设置", icon: <PreferencesIcon /> },
   { id: "account" as const, label: "账号设置", icon: <SettingsIcon /> },
-  { id: "notifications" as const, label: "通知中心", icon: <BellIcon /> },
 ];
 
 export default function ProfileSidebar({

@@ -8,6 +8,8 @@ export interface Enrollment {
   hackathon?: {
     id: number;
     title: string;
+    description?: string;
+    tags?: string;
     status: string;
     start_date: string;
     end_date: string;

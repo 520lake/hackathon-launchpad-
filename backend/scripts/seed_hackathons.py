@@ -34,6 +34,15 @@ from passlib.context import CryptContext
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+EMPTY_PROFILE_USER = {
+    "email": "empty@aura.com",
+    "password": "empty123",
+    "full_name": "新朋友",
+    "nickname": "新朋友",
+    "city": "上海",
+    "bio": "刚加入 Aura，准备寻找第一场黑客松。",
+}
+
 
 def dt(s: str) -> datetime:
     return datetime.fromisoformat(s)
@@ -652,10 +661,13 @@ HACKATHONS = [
 
 
 def seed():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    db_path = os.path.join(project_root, "vibebuild.db")
-    db_url = f"sqlite:///{db_path}"
-    print(f"Using database: {db_path}")
+    db_url = settings.DATABASE_URL
+    if db_url.startswith("sqlite:///"):
+        db_path = db_url.replace("sqlite:///", "", 1)
+        os.makedirs(os.path.dirname(db_path), exist_ok=True)
+        print(f"Using database: {db_path}")
+    else:
+        print(f"Using database URL: {db_url}")
 
     engine = create_engine(db_url)
 
@@ -667,6 +679,7 @@ def seed():
         existing = session.exec(select(Hackathon)).first()
         if existing:
             print(f"Database already has hackathon data (found: {existing.title}). Skipping seed.")
+            _ensure_empty_profile_user(session)
             return
 
         # Ensure admin user exists
@@ -798,6 +811,48 @@ def seed():
 
         # --- Seed participants ---
         _seed_participants(session, admin)
+        _ensure_empty_profile_user(session)
+
+
+def _ensure_empty_profile_user(session: Session):
+    """Ensure a demo user exists with no enrollments or organized hackathons."""
+
+    user = session.exec(
+        select(User).where(User.email == EMPTY_PROFILE_USER["email"])
+    ).first()
+
+    if user:
+        user.hashed_password = pwd_context.hash(EMPTY_PROFILE_USER["password"])
+        user.is_active = True
+        user.is_superuser = False
+        user.full_name = EMPTY_PROFILE_USER["full_name"]
+        user.nickname = EMPTY_PROFILE_USER["nickname"]
+        user.city = EMPTY_PROFILE_USER["city"]
+        user.bio = EMPTY_PROFILE_USER["bio"]
+        session.add(user)
+        session.commit()
+        print(
+            f"  Empty profile demo user already exists: "
+            f"{EMPTY_PROFILE_USER['email']} / {EMPTY_PROFILE_USER['password']}"
+        )
+        return
+
+    user = User(
+        email=EMPTY_PROFILE_USER["email"],
+        full_name=EMPTY_PROFILE_USER["full_name"],
+        nickname=EMPTY_PROFILE_USER["nickname"],
+        hashed_password=pwd_context.hash(EMPTY_PROFILE_USER["password"]),
+        is_active=True,
+        is_superuser=False,
+        city=EMPTY_PROFILE_USER["city"],
+        bio=EMPTY_PROFILE_USER["bio"],
+    )
+    session.add(user)
+    session.commit()
+    print(
+        f"  Created empty profile demo user: "
+        f"{EMPTY_PROFILE_USER['email']} / {EMPTY_PROFILE_USER['password']}"
+    )
 
 
 def _seed_participants(session: Session, admin: User):

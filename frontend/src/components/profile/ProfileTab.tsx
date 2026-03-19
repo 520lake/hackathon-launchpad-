@@ -66,12 +66,6 @@ export default function ProfileTab({
     useState<ExpandedSection>(null);
   const organizedCount = organizedHackathons.length;
   const enrolledCount = enrollments.length;
-  const showOrganizedSection = loading || organizedCount > 0;
-  const showEnrolledSection = loading || enrolledCount > 0;
-  const showExpandedSection =
-    expandedSection != null &&
-    (loading ||
-      (expandedSection === "organized" ? organizedCount > 0 : enrolledCount > 0));
 
   /** Convert enrollment to HackathonListItem for HackathonCard */
   const enrollmentToListItem = (enroll: Enrollment): HackathonListItem => {
@@ -106,7 +100,13 @@ export default function ProfileTab({
       created_at: enroll.created_at,
       updated_at: enroll.created_at,
       updated_by: null,
-      hosts: [],
+      hosts: (enroll.hackathon?.hosts ?? []).map((h) => ({
+        id: h.id,
+        name: h.name,
+        logo_url: h.logo_url ?? null,
+        hackathon_id: enroll.hackathon_id,
+        display_order: 0,
+      })),
       total_cash_prize: 0,
       has_non_cash_prizes: false,
     };
@@ -152,7 +152,7 @@ export default function ProfileTab({
   };
 
   // ── Expanded view ──
-  if (showExpandedSection && expandedSection) {
+  if (expandedSection) {
     const isOrganized = expandedSection === "organized";
     const count = isOrganized ? organizedCount : enrolledCount;
     const title = isOrganized ? "我举办的黑客松" : "我参与的黑客松";
@@ -227,42 +227,38 @@ export default function ProfileTab({
       </div>
 
       {/* 我举办的黑客松 */}
-      {showOrganizedSection && (
-        <SectionCard
-          title="我举办的黑客松"
-          count={organizedCount}
-          maxPreview={MAX_PREVIEW}
-          onViewMore={() => setExpandedSection("organized")}
-          emptyText="未找到相关项目"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            renderHackathonCards(organizedHackathons, MAX_PREVIEW)
-          )}
-        </SectionCard>
-      )}
+      <SectionCard
+        title="我举办的黑客松"
+        count={organizedCount}
+        maxPreview={MAX_PREVIEW}
+        onViewMore={() => setExpandedSection("organized")}
+        emptyText="期待你的第一场活动~"
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          renderHackathonCards(organizedHackathons, MAX_PREVIEW)
+        )}
+      </SectionCard>
 
       {/* 我参加的黑客松 */}
-      {showEnrolledSection && (
-        <SectionCard
-          title="我参加的黑客松"
-          count={enrolledCount}
-          maxPreview={MAX_PREVIEW}
-          onViewMore={() => setExpandedSection("enrolled")}
-          emptyText="未找到相关项目"
-        >
-          {loading ? (
-            <div className="flex items-center justify-center py-12">
-              <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
-            </div>
-          ) : (
-            renderEnrollmentCards(MAX_PREVIEW)
-          )}
-        </SectionCard>
-      )}
+      <SectionCard
+        title="我参加的黑客松"
+        count={enrolledCount}
+        maxPreview={MAX_PREVIEW}
+        onViewMore={() => setExpandedSection("enrolled")}
+        emptyText="去看看最近的活动吧~"
+      >
+        {loading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+          </div>
+        ) : (
+          renderEnrollmentCards(MAX_PREVIEW)
+        )}
+      </SectionCard>
 
       {/* 作品卡片 */}
       {placeholderProjects.length > 0 && (

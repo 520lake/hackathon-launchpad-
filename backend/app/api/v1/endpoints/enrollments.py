@@ -7,6 +7,7 @@ from app.api.deps import get_current_user
 from app.models.user import User
 from app.models.hackathon import Hackathon
 from app.models.enrollment import Enrollment, EnrollmentCreate, EnrollmentRead, EnrollmentStatus, EnrollmentWithHackathon
+from app.models.hackathon_host import HackathonHost, HackathonHostRead
 from app.models.hackathon_organizer import HackathonOrganizer, OrganizerRole, OrganizerStatus
 
 from app.models.team_project import Team, TeamMember
@@ -93,15 +94,31 @@ def read_my_enrollments(*, session: Session = Depends(get_session), current_user
         .join(Hackathon, Enrollment.hackathon_id == Hackathon.id)
         .where(Enrollment.user_id == current_user.id)
     ).all()
-    
+
+    # Batch-load hosts for all enrolled hackathons (avoids N+1)
+    hackathon_ids = [hackathon.id for _, hackathon in results]
+    hosts_map: dict[int, list] = {}
+    if hackathon_ids:
+        all_hosts = session.exec(
+            select(HackathonHost)
+            .where(HackathonHost.hackathon_id.in_(hackathon_ids))
+            .order_by(HackathonHost.display_order)
+        ).all()
+        for host in all_hosts:
+            hosts_map.setdefault(host.hackathon_id, []).append(
+                HackathonHostRead.from_orm(host).dict()
+            )
+
     enrollments_with_hackathon = []
     for enrollment, hackathon in results:
-        # Pydantic v2 validates immediately, so we must provide hackathon during initialization
         data = enrollment.model_dump()
-        data["hackathon"] = hackathon
-        enrollment_with_hackathon = EnrollmentWithHackathon.model_validate(data)
-        enrollments_with_hackathon.append(enrollment_with_hackathon)
-        
+        h_data = hackathon.model_dump() if hasattr(hackathon, "model_dump") else dict(hackathon)
+        h_data["hosts"] = hosts_map.get(hackathon.id, [])
+        data["hackathon"] = h_data
+        enrollments_with_hackathon.append(
+            EnrollmentWithHackathon.model_validate(data)
+        )
+
     return enrollments_with_hackathon
 
 @router.get("/my/{hackathon_id}", response_model=EnrollmentRead)

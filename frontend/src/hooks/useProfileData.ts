@@ -18,6 +18,7 @@ export interface Enrollment {
     city?: string;
     district?: string;
     created_by?: number;
+    hosts?: { id: number; name: string; logo_url?: string | null }[];
   };
   created_at: string;
 }

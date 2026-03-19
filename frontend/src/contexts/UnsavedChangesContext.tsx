@@ -4,16 +4,11 @@ import {
   useBeforeUnload,
 } from "react-router-dom";
 import type { ReactNode } from "react";
+import type { NavigateOptions, To } from "react-router-dom";
 import {
   UnsavedChangesContext,
   type GuardEntry,
-} from "./unsavedChangesContext";
-
-interface NavigatorLike {
-  push: (...args: unknown[]) => void;
-  replace: (...args: unknown[]) => void;
-  go?: (...args: unknown[]) => void;
-}
+} from "./unsavedChangesShared";
 
 export function UnsavedChangesProvider({
   children,
@@ -48,7 +43,7 @@ export function UnsavedChangesProvider({
       return navigationContext;
     }
 
-    const navigator = navigationContext.navigator as NavigatorLike;
+    const navigator = navigationContext.navigator;
     const confirmNavigation = () =>
       !activeGuard || window.confirm(activeGuard.message);
 
@@ -56,24 +51,21 @@ export function UnsavedChangesProvider({
       ...navigationContext,
       navigator: {
         ...navigator,
-        push: (...args: unknown[]) => {
+        push: (to: To, state?: unknown, opts?: NavigateOptions) => {
           if (confirmNavigation()) {
-            navigator.push(...args);
+            navigator.push(to, state, opts);
           }
         },
-        replace: (...args: unknown[]) => {
+        replace: (to: To, state?: unknown, opts?: NavigateOptions) => {
           if (confirmNavigation()) {
-            navigator.replace(...args);
+            navigator.replace(to, state, opts);
           }
         },
-        go:
-          navigator.go == null
-            ? undefined
-            : (...args: unknown[]) => {
-                if (confirmNavigation()) {
-                  navigator.go?.(...args);
-                }
-              },
+        go: (delta: number) => {
+          if (confirmNavigation()) {
+            navigator.go(delta);
+          }
+        },
       },
     };
   }, [activeGuard, navigationContext]);

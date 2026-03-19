@@ -12,17 +12,18 @@ export function useUnsavedChangesWarning(
   message = UNSAVED_CHANGES_WARNING,
 ) {
   const context = useContext(UnsavedChangesContext);
+  const registerGuard = context?.registerGuard;
   const id = useId();
 
   useEffect(() => {
-    if (!context) {
+    if (!registerGuard) {
       return;
     }
 
-    context.registerGuard(id, enabled ? message : null);
+    registerGuard(id, enabled ? message : null);
 
     return () => {
-      context.registerGuard(id, null);
+      registerGuard(id, null);
     };
-  }, [context, enabled, id, message]);
+  }, [registerGuard, enabled, id, message]);
 }

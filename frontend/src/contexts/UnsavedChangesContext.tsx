@@ -21,6 +21,14 @@ export function UnsavedChangesProvider({
 
   const registerGuard = useCallback((id: string, message: string | null) => {
     setGuards((current) => {
+      const previousEntry = current.find((entry) => entry.id === id) ?? null;
+      if (
+        (message == null && previousEntry == null) ||
+        previousEntry?.message === message
+      ) {
+        return current;
+      }
+
       const next = current.filter((entry) => entry.id !== id);
       if (message) {
         next.push({ id, message });
@@ -28,6 +36,10 @@ export function UnsavedChangesProvider({
       return next;
     });
   }, []);
+  const contextValue = useMemo(
+    () => ({ registerGuard }),
+    [registerGuard],
+  );
 
   useBeforeUnload((event) => {
     if (!activeGuard) {
@@ -71,7 +83,7 @@ export function UnsavedChangesProvider({
   }, [activeGuard, navigationContext]);
 
   return (
-    <UnsavedChangesContext.Provider value={{ registerGuard }}>
+    <UnsavedChangesContext.Provider value={contextValue}>
       <NavigationContext.Provider value={guardedNavigationContext}>
         {children}
       </NavigationContext.Provider>

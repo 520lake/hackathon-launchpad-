@@ -4,6 +4,7 @@ import type { HackathonListItem } from "@/types/hackathon";
 import { toHackathonCardData } from "@/utils/hackathon";
 import HackathonCard from "@/components/HackathonCard";
 import ProjectCard from "@/components/ProjectCard";
+import { Card, CardContent } from "@/components/ui/card";
 import ProfileHeroCard from "./ProfileHeroCard";
 import ProfileEditForm from "./ProfileEditForm";
 import SectionCard from "./SectionCard";
@@ -164,8 +165,8 @@ export default function ProfileTab({
 
     return (
       <div className="space-y-6">
-        {/* Hero card stays */}
-        <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
+        <Card>
+          <CardContent className="p-8">
           {isEditing ? (
             <ProfileEditForm
               editForm={editForm}
@@ -182,18 +183,19 @@ export default function ProfileTab({
           ) : (
             <ProfileHeroCard currentUser={currentUser} onEdit={onEdit} />
           )}
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Back + full list */}
-        <div className="bg-[rgba(9,9,11,0.5)] border border-[#27272a] rounded-[14px] p-6">
+        <Card>
+          <CardContent className="p-6">
           <button
             onClick={() => setExpandedSection(null)}
-            className="flex items-center gap-2 text-[14px] text-[#e4e4e7] font-semibold mb-4 hover:text-white transition-colors"
+            className="mb-4 flex items-center gap-2 text-sm font-semibold"
           >
             <ArrowLeftIcon />
             {title} ({count})
           </button>
-          <div className="h-px bg-[#333] mb-4" />
+          <div className="mb-4 h-px bg-border" />
           {loading ? (
             <div className="flex items-center justify-center py-12">
               <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
@@ -203,7 +205,8 @@ export default function ProfileTab({
           ) : (
             renderEnrollmentCards()
           )}
-        </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -211,8 +214,8 @@ export default function ProfileTab({
   // ── Default view ──
   return (
     <div className="space-y-6">
-      {/* Hero Card */}
-      <div className="bg-[#0A0A0A] border border-[#222222] rounded-[24px] p-8">
+      <Card>
+        <CardContent className="p-8">
         {isEditing ? (
           <ProfileEditForm
             editForm={editForm}
@@ -229,7 +232,8 @@ export default function ProfileTab({
         ) : (
           <ProfileHeroCard currentUser={currentUser} onEdit={onEdit} />
         )}
-      </div>
+        </CardContent>
+      </Card>
 
       {/* 我举办的黑客松 */}
       <SectionCard

@@ -2,10 +2,28 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import axios from "axios";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { CloseIcon } from "./ProfileIcons";
 import type { ProfileUser } from "@/types/profile";
+import { AlertTriangleIcon } from "lucide-react";
 
 interface AccountTabProps {
   currentUser: ProfileUser | null;
@@ -80,35 +98,42 @@ export default function AccountTab({
       animate={{ opacity: 1, y: 0 }}
       className="space-y-6"
     >
-      {/* Email Section */}
-      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-4">邮箱地址</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>邮箱地址</CardTitle>
+        </CardHeader>
+        <CardContent>
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white">{currentUser?.email}</p>
-            <p className="text-sm text-gray-400 mt-1">
+            <p>{currentUser?.email}</p>
+            <p className="mt-1 text-sm text-muted-foreground">
               {currentUser?.email_verified ? "已验证" : "未验证"}
             </p>
           </div>
         </div>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Phone Section */}
-      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-4">手机号码</h3>
-        <p className="text-white">
+      <Card>
+        <CardHeader>
+          <CardTitle>手机号码</CardTitle>
+        </CardHeader>
+        <CardContent>
+        <p>
           {currentUser?.phone || "未绑定"}
         </p>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Password Section */}
-      <div className="bg-white/5 rounded-xl p-6 border border-white/10">
-        <h3 className="text-lg font-semibold text-white mb-4">密码</h3>
+      <Card>
+        <CardHeader>
+          <CardTitle>密码</CardTitle>
+        </CardHeader>
+        <CardContent>
         {!showChangePassword ? (
           <Button
             onClick={() => setShowChangePassword(true)}
             variant="outline"
-            className="border-white/20 text-white hover:bg-white/10"
           >
             修改密码
           </Button>
@@ -124,7 +149,6 @@ export default function AccountTab({
                   currentPassword: e.target.value,
                 }))
               }
-              className="bg-white/5 border-white/10 text-white"
             />
             <Input
               type="password"
@@ -136,7 +160,6 @@ export default function AccountTab({
                   newPassword: e.target.value,
                 }))
               }
-              className="bg-white/5 border-white/10 text-white"
             />
             <Input
               type="password"
@@ -148,91 +171,73 @@ export default function AccountTab({
                   confirmPassword: e.target.value,
                 }))
               }
-              className="bg-white/5 border-white/10 text-white"
             />
             <div className="flex gap-3">
-              <Button
-                onClick={handleChangePassword}
-                className="bg-purple-600 hover:bg-purple-700"
-              >
+              <Button onClick={handleChangePassword}>
                 确认修改
               </Button>
               <Button
                 onClick={() => setShowChangePassword(false)}
                 variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
               >
                 取消
               </Button>
             </div>
           </div>
         )}
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Danger Zone */}
-      <div className="bg-red-500/5 rounded-xl p-6 border border-red-500/20">
-        <h3 className="text-lg font-semibold text-red-400 mb-2">危险区域</h3>
-        <p className="text-sm text-gray-400 mb-4">
+      <Card>
+        <CardHeader>
+          <CardTitle>危险区域</CardTitle>
+          <CardDescription>
           停用账号后，您的所有数据将被保留但无法登录。
-        </p>
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
         <Button
           onClick={() => setShowDeactivateModal(true)}
-          variant="outline"
-          className="border-red-500/30 text-red-400 hover:bg-red-500/10"
+          variant="destructive"
         >
           停用账号
         </Button>
-      </div>
+        </CardContent>
+      </Card>
 
-      {/* Deactivate Modal */}
-      {showDeactivateModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-gray-900 rounded-2xl p-6 max-w-md w-full mx-4 border border-red-500/20"
-          >
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-lg font-semibold text-red-400">
-                确认停用账号
-              </h3>
-              <button
-                onClick={() => setShowDeactivateModal(false)}
-                className="text-gray-400 hover:text-white"
-              >
-                <CloseIcon />
-              </button>
-            </div>
-            <p className="text-gray-300 text-sm mb-4">
+      <AlertDialog open={showDeactivateModal} onOpenChange={setShowDeactivateModal}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>
+              <AlertTriangleIcon />
+            </AlertDialogMedia>
+            <AlertDialogTitle>
+              确认停用账号
+            </AlertDialogTitle>
+            <AlertDialogDescription>
               此操作将停用您的账号。请输入{" "}
               <span className="text-red-400 font-mono">DELETE</span>{" "}
               以确认。
-            </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
             <Input
               value={deactivateConfirmText}
               onChange={(e) => setDeactivateConfirmText(e.target.value)}
               placeholder='输入 "DELETE" 确认'
-              className="bg-white/5 border-red-500/20 text-white mb-4"
+              className="mb-4"
             />
-            <div className="flex gap-3 justify-end">
-              <Button
-                onClick={() => setShowDeactivateModal(false)}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                取消
-              </Button>
-              <Button
-                onClick={handleDeactivateAccount}
-                disabled={deactivateConfirmText !== "DELETE"}
-                className="bg-red-600 hover:bg-red-700 disabled:opacity-50"
-              >
-                确认停用
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeactivateAccount}
+              disabled={deactivateConfirmText !== "DELETE"}
+              variant="destructive"
+            >
+              确认停用
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </motion.div>
   );
 }

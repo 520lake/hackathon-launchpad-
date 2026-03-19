@@ -1,10 +1,14 @@
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import {
+  BriefcaseBusiness,
+  MapPin,
+  Quote,
+  Tags,
+} from "lucide-react";
+import {
   UserIcon,
-  LocationIcon,
-  WorkIcon,
   EditIcon,
-  QuoteIcon,
 } from "./ProfileIcons";
 import type { ProfileUser } from "@/types/profile";
 
@@ -17,58 +21,64 @@ export default function ProfileHeroCard({
   currentUser,
   onEdit,
 }: ProfileHeroCardProps) {
+  const fieldIconClassName = "mt-1 h-4 w-4 shrink-0 text-muted-foreground";
+  const displayName =
+    currentUser?.username ||
+    currentUser?.nickname ||
+    currentUser?.full_name ||
+    "未设置用户名";
   return (
     <div className="flex items-start gap-6">
-      {/* Avatar — circular 100px per Figma */}
-      <div className="w-[100px] h-[100px] rounded-full bg-[#1A1A1A] border-2 border-[#333] flex items-center justify-center flex-shrink-0" style={{ overflow: "hidden", borderRadius: "50%" }}>
-        {currentUser?.avatar_url ? (
-          <img
-            src={currentUser.avatar_url}
-            className="w-full h-full object-cover"
-            style={{ borderRadius: "50%" }}
-            alt="avatar"
-          />
-        ) : (
-          <UserIcon />
-        )}
-      </div>
+      <Avatar className="size-24">
+        <AvatarImage
+          src={currentUser?.avatar_url || undefined}
+          alt={displayName}
+        />
+        <AvatarFallback className="text-lg font-semibold">
+          <span className="scale-[2.3]">
+            <UserIcon />
+          </span>
+        </AvatarFallback>
+      </Avatar>
 
-      {/* User Info */}
       <div className="flex-1">
-        <div className="flex items-center gap-3 mb-3">
-          <h2 className="text-2xl font-bold text-white">
-            {currentUser?.username ||
-              currentUser?.nickname ||
-              currentUser?.full_name ||
-              "未设置用户名"}
+        <div className="mb-3 flex items-center gap-3">
+          <h2 className="text-2xl font-semibold text-foreground">
+            {displayName}
           </h2>
         </div>
 
-        <div className="flex items-center gap-[32px] text-gray-400 text-sm mb-4">
-          <span className="flex items-center gap-2">
-            <LocationIcon />
-            {currentUser?.city || "未设置城市"}
-          </span>
-          <span className="flex items-center gap-2">
-            <WorkIcon />
-            {currentUser?.skills
-              ? currentUser.skills.split(",")[0]
-              : "未设置技能"}
-          </span>
+        <div className="mb-3 flex flex-col gap-2.5 text-sm leading-6 text-muted-foreground">
+          <div className="flex flex-wrap items-start gap-x-4 gap-y-2">
+            <div className="flex min-w-0 items-start gap-2">
+              <MapPin className={fieldIconClassName} />
+              <span className="truncate">
+                {currentUser?.city || "未设置城市"}
+              </span>
+            </div>
+            <div className="flex min-w-0 items-start gap-2">
+              <BriefcaseBusiness className={fieldIconClassName} />
+              <span className="truncate">
+                {currentUser?.skills || "未设置职业/专业"}
+              </span>
+            </div>
+          </div>
+
+          <div className="flex min-w-0 items-start gap-2">
+            <Tags className={fieldIconClassName} />
+            <span className="truncate">
+              {currentUser?.interests || "未设置兴趣领域"}
+            </span>
+          </div>
         </div>
 
-        <div className="flex items-start gap-2 text-gray-400 text-sm leading-relaxed">
-          <QuoteIcon />
-          <p>{currentUser?.bio || "暂无个人简介"}</p>
+        <div className="flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+          <Quote className={fieldIconClassName} />
+          <p className="line-clamp-3">{currentUser?.bio || "暂无个人简介"}</p>
         </div>
       </div>
 
-      {/* Edit Button — Figma border style */}
-      <Button
-        variant="outline"
-        onClick={onEdit}
-        className="flex items-center gap-2 px-4 py-2.5 border border-[#3f3f47] text-gray-300 text-sm rounded-[16px] hover:bg-white/[0.05] transition-colors"
-      >
+      <Button variant="outline" size="sm" onClick={onEdit}>
         <EditIcon />
         编辑资料
       </Button>

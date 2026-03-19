@@ -44,6 +44,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import type { HackathonDetail, SectionType } from "@/types/hackathon";
+import type { ProfileUser } from "@/types/profile";
 
 // ============================================================================
 // OUTLET CONTEXT TYPE
@@ -52,7 +53,7 @@ import type { HackathonDetail, SectionType } from "@/types/hackathon";
 // ============================================================================
 interface OutletContextType {
   isLoggedIn: boolean;
-  currentUser: any;
+  currentUser: ProfileUser | null;
   fetchCurrentUser: () => void;
   lang: "zh" | "en";
 }
@@ -1169,18 +1170,27 @@ export default function CreateHackathonPage() {
 
       // Success – navigate to the events listing page
       navigate("/events");
-    } catch (e: any) {
-      console.error("Submit error:", e);
-      console.error("Error response:", e.response?.data);
-      const errorDetail = e.response?.data?.detail;
+    } catch (error) {
+      console.error("Submit error:", error);
+      const errorDetail = axios.isAxiosError(error)
+        ? error.response?.data?.detail
+        : undefined;
+      console.error(
+        "Error response:",
+        axios.isAxiosError(error) ? error.response?.data : undefined,
+      );
       if (Array.isArray(errorDetail)) {
         setError(
           errorDetail
-            .map((err: any) => `${err.loc?.join(".")}: ${err.msg}`)
+            .map((err: { loc?: string[]; msg?: string }) => `${err.loc?.join(".")}: ${err.msg}`)
             .join("\n"),
         );
       } else {
-        setError(errorDetail || e.message || "提交失败");
+        setError(
+          (typeof errorDetail === "string" && errorDetail) ||
+            (error instanceof Error ? error.message : "") ||
+            "提交失败",
+        );
       }
     } finally {
       setSubmitting(false);

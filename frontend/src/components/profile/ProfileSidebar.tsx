@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   UserIcon,
   SettingsIcon,
@@ -21,24 +22,22 @@ export default function ProfileSidebar({
   setActiveTab,
 }: ProfileSidebarProps) {
   return (
-    <div className="w-56 flex-shrink-0">
-      <nav className="sticky top-24 space-y-2">
+    <Card className="sticky top-24 w-56 flex-shrink-0">
+      <CardContent className="p-3">
+        <nav className="space-y-2">
         {menuItems.map((item) => (
           <Button
-            variant="ghost"
+            variant={activeTab === item.id ? "secondary" : "ghost"}
             key={item.id}
             onClick={() => setActiveTab(item.id)}
-            className={`w-full flex items-center gap-3 px-4 py-3 text-[14px] transition-all rounded-[16px] ${
-              activeTab === item.id
-                ? "bg-white/[0.08] text-white"
-                : "text-gray-400 hover:text-white hover:bg-white/[0.03]"
-            }`}
+            className="w-full justify-start gap-3"
           >
             {item.icon}
             {item.label}
           </Button>
         ))}
-      </nav>
-    </div>
+        </nav>
+      </CardContent>
+    </Card>
   );
 }

@@ -24,7 +24,6 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import type { HackathonDetail } from "@/types/hackathon";
 import { formatLocation } from "@/utils/hackathon";
 import { getTagColor } from "@/utils/constants";
-import { Users, Pencil } from "lucide-react";
 
 // Modals
 import SubmitProjectModal from "../components/SubmitProjectModal";
@@ -218,7 +217,7 @@ export default function EventDetailPage() {
   useEffect(() => {
     if (activeTab === "participants") {
       fetchTeams();
-    } else if (activeTab === "myproject") {
+    } else if (activeTab === "myproject" || activeTab === "gallery") {
       fetchGallery();
     }
   }, [activeTab]);
@@ -616,6 +615,7 @@ export default function EventDetailPage() {
                     id: "participants",
                     label: isOrganizer ? "参赛管理" : "参赛人员",
                   },
+                  { id: "gallery", label: "作品展示" },
                   { id: "results", label: "评审结果" },
                 ].map((tab) => (
                   <TabsTrigger
@@ -659,7 +659,7 @@ export default function EventDetailPage() {
             >
               <div className="flex gap-8">
                 {/* 左侧主内容区 75% */}
-                <div className="flex-1 min-w-0" style={{ flexBasis: "75%" }}>
+                <div className="flex-1 min-w-0" style={{ flexBasis: activeTab === "gallery" ? "100%" : "75%" }}>
               {/* OVERVIEW TAB - 活动详情（section-based rendering） */}
               {activeTab === "overview" && (
                 <div className="space-y-12">
@@ -953,6 +953,7 @@ export default function EventDetailPage() {
                         <div className="space-y-4">
                           {/* 项目卡片 */}
                           <ProjectCard
+                            variant="horizontal"
                             project={{
                               id: myProject?.id || 0,
                               title: myProject?.title || "未命名项目",
@@ -1065,51 +1066,6 @@ export default function EventDetailPage() {
                     </div>
                   )}
 
-                  {/* Project cards grid — Figma exact: w-[180px] cards */}
-                  <div className="flex flex-wrap gap-4">
-                    {galleryProjects.map((proj) => (
-                      <div key={proj.id} className="bg-[#1a1a1a] border border-[#333] rounded-[14px] flex flex-col w-[180px] relative">
-                        {/* Square image — 180×180 */}
-                        <div className="min-h-[180px] min-w-[180px] w-full aspect-square bg-[#111] rounded-t-[14px] overflow-hidden relative">
-                          {proj.cover_image ? (
-                            <img src={proj.cover_image} className="absolute inset-0 w-full h-full object-cover" alt={proj.title} />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center text-white/20 text-2xl font-bold">
-                              {proj.title[0]}
-                            </div>
-                          )}
-                        </div>
-                        {/* Edit button — top-right of card, visible for own project */}
-                        {(myProject?.id === proj.id || (currentUser && (proj.user_id === currentUser.id || proj.team?.leader_id === currentUser.id))) && (
-                          <button
-                            onClick={() => setIsSubmitOpen(true)}
-                            className="absolute top-2 right-2 z-10 p-1.5 rounded-lg text-white bg-black/70 hover:bg-black/90 backdrop-blur transition-colors"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {/* Info */}
-                        <div className="px-4 py-3 flex flex-col gap-2 w-full">
-                          <p className="text-[14px] font-bold text-white leading-[20px] tracking-[-0.15px] whitespace-nowrap overflow-hidden text-ellipsis">{proj.title}</p>
-                          <p className="text-[12px] text-[#999] leading-[19.5px] line-clamp-2 max-h-[39px] overflow-hidden">
-                            {proj.description || "暂无描述"}
-                          </p>
-                          {hackathon?.registration_type !== "individual" && (
-                            <div className="flex items-center gap-1.5 text-[12px] text-[#888] leading-[16px]">
-                              <Users className="w-3 h-3 flex-shrink-0" />
-                              <span className="whitespace-nowrap">{proj.team?.name || "未组队"}</span>
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                    {galleryProjects.length === 0 && (
-                      <div className="w-full text-center py-16 border border-white/[0.05] rounded-[14px]">
-                        <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">暂无作品</div>
-                        <p className="text-[12px] text-gray-500 mt-2">活动作品将在这里展示</p>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
 
@@ -1400,6 +1356,31 @@ export default function EventDetailPage() {
                 </div>
               )}
 
+              {/* GALLERY TAB - 作品展示 (5-column grid) */}
+              {activeTab === "gallery" && (
+                <div>
+                  <div className="grid grid-cols-5 gap-4">
+                    {galleryProjects.map((proj) => (
+                      <ProjectCard
+                        key={proj.id}
+                        project={proj}
+                        team={proj.team ? { name: proj.team.name, members: proj.team.members, max_members: proj.team.max_members } : undefined}
+                      />
+                    ))}
+                    {galleryProjects.length === 0 && (
+                      <div className="col-span-5 text-center py-16 border border-white/[0.05]">
+                        <div className="text-[11px] tracking-[0.2em] text-gray-600 uppercase">
+                          暂无作品
+                        </div>
+                        <p className="text-[12px] text-gray-500 mt-2">
+                          活动作品将在这里展示
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
               {/* RESULTS TAB - 评审结果 */}
               {activeTab === "results" && (
                 <div>
@@ -1417,7 +1398,7 @@ export default function EventDetailPage() {
 
           {/* 右侧边栏 25% */}
           <div
-            className="hidden md:block w-72 flex-shrink-0"
+            className={`hidden md:block w-72 flex-shrink-0${activeTab === "gallery" ? " !hidden" : ""}`}
             style={{ flexBasis: "25%" }}
           >
             <div className="sticky top-24 space-y-6">
@@ -1557,6 +1538,7 @@ export default function EventDetailPage() {
                     { id: "overview", label: "活动详情" },
                     { id: "myproject", label: "我的项目" },
                     { id: "participants", label: "参赛人员" },
+                    { id: "gallery", label: "作品展示" },
                     { id: "results", label: "评审结果" },
                   ].map((item) => (
                     <Button

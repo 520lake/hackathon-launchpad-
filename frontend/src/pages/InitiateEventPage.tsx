@@ -134,7 +134,7 @@ export default function InitiateEventPage() {
           description: description.trim() || null,
           cover_image: coverImage || null,
           tags:
-            tags.length > 0 ? JSON.stringify(tags.map((t) => t.value)) : null,
+            tags.length > 0 ? tags.map((t) => t.value) : null,
           format,
           registration_type: registrationType,
           status: "draft",
@@ -199,6 +199,28 @@ export default function InitiateEventPage() {
             />
           </div>
 
+          {/* Tags */}
+          <div className="space-y-2">
+            <Label className="text-zinc-300">
+              主题标签 <span className="text-zinc-600">({tags.length}/5)</span>
+            </Label>
+            <MultipleSelector
+              commandProps={{ label: "Select tags" }}
+              value={tags}
+              defaultOptions={TAG_OPTIONS}
+              onChange={setTags}
+              placeholder="选择或输入主题标签"
+              creatable
+              maxSelected={5}
+              hideClearAllButton
+              hidePlaceholderWhenSelected
+              emptyIndicator={
+                <p className="text-center text-sm text-zinc-500">无匹配标签</p>
+              }
+              className="w-full border-zinc-800 bg-zinc-900/50"
+            />
+          </div>
+
           {/* Thumbnail Image */}
           <div className="space-y-2">
             <Label className="text-zinc-300">封面图片</Label>
@@ -249,27 +271,6 @@ export default function InitiateEventPage() {
                 )}
               </div>
             )}
-          </div>
-
-          {/* Tags */}
-          <div className="space-y-2">
-            <Label className="text-zinc-300">
-              主题标签 <span className="text-zinc-600">({tags.length}/5)</span>
-            </Label>
-            <MultipleSelector
-              commandProps={{ label: "Select tags" }}
-              value={tags}
-              defaultOptions={TAG_OPTIONS}
-              onChange={setTags}
-              placeholder="选择主题标签"
-              maxSelected={5}
-              hideClearAllButton
-              hidePlaceholderWhenSelected
-              emptyIndicator={
-                <p className="text-center text-sm text-zinc-500">无匹配标签</p>
-              }
-              className="w-full"
-            />
           </div>
 
           {/* Hold Type — toggle pair */}

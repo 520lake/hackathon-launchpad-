@@ -24,6 +24,14 @@ interface ImageCropperProps {
   imageSrc: string;
   onCropComplete: (croppedDataUrl: string) => void;
   onCancel: () => void;
+  /** Aspect ratio for the crop area. Defaults to 1 (square). */
+  aspect?: number;
+  /** Whether to show a circular crop overlay. Defaults to false. */
+  circularCrop?: boolean;
+  /** Dialog title. Defaults to "裁剪图片". */
+  title?: string;
+  /** Dialog description. Defaults to "拖动选择区域来裁剪图片". */
+  description?: string;
 }
 
 function centerAspectCrop(
@@ -71,6 +79,10 @@ export default function ImageCropper({
   imageSrc,
   onCropComplete,
   onCancel,
+  aspect = 1,
+  circularCrop: circular = false,
+  title = "裁剪图片",
+  description = "拖动选择区域来裁剪图片",
 }: ImageCropperProps) {
   const imgRef = useRef<HTMLImageElement | null>(null);
   const [crop, setCrop] = useState<Crop>();
@@ -78,7 +90,7 @@ export default function ImageCropper({
 
   function onImageLoad(e: SyntheticEvent<HTMLImageElement>) {
     const { width, height } = e.currentTarget;
-    setCrop(centerAspectCrop(width, height, 1));
+    setCrop(centerAspectCrop(width, height, aspect));
   }
 
   function handleCrop() {
@@ -98,9 +110,9 @@ export default function ImageCropper({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>裁剪头像</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           <DialogDescription>
-            拖动选择区域来裁剪你的头像
+            {description}
           </DialogDescription>
         </DialogHeader>
         <div className="flex items-center justify-center">
@@ -108,8 +120,8 @@ export default function ImageCropper({
             crop={crop}
             onChange={(_, percentCrop) => setCrop(percentCrop)}
             onComplete={(c) => setCompletedCrop(c)}
-            aspect={1}
-            circularCrop
+            aspect={aspect}
+            circularCrop={circular}
             className="max-h-[60vh]"
           >
             <img

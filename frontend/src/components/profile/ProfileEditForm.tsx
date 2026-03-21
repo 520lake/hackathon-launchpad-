@@ -7,7 +7,7 @@ import MultipleSelector from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Option } from "@/components/ui/multi-select";
 import { CloseIcon, UploadIcon, UserIcon } from "./ProfileIcons";
-import ImageCropper from "./ImageCropper";
+import ImageCropper from "@/components/ui/image-cropper";
 import type { EditFormState } from "@/hooks/useProfileForm";
 
 interface ProfileEditFormProps {
@@ -215,6 +215,9 @@ export default function ProfileEditForm({
         imageSrc={rawImageSrc}
         onCropComplete={handleCropComplete}
         onCancel={handleCropCancel}
+        circularCrop
+        title="裁剪头像"
+        description="拖动选择区域来裁剪你的头像"
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

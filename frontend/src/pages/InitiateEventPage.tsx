@@ -1,13 +1,14 @@
 import { useRef, useState } from "react";
 import { useNavigate, useOutletContext } from "react-router-dom";
 import axios from "axios";
-import { Loader2, Upload, X, ImageIcon } from "lucide-react";
+import { Loader2, X, ImageIcon } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import MultipleSelector from "@/components/ui/multi-select";
 import type { Option } from "@/components/ui/multi-select";
+import ImageCropper from "@/components/ui/image-cropper";
 
 import type { ProfileUser } from "@/types/profile";
 
@@ -81,10 +82,12 @@ export default function InitiateEventPage() {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState("");
 
   const isValid = title.trim() !== "";
 
-  const handleImageUpload = async (file: File) => {
+  const handleFileSelected = (file: File) => {
     if (!file.type.startsWith("image/")) {
       setError("请上传图片文件");
       return;
@@ -93,15 +96,23 @@ export default function InitiateEventPage() {
       setError("图片大小不能超过 5MB");
       return;
     }
-
-    setUploading(true);
     setError("");
-    const localUrl = URL.createObjectURL(file);
-    setCoverImage(localUrl);
+    const url = URL.createObjectURL(file);
+    setRawImageSrc(url);
+    setCropDialogOpen(true);
+  };
 
+  const handleCropComplete = async (croppedDataUrl: string) => {
+    setCropDialogOpen(false);
+    cleanupRawImage();
+    setCoverImage(croppedDataUrl);
+
+    // Upload the cropped image
+    setUploading(true);
     try {
+      const blob = await fetch(croppedDataUrl).then((r) => r.blob());
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", blob, "cover.png");
       const res = await axios.post("/api/v1/upload/image", fd, {
         headers: { "Content-Type": "multipart/form-data" },
       });
@@ -113,10 +124,22 @@ export default function InitiateEventPage() {
     }
   };
 
+  const handleCropCancel = () => {
+    setCropDialogOpen(false);
+    cleanupRawImage();
+  };
+
+  const cleanupRawImage = () => {
+    if (rawImageSrc) {
+      URL.revokeObjectURL(rawImageSrc);
+      setRawImageSrc("");
+    }
+  };
+
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file) handleImageUpload(file);
+    if (file) handleFileSelected(file);
   };
 
   const handleCreate = async () => {
@@ -231,8 +254,18 @@ export default function InitiateEventPage() {
               className="hidden"
               onChange={(e) => {
                 const file = e.target.files?.[0];
-                if (file) handleImageUpload(file);
+                if (file) handleFileSelected(file);
+                e.target.value = "";
               }}
+            />
+            <ImageCropper
+              open={cropDialogOpen}
+              onOpenChange={setCropDialogOpen}
+              imageSrc={rawImageSrc}
+              onCropComplete={handleCropComplete}
+              onCancel={handleCropCancel}
+              title="裁剪封面"
+              description="拖动选择区域来裁剪封面图片"
             />
             {coverImage ? (
               <div className="group relative w-40 overflow-hidden rounded-[8px] border border-zinc-800">

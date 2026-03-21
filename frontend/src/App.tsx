@@ -9,6 +9,7 @@ import EventsPage from './pages/EventsPage'
 import EventDetailPage from './pages/EventDetailPage'
 import ProfilePage from './pages/ProfilePage'
 import CreateHackathonPage from './pages/CreateHackathonPage'
+import InitiateEventPage from './pages/InitiateEventPage'
 import AdminPage from './pages/AdminPage'
 import NotificationCenterPage from './pages/NotificationCenterPage'
 import CommunityPage from './pages/CommunityPage'
@@ -24,6 +25,7 @@ function App() {
               <Route path="/events" element={<EventsPage />} />
               <Route path="/events/:id" element={<EventDetailPage />} />
               <Route path="/profile" element={<ProfilePage />} />
+              <Route path="/create/new" element={<InitiateEventPage />} />
               <Route path="/create" element={<CreateHackathonPage />} />
               <Route path="/admin" element={<AdminPage />} />
               <Route path="/notifications" element={<NotificationCenterPage />} />

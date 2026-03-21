@@ -46,8 +46,9 @@ class HackathonBase(SQLModel):
     # Core dates – only the overall event window.
     # Granular phase dates (registration, submission, judging) are stored
     # as schedule rows in the `schedules` table.
-    start_date: datetime
-    end_date: datetime
+    # Nullable so draft hackathons can be created without dates.
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
 
     # Structured geographic location (China province/city/district cascade).
     # All NULL means online-only; populated for offline events.
@@ -82,8 +83,8 @@ class HackathonCreate(SQLModel):
     cover_image: Optional[str] = None
     registration_type: RegistrationType = RegistrationType.TEAM
     format: HackathonFormat = HackathonFormat.ONLINE
-    start_date: datetime
-    end_date: datetime
+    start_date: Optional[datetime] = None
+    end_date: Optional[datetime] = None
     province: Optional[str] = None
     city: Optional[str] = None
     district: Optional[str] = None

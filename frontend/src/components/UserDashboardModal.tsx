@@ -598,7 +598,7 @@ export default function UserDashboardModal({
                     我发起的活动
                   </h3>
                   <button
-                    onClick={() => navigate("/create")}
+                    onClick={() => navigate("/create/new")}
                     className="text-brand text-sm hover:text-white transition-colors flex items-center gap-1"
                   >
                     <span>+</span> 发起新活动
@@ -610,7 +610,7 @@ export default function UserDashboardModal({
                       无数据
                     </p>
                     <button
-                      onClick={() => navigate("/create")}
+                      onClick={() => navigate("/create/new")}
                       className="mt-4 px-4 py-2 bg-brand text-black text-sm font-medium rounded-md hover:bg-white transition-colors"
                     >
                       立即发起活动

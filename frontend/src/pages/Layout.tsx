@@ -60,7 +60,12 @@ export default function Layout() {
 
   const [isLoggedIn, setIsLoggedIn] = useState(() => {
     const token = localStorage.getItem('token');
-    return !!(token && token !== 'undefined' && token !== 'null');
+    if (token && token !== 'undefined' && token !== 'null') {
+      return true;
+    }
+
+    const cookieToken = getCookie('access_token');
+    return !!cookieToken;
   })
   const [currentUser, setCurrentUser] = useState<any>(null)
   const [isLoginOpen, setIsLoginOpen] = useState(false)

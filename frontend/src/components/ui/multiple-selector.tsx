@@ -275,7 +275,7 @@ const MultipleSelector = React.forwardRef<
             onChange?.(newOptions);
           }}
         >
-          {`Create "${inputValue}"`}
+          {`创建标签 "${inputValue}"`}
         </CommandItem>
       );
 

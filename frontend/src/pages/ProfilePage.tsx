@@ -63,14 +63,10 @@ export default function ProfilePage() {
             editForm={profileForm.editForm}
             setEditForm={profileForm.setEditForm}
             saving={profileForm.saving}
-            uploading={profileForm.uploading}
             fileInputRef={profileForm.fileInputRef}
             onEdit={() => profileForm.setIsEditing(true)}
             onSave={profileForm.handleSaveProfile}
             onCancel={profileForm.handleCancelEditing}
-            onAvatarUpload={profileForm.handleAvatarUpload}
-            onDrop={profileForm.handleDrop}
-            onDragOver={profileForm.handleDragOver}
             enrollments={enrollments}
             organizedHackathons={organizedHackathons}
             loading={loading}

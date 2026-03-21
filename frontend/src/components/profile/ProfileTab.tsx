@@ -21,14 +21,10 @@ interface ProfileTabProps {
   editForm: EditFormState;
   setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
   saving: boolean;
-  uploading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onEdit: () => void;
   onSave: () => void;
   onCancel: () => void;
-  onAvatarUpload: (file: File) => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
   enrollments: Enrollment[];
   organizedHackathons: HackathonListItem[];
   loading: boolean;
@@ -51,14 +47,10 @@ export default function ProfileTab({
   editForm,
   setEditForm,
   saving,
-  uploading,
   fileInputRef,
   onEdit,
   onSave,
   onCancel,
-  onAvatarUpload,
-  onDrop,
-  onDragOver,
   enrollments,
   organizedHackathons,
   loading,
@@ -172,13 +164,9 @@ export default function ProfileTab({
               editForm={editForm}
               setEditForm={setEditForm}
               saving={saving}
-              uploading={uploading}
               fileInputRef={fileInputRef}
               onSave={onSave}
               onCancel={onCancel}
-              onAvatarUpload={onAvatarUpload}
-              onDrop={onDrop}
-              onDragOver={onDragOver}
             />
           ) : (
             <ProfileHeroCard currentUser={currentUser} onEdit={onEdit} />
@@ -221,13 +209,9 @@ export default function ProfileTab({
             editForm={editForm}
             setEditForm={setEditForm}
             saving={saving}
-            uploading={uploading}
             fileInputRef={fileInputRef}
             onSave={onSave}
             onCancel={onCancel}
-            onAvatarUpload={onAvatarUpload}
-            onDrop={onDrop}
-            onDragOver={onDragOver}
           />
         ) : (
           <ProfileHeroCard currentUser={currentUser} onEdit={onEdit} />

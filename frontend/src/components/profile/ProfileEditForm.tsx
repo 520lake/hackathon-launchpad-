@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,33 +7,70 @@ import MultipleSelector from "@/components/ui/multi-select";
 import { Textarea } from "@/components/ui/textarea";
 import type { Option } from "@/components/ui/multi-select";
 import { CloseIcon, UploadIcon, UserIcon } from "./ProfileIcons";
+import ImageCropper from "./ImageCropper";
 import type { EditFormState } from "@/hooks/useProfileForm";
 
 interface ProfileEditFormProps {
   editForm: EditFormState;
   setEditForm: React.Dispatch<React.SetStateAction<EditFormState>>;
   saving: boolean;
-  uploading: boolean;
   fileInputRef: React.RefObject<HTMLInputElement | null>;
   onSave: () => void;
   onCancel: () => void;
-  onAvatarUpload: (file: File) => void;
-  onDrop: (e: React.DragEvent<HTMLDivElement>) => void;
-  onDragOver: (e: React.DragEvent<HTMLDivElement>) => void;
 }
 
 export default function ProfileEditForm({
   editForm,
   setEditForm,
   saving,
-  uploading,
   fileInputRef,
   onSave,
   onCancel,
-  onAvatarUpload,
-  onDrop,
-  onDragOver,
 }: ProfileEditFormProps) {
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [rawImageSrc, setRawImageSrc] = useState("");
+
+  function handleFileSelected(file: File) {
+    if (!file.type.startsWith("image/")) {
+      alert("请上传图片文件");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("图片大小不能超过 5MB");
+      return;
+    }
+    const url = URL.createObjectURL(file);
+    setRawImageSrc(url);
+    setCropDialogOpen(true);
+  }
+
+  function handleCropComplete(croppedDataUrl: string) {
+    setEditForm({ ...editForm, avatar_url: croppedDataUrl });
+    setCropDialogOpen(false);
+    cleanupRawImage();
+  }
+
+  function handleCropCancel() {
+    setCropDialogOpen(false);
+    cleanupRawImage();
+  }
+
+  function cleanupRawImage() {
+    if (rawImageSrc) {
+      URL.revokeObjectURL(rawImageSrc);
+      setRawImageSrc("");
+    }
+  }
+
+  function handleDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) handleFileSelected(file);
+  }
+
+  function handleDragOver(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+  }
   const interestOptions: Option[] = [
     "人工智能",
     "大语言模型",
@@ -107,8 +145,8 @@ export default function ProfileEditForm({
         <div
           className="relative cursor-pointer"
           onClick={() => fileInputRef.current?.click()}
-          onDrop={onDrop}
-          onDragOver={onDragOver}
+          onDrop={handleDrop}
+          onDragOver={handleDragOver}
         >
           <Avatar className="size-24 rounded-full">
             <AvatarImage src={editForm.avatar_url || undefined} alt="avatar" />
@@ -118,11 +156,6 @@ export default function ProfileEditForm({
               </span>
             </AvatarFallback>
           </Avatar>
-          {uploading ? (
-            <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-brand border-t-transparent" />
-            </div>
-          ) : null}
           <div className="absolute inset-0 flex items-center justify-center rounded-full bg-black/60 opacity-0 transition-opacity hover:opacity-100">
             <UploadIcon />
           </div>
@@ -134,11 +167,10 @@ export default function ProfileEditForm({
               type="button"
               variant="outline"
               onClick={() => fileInputRef.current?.click()}
-              disabled={uploading}
               className="justify-center gap-2"
             >
               <UploadIcon />
-              {uploading ? "上传中..." : "点击上传头像"}
+              点击上传头像
             </Button>
             <div className="flex gap-2">
               {editForm.avatar_url && (
@@ -171,11 +203,18 @@ export default function ProfileEditForm({
         accept="image/*"
         onChange={(e) => {
           const file = e.target.files?.[0];
-          if (file) {
-            onAvatarUpload(file);
-          }
+          if (file) handleFileSelected(file);
+          e.target.value = "";
         }}
         className="hidden"
+      />
+
+      <ImageCropper
+        open={cropDialogOpen}
+        onOpenChange={setCropDialogOpen}
+        imageSrc={rawImageSrc}
+        onCropComplete={handleCropComplete}
+        onCancel={handleCropCancel}
       />
 
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

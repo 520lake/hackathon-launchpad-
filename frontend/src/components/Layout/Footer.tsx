@@ -37,7 +37,7 @@ export default function Footer() {
               <ul className="space-y-2 text-sm text-ink-dim">
                 <li>
                   <Link
-                    to="/create"
+                    to="/create/new"
                     className="hover:text-brand transition-colors"
                   >
                     发起活动

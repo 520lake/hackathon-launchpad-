@@ -61,7 +61,7 @@ export default function HomePage() {
         const user = res.data;
 
         if (user.can_create_hackathon) {
-          navigate("/create");
+          navigate("/create/new");
           return;
         }
 
@@ -137,7 +137,7 @@ export default function HomePage() {
         onClose={() => setIsActivateOrganizerOpen(false)}
         onSuccess={() => {
           fetchCurrentUser();
-          navigate("/create");
+          navigate("/create/new");
         }}
       />
     </>

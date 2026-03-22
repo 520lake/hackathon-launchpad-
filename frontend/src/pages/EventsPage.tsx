@@ -25,30 +25,6 @@ interface OutletContextType {
   currentUser: any;
 }
 
-// Mock data used as a fallback when the API returns an empty list
-const MOCK_DATA: HackathonCardData[] = [
-  {
-    id: "1",
-    title: "Aurathon AI 创新黑客松 2026",
-    hosts: [{ name: "Aurathon 官方" }],
-    tags: [],
-    status: "ongoing",
-    dateRange: "2026.1.15 - 3.1",
-    location: "线上",
-    prizeText: "¥50万 + 非现金奖品",
-  },
-  {
-    id: "2",
-    title: "Web3 开发者挑战赛",
-    hosts: [{ name: "Blockchain Labs" }],
-    tags: [],
-    status: "published",
-    dateRange: "2026.3.1 - 3.15",
-    location: "线上",
-    prizeText: "¥20万",
-  },
-];
-
 // Map Chinese format labels to backend enum values for filtering
 const FORMAT_LABEL_TO_VALUE: Record<string, string> = {
   线下: "offline",
@@ -173,7 +149,7 @@ export default function EventsPage() {
   // Transform filtered hackathons into card data
   const cardDataList = useMemo(() => {
     if (filteredHackathons.length === 0 && !loading) {
-      return MOCK_DATA;
+      return [];
     }
     const currentUser = JSON.parse(localStorage.getItem("user") || "{}");
     return filteredHackathons.map((h) =>
@@ -494,12 +470,26 @@ export default function EventsPage() {
             {/* 空状态 */}
             {!loading && cardDataList.length === 0 && (
               <div className="text-center py-32 bg-muted/30 border border-border rounded-3xl">
-                <div className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-4">
-                  暂无匹配的活动
-                </div>
-                <Button variant="link" onClick={clearFilters}>
-                  清除筛选条件
-                </Button>
+                {hackathons.length === 0 ? (
+                  <>
+                    <div className="text-4xl mb-4">🎯</div>
+                    <div className="text-sm text-muted-foreground mb-1">
+                      暂无黑客松活动
+                    </div>
+                    <div className="text-xs text-muted-foreground/60">
+                      活动即将上线，敬请期待
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div className="text-[11px] tracking-[0.2em] text-muted-foreground uppercase mb-4">
+                      暂无匹配的活动
+                    </div>
+                    <Button variant="link" onClick={clearFilters}>
+                      清除筛选条件
+                    </Button>
+                  </>
+                )}
               </div>
             )}
           </div>

@@ -652,8 +652,8 @@ HACKATHONS = [
 
 
 def seed():
-    project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-    db_path = os.path.join(project_root, "vibebuild.db")
+    backend_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+    db_path = os.path.join(backend_root, "data", "vibebuild.db")
     db_url = f"sqlite:///{db_path}"
     print(f"Using database: {db_path}")
 

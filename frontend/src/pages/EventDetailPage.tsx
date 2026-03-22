@@ -25,11 +25,11 @@ import type { HackathonDetail } from "@/types/hackathon";
 import { formatLocation } from "@/utils/hackathon";
 import { getTagColor } from "@/utils/constants";
 
-// Modals
+// Modals & Panels
 import SubmitProjectModal from "../components/SubmitProjectModal";
 import ProjectCard from "../components/ProjectCard";
-import JudgingModal from "../components/JudgingModal";
-import ResultPublishModal from "../components/ResultPublishModal";
+import JudgingPanel from "../components/JudgingPanel";
+import ResultPublishPanel from "../components/ResultPublishPanel";
 import AIResumeModal from "../components/AIResumeModal";
 import TeamMatchModal from "../components/TeamMatchModal";
 import CreateTeamModal from "../components/CreateTeamModal";
@@ -163,8 +163,6 @@ export default function EventDetailPage() {
 
   // Modals
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
-  const [isJudgingOpen, setIsJudgingOpen] = useState(false);
-  const [isResultPublishOpen, setIsResultPublishOpen] = useState(false);
   const [isAIResumeOpen, setIsAIResumeOpen] = useState(false);
   const [isTeamMatchOpen, setIsTeamMatchOpen] = useState(false);
   const [isCreateTeamOpen, setIsCreateTeamOpen] = useState(false);
@@ -175,6 +173,13 @@ export default function EventDetailPage() {
 
   // 判断当前用户是否为活动发起者（使用 created_by 字段）
   const isOrganizer = hackathon?.created_by === currentUser?.id;
+
+  // Guard: redirect non-organizers away from organizer-only tabs
+  useEffect(() => {
+    if (hackathon && !isOrganizer && (activeTab === "judging" || activeTab === "publish")) {
+      setActiveTab("overview");
+    }
+  }, [hackathon, isOrganizer, activeTab]);
 
   // Extract sections by type for easy access in the overview tab
   const sectionsByType = useMemo(() => {
@@ -632,6 +637,12 @@ export default function EventDetailPage() {
                     label: isOrganizer ? "参赛管理" : "参赛人员",
                   },
                   { id: "gallery", label: "作品展示" },
+                  ...(isOrganizer
+                    ? [
+                        { id: "judging", label: "评审管理" },
+                        { id: "publish", label: "发布结果" },
+                      ]
+                    : []),
                   { id: "results", label: "评审结果" },
                 ].map((tab) => (
                   <TabsTrigger
@@ -644,27 +655,6 @@ export default function EventDetailPage() {
                 ))}
               </TabsList>
             </Tabs>
-
-                {(isOrganizer || isJudge) && (
-                  <div className="ml-auto flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      onClick={() => setIsJudgingOpen(true)}
-                      className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
-                    >
-                      {isOrganizer ? "评审管理" : "评审"}
-                    </Button>
-                    {isOrganizer && (
-                      <Button
-                        variant="ghost"
-                        onClick={() => setIsResultPublishOpen(true)}
-                        className="px-4 py-4 text-[12px] text-gray-500 hover:text-white transition-colors duration-200 ease-in-out"
-                      >
-                        发布结果
-                      </Button>
-                    )}
-                  </div>
-                )}
               </div>
             </div>
 
@@ -677,7 +667,7 @@ export default function EventDetailPage() {
             >
               <div className="flex gap-8">
                 {/* 左侧主内容区 75% */}
-                <div className="flex-1 min-w-0" style={{ flexBasis: activeTab === "gallery" ? "100%" : "75%" }}>
+                <div className="flex-1 min-w-0" style={{ flexBasis: ["gallery", "judging", "publish"].includes(activeTab) ? "100%" : "75%" }}>
               {/* OVERVIEW TAB - 活动详情（section-based rendering） */}
               {activeTab === "overview" && (
                 <div className="space-y-12">
@@ -1399,6 +1389,25 @@ export default function EventDetailPage() {
                 </div>
               )}
 
+              {/* JUDGING TAB - 评审管理 (organizer only) */}
+              {activeTab === "judging" && isOrganizer && hackathonId && (
+                <JudgingPanel
+                  hackathonId={hackathonId}
+                  hackathonTitle={hackathon?.title || ""}
+                />
+              )}
+
+              {/* PUBLISH TAB - 发布结果 (organizer only) */}
+              {activeTab === "publish" && isOrganizer && hackathonId && (
+                <ResultPublishPanel
+                  hackathonId={hackathonId}
+                  onPublished={() => {
+                    fetchHackathon();
+                    setActiveTab("results");
+                  }}
+                />
+              )}
+
               {/* RESULTS TAB - 评审结果 */}
               {activeTab === "results" && (
                 <div>
@@ -1412,7 +1421,7 @@ export default function EventDetailPage() {
 
           {/* 右侧边栏 25% */}
           <div
-            className={`hidden md:block w-72 flex-shrink-0${activeTab === "gallery" ? " !hidden" : ""}`}
+            className={`hidden md:block w-72 flex-shrink-0${["gallery", "judging", "publish"].includes(activeTab) ? " !hidden" : ""}`}
             style={{ flexBasis: "25%" }}
           >
             <div className="sticky top-24 space-y-6">
@@ -1550,9 +1559,15 @@ export default function EventDetailPage() {
                 <div className="space-y-1">
                   {[
                     { id: "overview", label: "活动详情" },
-                    { id: "myproject", label: "我的项目" },
-                    { id: "participants", label: "参赛人员" },
+                    { id: "myproject", label: isOrganizer ? "作品管理" : "我的项目" },
+                    { id: "participants", label: isOrganizer ? "参赛管理" : "参赛人员" },
                     { id: "gallery", label: "作品展示" },
+                    ...(isOrganizer
+                      ? [
+                          { id: "judging", label: "评审管理" },
+                          { id: "publish", label: "发布结果" },
+                        ]
+                      : []),
                     { id: "results", label: "评审结果" },
                   ].map((item) => (
                     <Button
@@ -1590,18 +1605,6 @@ export default function EventDetailPage() {
             teamId={myTeam?.id}
             registrationType={hackathon?.registration_type || "team"}
             existingSubmission={myProject}
-          />
-          <JudgingModal
-            isOpen={isJudgingOpen}
-            onClose={() => setIsJudgingOpen(false)}
-            hackathonId={hackathonId}
-            hackathonTitle={hackathon?.title || ""}
-            isOrganizer={isOrganizer}
-          />
-          <ResultPublishModal
-            isOpen={isResultPublishOpen}
-            onClose={() => setIsResultPublishOpen(false)}
-            hackathonId={hackathonId}
           />
           <TeamMatchModal
             isOpen={isTeamMatchOpen}

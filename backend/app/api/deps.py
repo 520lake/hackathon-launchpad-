@@ -3,7 +3,7 @@ from fastapi import Depends, HTTPException, status, Request
 from fastapi.security import OAuth2PasswordBearer
 from jose import jwt, JWTError
 from pydantic import ValidationError
-from sqlmodel import Session
+from sqlmodel import Session, select
 import logging
 import sys
 
@@ -11,6 +11,7 @@ from app.core import security
 from app.core.config import settings
 from app.db.session import get_session
 from app.models.user import User
+from app.models.judge import Judge
 
 # Use uvicorn logger to ensure visibility in ModelScope logs
 logger = logging.getLogger("uvicorn")
@@ -90,3 +91,16 @@ def get_current_organizer(
             status_code=403, detail="You need organizer permission to perform this action"
         )
     return current_user
+
+
+def verify_judge(session: Session, user_id: int, hackathon_id: int) -> Judge:
+    """Return the Judge row or raise 403."""
+    judge = session.exec(
+        select(Judge).where(
+            Judge.user_id == user_id,
+            Judge.hackathon_id == hackathon_id,
+        )
+    ).first()
+    if not judge:
+        raise HTTPException(status_code=403, detail="You are not a judge for this hackathon")
+    return judge

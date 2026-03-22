@@ -27,8 +27,10 @@ from app.models.prize import Prize, PrizeRead
 from app.models.judging_criteria import JudgingCriteria, JudgingCriteriaRead
 from app.models.partner import Partner, PartnerRead
 from app.models.judge import Judge, JudgeCreate, JudgeRead
+from app.models.score import Score, CriteriaScoreSummary, CriteriaScoreSummaryRead
+from app.models.team_project import Submission
 from app.db.session import get_session
-from app.api.deps import get_current_user, get_current_organizer
+from app.api.deps import get_current_user, get_current_organizer, verify_judge
 from app.models.user import User, UserRead
 
 router = APIRouter()
@@ -558,3 +560,144 @@ def read_judges(*, session: Session = Depends(get_session), hackathon_id: int):
     query = select(User).join(Judge, User.id == Judge.user_id).where(Judge.hackathon_id == hackathon_id)
     judges = session.exec(query).all()
     return judges
+
+
+@router.get("/{hackathon_id}/judges/me")
+def check_judge_status(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """Check if the current user is a judge for this hackathon."""
+    judge = session.exec(
+        select(Judge).where(
+            Judge.user_id == current_user.id,
+            Judge.hackathon_id == hackathon_id,
+        )
+    ).first()
+    return {"is_judge": judge is not None}
+
+
+@router.get("/{hackathon_id}/judges/me/progress")
+def judge_progress(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    current_user: User = Depends(get_current_user),
+):
+    """Return which submissions the current judge has scored."""
+    verify_judge(session, current_user.id, hackathon_id)
+
+    # All submissions for this hackathon
+    all_submissions = session.exec(
+        select(Submission.id).where(Submission.hackathon_id == hackathon_id)
+    ).all()
+
+    # Submissions this judge has scored (at least one criterion)
+    scored_ids = session.exec(
+        select(Score.submission_id).where(
+            Score.judge_id == current_user.id,
+            Score.submission_id.in_(all_submissions),
+        ).distinct()
+    ).all()
+
+    return {
+        "scored_submission_ids": list(scored_ids),
+        "total_submissions": len(all_submissions),
+    }
+
+
+@router.delete("/{hackathon_id}/judges/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_judge(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+    user_id: int,
+    current_user: User = Depends(get_current_organizer),
+):
+    """Remove a judge. Existing scores are kept for audit."""
+    _check_organizer_permission(session, hackathon_id, current_user.id)
+
+    judge = session.exec(
+        select(Judge).where(
+            Judge.user_id == user_id,
+            Judge.hackathon_id == hackathon_id,
+        )
+    ).first()
+    if not judge:
+        raise HTTPException(status_code=404, detail="Judge not found")
+
+    session.delete(judge)
+    session.commit()
+    return None
+
+
+@router.get("/{hackathon_id}/leaderboard")
+def hackathon_leaderboard(
+    *,
+    session: Session = Depends(get_session),
+    hackathon_id: int,
+):
+    """
+    Ranked submissions by total_score with per-criteria breakdown.
+    """
+    hackathon = session.get(Hackathon, hackathon_id)
+    if not hackathon:
+        raise HTTPException(status_code=404, detail="Hackathon not found")
+
+    submissions = session.exec(
+        select(Submission)
+        .where(Submission.hackathon_id == hackathon_id)
+        .order_by(Submission.total_score.desc())
+    ).all()
+
+    if not submissions:
+        return []
+
+    sub_ids = [s.id for s in submissions]
+
+    # Per-criteria summaries
+    summaries = session.exec(
+        select(CriteriaScoreSummary).where(
+            CriteriaScoreSummary.submission_id.in_(sub_ids)
+        )
+    ).all()
+    summary_map: dict[int, list] = {}
+    for s in summaries:
+        summary_map.setdefault(s.submission_id, []).append(
+            CriteriaScoreSummaryRead.from_orm(s).dict()
+        )
+
+    # Count distinct judges per submission
+    judge_scores = session.exec(
+        select(Score.submission_id, Score.judge_id).where(
+            Score.submission_id.in_(sub_ids)
+        )
+    ).all()
+    judge_count_map: dict[int, set] = {}
+    for sub_id, judge_id in judge_scores:
+        judge_count_map.setdefault(sub_id, set()).add(judge_id)
+
+    # Criteria names for context
+    criteria = session.exec(
+        select(JudgingCriteria).where(JudgingCriteria.hackathon_id == hackathon_id)
+    ).all()
+    criteria_name_map = {c.id: c.name for c in criteria}
+
+    result = []
+    for rank, sub in enumerate(submissions, 1):
+        criteria_scores = summary_map.get(sub.id, [])
+        for cs in criteria_scores:
+            cs["criteria_name"] = criteria_name_map.get(cs["criteria_id"], "")
+        result.append({
+            "rank": rank,
+            "submission_id": sub.id,
+            "title": sub.title,
+            "team_id": sub.team_id,
+            "total_score": round(sub.total_score, 2),
+            "judge_count": len(judge_count_map.get(sub.id, set())),
+            "criteria_scores": criteria_scores,
+        })
+
+    return result
